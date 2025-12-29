@@ -15,12 +15,14 @@ import {
 import '../styles/SpaceOverview.css';
 import CreateListModal from '../components/CreateListModal';
 import CreateFolderModal from '../components/CreateFolderModal';
+import AddBookmarkModal from '../components/AddBookmarkModal';
 import { format } from 'date-fns';
 
 const SpaceOverview: React.FC = () => {
     const { spaces, lists, tasks, folders, docs, currentSpaceId, setCurrentListId, setCurrentView } = useAppStore();
     const [isCreateListOpen, setIsCreateListOpen] = useState(false);
     const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
+    const [isAddBookmarkOpen, setIsAddBookmarkOpen] = useState(false);
 
     const currentSpace = spaces.find(s => s.id === currentSpaceId);
     const spaceLists = lists.filter(l => l.spaceId === currentSpaceId);
@@ -172,7 +174,7 @@ const SpaceOverview: React.FC = () => {
                             <Bookmark size={48} strokeWidth={1} />
                         </div>
                         <div className="empty-text">Bookmarks make it easy to save ClickUp items or any URL from around the web.</div>
-                        <button className="btn-card-action">Add Bookmark</button>
+                        <button className="btn-card-action" onClick={() => setIsAddBookmarkOpen(true)}>Add Bookmark</button>
                     </div>
                 </div>
 
@@ -363,6 +365,12 @@ const SpaceOverview: React.FC = () => {
                 <CreateFolderModal
                     spaceId={currentSpace.id}
                     onClose={() => setIsCreateFolderOpen(false)}
+                />
+            )}
+            {isAddBookmarkOpen && currentSpace && (
+                <AddBookmarkModal
+                    spaceId={currentSpace.id}
+                    onClose={() => setIsAddBookmarkOpen(false)}
                 />
             )}
         </div>
