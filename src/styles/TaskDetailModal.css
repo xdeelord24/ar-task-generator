@@ -1,6 +1,6 @@
 .task-detail-modal {
-    width: 1200px !important;
-    max-width: 95vw !important;
+    width: 1400px !important;
+    max-width: 98vw !important;
     height: 90vh;
     display: flex !important;
     flex-direction: column;
@@ -1304,7 +1304,19 @@
 
 }
 
+.sidebar-container-new {
+    width: 450px;
+    border-left: 1px solid var(--border);
+    background: var(--bg-surface);
+    display: flex;
+    flex-direction: column;
+}
+
 /* Markdown Tables in Activity */
+.activity-msg {
+    overflow-x: auto;
+}
+
 .activity-msg table {
     border-collapse: collapse;
     width: 100%;
