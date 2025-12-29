@@ -1,27 +1,83 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     History,
     CheckCircle2,
     Clock,
     Calendar,
     Star,
-    Plus
+    Plus,
+    Play,
+    Square
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
-import { format, isToday, parseISO } from 'date-fns';
+import { format, isToday, parseISO, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import '../styles/HomeView.css';
 
 interface HomeViewProps {
     onAddTask: () => void;
+    onTaskClick: (taskId: string) => void;
 }
 
-const HomeView: React.FC<HomeViewProps> = ({ onAddTask }) => {
-    const { tasks } = useAppStore();
+const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
+    const { tasks, startTimer, stopTimer, activeTimer } = useAppStore();
+    const [activeTab, setActiveTab] = useState<'To Do' | 'Done' | 'Delegated'>('To Do');
 
-    const todayTasks = tasks.filter(t => t.dueDate && isToday(parseISO(t.dueDate)));
-    const overdueTasks = tasks.filter(t => t.dueDate && !isToday(parseISO(t.dueDate)) && parseISO(t.dueDate) < new Date() && t.status.toUpperCase() !== 'COMPLETED');
+    const todayTasks = useMemo(() =>
+        tasks.filter(t => t.dueDate && isToday(parseISO(t.dueDate)) && t.status.toUpperCase() !== 'COMPLETED'),
+        [tasks]);
 
-    const recents = tasks.slice(0, 3);
+    const overdueTasks = useMemo(() =>
+        tasks.filter(t => t.dueDate && !isToday(parseISO(t.dueDate)) && parseISO(t.dueDate) < new Date() && t.status.toUpperCase() !== 'COMPLETED'),
+        [tasks]);
+
+    const recents = useMemo(() =>
+        [...tasks].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 3),
+        [tasks]);
+
+    const filteredWorkTasks = useMemo(() => {
+        if (activeTab === 'To Do') {
+            return tasks.filter(t => t.status.toUpperCase() !== 'COMPLETED');
+        } else if (activeTab === 'Done') {
+            return tasks.filter(t => t.status.toUpperCase() === 'COMPLETED');
+        } else {
+            // Delegated - for now just high priority tasks as a placeholder if no assignee logic
+            return tasks.filter(t => t.assignee && t.assignee !== 'Jundee');
+        }
+    }, [tasks, activeTab]);
+
+    const workGroupTasks = useMemo(() => {
+        return filteredWorkTasks.filter(t => t.dueDate && isToday(parseISO(t.dueDate)));
+    }, [filteredWorkTasks]);
+
+    // Calculate time tracking
+    const { todayTotal, weekTotal } = useMemo(() => {
+        const now = new Date();
+        const weekStart = startOfWeek(now, { weekStartsOn: 0 });
+        const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
+
+        let today = 0;
+        let week = 0;
+
+        tasks.forEach(task => {
+            task.timeEntries?.forEach(entry => {
+                const entryDate = new Date(entry.date);
+                if (isSameDay(entryDate, now)) {
+                    today += entry.duration;
+                }
+                if (entryDate >= weekStart && entryDate <= weekEnd) {
+                    week += entry.duration;
+                }
+            });
+        });
+
+        return { todayTotal: today, weekTotal: week };
+    }, [tasks]);
+
+    const formatDuration = (minutes: number) => {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours}h ${mins.toString().padStart(2, '0')}m`;
+    };
 
     return (
         <div className="home-container">
@@ -50,7 +106,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask }) => {
                         </div>
                         <div className="recents-grid">
                             {recents.map(task => (
-                                <div key={task.id} className="recent-card">
+                                <div key={task.id} className="recent-card" onClick={() => onTaskClick(task.id)}>
                                     <div className="recent-icon">
                                         <CheckCircle2 size={16} />
                                     </div>
@@ -72,9 +128,18 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask }) => {
                                 <h3>My Work</h3>
                             </div>
                             <div className="work-tabs">
-                                <button className="tab active">To Do</button>
-                                <button className="tab">Done</button>
-                                <button className="tab">Delegated</button>
+                                <button
+                                    className={`tab ${activeTab === 'To Do' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('To Do')}
+                                >To Do</button>
+                                <button
+                                    className={`tab ${activeTab === 'Done' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('Done')}
+                                >Done</button>
+                                <button
+                                    className={`tab ${activeTab === 'Delegated' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('Delegated')}
+                                >Delegated</button>
                             </div>
                         </div>
 
@@ -82,13 +147,15 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask }) => {
                             <div className="work-group">
                                 <div className="group-header">
                                     <span>Today</span>
-                                    <span className="count">{todayTasks.length}</span>
+                                    <span className="count">{workGroupTasks.length}</span>
                                 </div>
                                 <div className="group-tasks">
-                                    {todayTasks.length > 0 ? todayTasks.map(task => (
-                                        <div key={task.id} className="home-task-item">
+                                    {workGroupTasks.length > 0 ? workGroupTasks.map(task => (
+                                        <div key={task.id} className="home-task-item" onClick={() => onTaskClick(task.id)}>
                                             <div className="task-left">
-                                                <div className="checkbox"></div>
+                                                <div className={`checkbox ${task.status.toUpperCase() === 'COMPLETED' ? 'checked' : ''}`}>
+                                                    {task.status.toUpperCase() === 'COMPLETED' && <CheckCircle2 size={12} />}
+                                                </div>
                                                 <span>{task.name}</span>
                                             </div>
                                             <div className="task-right">
@@ -100,7 +167,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask }) => {
                                 <button className="add-task-inline" onClick={onAddTask}>+ Add Task</button>
                             </div>
 
-                            {overdueTasks.length > 0 && (
+                            {activeTab === 'To Do' && overdueTasks.length > 0 && (
                                 <div className="work-group overdue">
                                     <div className="group-header">
                                         <span>Overdue</span>
@@ -108,7 +175,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask }) => {
                                     </div>
                                     <div className="group-tasks">
                                         {overdueTasks.map(task => (
-                                            <div key={task.id} className="home-task-item">
+                                            <div key={task.id} className="home-task-item" onClick={() => onTaskClick(task.id)}>
                                                 <div className="task-left">
                                                     <div className="checkbox"></div>
                                                     <span>{task.name}</span>
@@ -140,8 +207,8 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask }) => {
                                 <span className="day-num">{format(new Date(), 'd')}</span>
                             </div>
                             <div className="agenda-events">
-                                {todayTasks.length > 0 ? todayTasks.slice(0, 2).map(task => (
-                                    <div key={task.id} className="agenda-event">
+                                {todayTasks.length > 0 ? todayTasks.slice(0, 4).map(task => (
+                                    <div key={task.id} className="agenda-event" onClick={() => onTaskClick(task.id)}>
                                         <span className="time">All day</span>
                                         <span className="event-name">{task.name}</span>
                                     </div>
@@ -161,13 +228,21 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask }) => {
                         <div className="time-tracking-card">
                             <div className="time-stat">
                                 <span className="label">Today</span>
-                                <span className="value">0h 00m</span>
+                                <span className="value">{formatDuration(todayTotal)}</span>
                             </div>
                             <div className="time-stat">
                                 <span className="label">This week</span>
-                                <span className="value">0h 00m</span>
+                                <span className="value">{formatDuration(weekTotal)}</span>
                             </div>
-                            <button className="btn-primary" style={{ marginTop: '16px', width: '100%' }}>Start Timer</button>
+                            {activeTimer ? (
+                                <button className="btn-primary stop" onClick={stopTimer} style={{ marginTop: '16px', width: '100%', background: '#ef4444' }}>
+                                    <Square size={14} style={{ marginRight: '8px' }} /> Stop Timer
+                                </button>
+                            ) : (
+                                <button className="btn-primary" onClick={() => recents[0] && startTimer(recents[0].id)} style={{ marginTop: '16px', width: '100%' }}>
+                                    <Play size={14} style={{ marginRight: '8px' }} /> Start Timer
+                                </button>
+                            )}
                         </div>
                     </section>
                 </div>

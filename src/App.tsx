@@ -51,7 +51,7 @@ function App() {
   const renderView = () => {
     switch (currentView) {
       case 'home':
-        return <HomeView onAddTask={() => setIsModalOpen(true)} />;
+        return <HomeView onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
       case 'timesheet':
         return <TimesheetView />;
       case 'dashboards':
