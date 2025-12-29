@@ -11,6 +11,7 @@ interface AppStore extends AppState {
     archiveTask: (taskId: string) => void;
     addSubtask: (taskId: string, subtask: Omit<Subtask, 'id' | 'createdAt' | 'updatedAt'>) => void;
     updateSubtask: (taskId: string, subtaskId: string, updates: Partial<Subtask>) => void;
+    deleteSubtask: (taskId: string, subtaskId: string) => void;
     setSpaces: (spaces: Space[]) => void;
     addSpace: (space: Omit<Space, 'id' | 'taskCount' | 'isDefault'>) => void;
     setFolders: (folders: Folder[]) => void;
@@ -252,6 +253,14 @@ export const useAppStore = create<AppStore>()(
                     task.id === taskId ? {
                         ...task,
                         subtasks: task.subtasks?.map(st => st.id === subtaskId ? { ...st, ...updates, updatedAt: new Date().toISOString() } : st)
+                    } : task
+                )
+            })),
+            deleteSubtask: (taskId, subtaskId) => set((state) => ({
+                tasks: state.tasks.map((task) =>
+                    task.id === taskId ? {
+                        ...task,
+                        subtasks: task.subtasks?.filter(st => st.id !== subtaskId)
                     } : task
                 )
             })),

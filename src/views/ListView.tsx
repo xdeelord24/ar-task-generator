@@ -115,9 +115,10 @@ interface SortableRowProps {
     menuTrigger: HTMLElement | null;
 }
 
-// Helper component for Subtasks
+const priorities: any[] = ['low', 'medium', 'high', 'urgent'];
+
 interface SubtaskRowItemProps {
-    task: any; // Using any for subtask to match structure locally
+    task: any;
     columns: ColumnSetting[];
     onTaskClick: (taskId: string) => void;
     getPriorityColor: (priority: any) => string;
@@ -125,6 +126,13 @@ interface SubtaskRowItemProps {
     tags: Tag[];
     parentId: string;
     onUpdateSubtask: (parentId: string, subtaskId: string, updates: any) => void;
+    activePopover: ActivePopover | null;
+    setActivePopover: (popover: ActivePopover | null) => void;
+    onOpenMenu: (taskId: string, trigger: HTMLElement) => void;
+    isMenuOpen: boolean;
+    onCloseMenu: () => void;
+    menuTrigger: HTMLElement | null;
+    onDeleteSubtask: (parentId: string, subtaskId: string) => void;
 }
 
 const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
@@ -134,8 +142,34 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
     getPriorityColor,
     getDateStatus,
     onUpdateSubtask,
-    parentId
+    parentId,
+    activePopover,
+    setActivePopover,
+    onOpenMenu,
+    isMenuOpen,
+    onCloseMenu,
+    menuTrigger,
+    onDeleteSubtask,
+    tags
 }) => {
+    const [isRenaming, setIsRenaming] = React.useState(false);
+    const [renameValue, setRenameValue] = React.useState(task.name);
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        if (isRenaming && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [isRenaming]);
+
+    const handleRenameSubmit = () => {
+        if (renameValue.trim() && renameValue !== task.name) {
+            onUpdateSubtask(parentId, task.id, { name: renameValue.trim() });
+        }
+        setIsRenaming(false);
+    };
+
     const renderCell = (col: ColumnSetting) => {
         switch (col.id) {
             case 'name':
@@ -151,9 +185,55 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                                     onUpdateSubtask(parentId, task.id, { status: e.target.checked ? 'COMPLETED' : 'TO DO' });
                                 }}
                             />
-                            <span className="task-name" style={{ color: task.status === 'COMPLETED' ? '#94a3b8' : 'inherit', textDecoration: task.status === 'COMPLETED' ? 'line-through' : 'none' }}>
-                                {task.name}
-                            </span>
+                            {isRenaming ? (
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={renameValue}
+                                    onChange={e => setRenameValue(e.target.value)}
+                                    onBlur={handleRenameSubmit}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter') handleRenameSubmit();
+                                        if (e.key === 'Escape') { setRenameValue(task.name); setIsRenaming(false); }
+                                        e.stopPropagation();
+                                    }}
+                                    onClick={e => e.stopPropagation()}
+                                    className="task-name-input"
+                                    style={{ flex: 1, minWidth: 0, height: 24, padding: '0 4px', border: '1px solid var(--primary)', borderRadius: 4, background: 'var(--bg-main)', color: 'var(--text-main)' }}
+                                />
+                            ) : (
+                                <span className="task-name" style={{ color: task.status === 'COMPLETED' ? 'var(--text-tertiary)' : 'inherit', textDecoration: task.status === 'COMPLETED' ? 'line-through' : 'none' }}>
+                                    {task.name}
+                                </span>
+                            )}
+                            <div className="task-tags">
+                                {task.tags?.map((tagId: string) => {
+                                    const tag = tags.find(t => t.id === tagId);
+                                    if (!tag) return null;
+                                    return (
+                                        <span key={tagId} className="tag-pill" style={{ backgroundColor: tag.color + '20', color: tag.color }}>
+                                            {tag.name}
+                                        </span>
+                                    );
+                                })}
+                                {activePopover?.taskId === task.id && activePopover?.field === 'tags' && (
+                                    <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100 }}>
+                                        <TagMenu
+                                            tags={tags}
+                                            selectedTagIds={task.tags || []}
+                                            onToggleTag={(tagId) => {
+                                                const currentTags: string[] = task.tags || [];
+                                                const newTags = currentTags.includes(tagId) ? currentTags.filter(t => t !== tagId) : [...currentTags, tagId];
+                                                onUpdateSubtask(parentId, task.id, { tags: newTags });
+                                            }}
+                                            onClose={() => setActivePopover(null)}
+                                            onCreateTag={() => { }}
+                                            onUpdateTag={() => { }}
+                                            onDeleteTag={() => { }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 );
@@ -169,17 +249,61 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
             case 'dueDate':
                 return (
                     <div className="task-cell date-cell" style={{ width: col.width || 130 }}>
-                        <div className={`date-badge-interactive ${task.dueDate ? getDateStatus(task.dueDate) : 'empty'}`}>
+                        <div
+                            className={`date-badge-interactive ${task.dueDate ? getDateStatus(task.dueDate) : 'empty'}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setActivePopover({ taskId: task.id, field: 'date', element: e.currentTarget });
+                            }}
+                        >
                             <CalendarIcon size={12} />
                             {task.dueDate ? format(new Date(task.dueDate), 'MMM d') : '-'}
                         </div>
+                        {activePopover?.taskId === task.id && activePopover?.field === 'date' && (
+                            <DatePicker
+                                initialDate={task.dueDate ? new Date(task.dueDate) : undefined}
+                                onSelect={(date) => {
+                                    onUpdateSubtask(parentId, task.id, { dueDate: date?.toISOString() });
+                                    setActivePopover(null);
+                                }}
+                                onClose={() => setActivePopover(null)}
+                                triggerElement={activePopover.element}
+                            />
+                        )}
                     </div>
                 );
             case 'priority':
                 return (
-                    <div className="task-cell priority-cell" style={{ width: col.width || 110 }}>
-                        <Flag size={12} style={{ color: getPriorityColor(task.priority), marginRight: 6 }} />
-                        <span style={{ color: getPriorityColor(task.priority), fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{task.priority || '-'}</span>
+                    <div className="task-cell priority-cell" style={{ width: col.width || 110, overflow: 'visible', position: 'relative' }}>
+                        <div
+                            className="priority-badge-interactive"
+                            style={{ color: getPriorityColor(task.priority), display: 'flex', alignItems: 'center' }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setActivePopover({ taskId: task.id, field: 'priority', element: e.currentTarget });
+                            }}
+                        >
+                            <Flag size={12} style={{ color: getPriorityColor(task.priority), marginRight: 6 }} />
+                            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{task.priority || '-'}</span>
+                        </div>
+                        {activePopover?.taskId === task.id && activePopover?.field === 'priority' && (
+                            <div className="inline-popover priority-popover" onClick={e => e.stopPropagation()} style={{ zIndex: 101 }}>
+                                {priorities.map((p: any) => (
+                                    <div
+                                        key={p}
+                                        className="popover-item"
+                                        style={{ color: getPriorityColor(p), fontWeight: 700, textTransform: 'uppercase', fontSize: '11px' }}
+                                        onClick={() => {
+                                            onUpdateSubtask(parentId, task.id, { priority: p });
+                                            setActivePopover(null);
+                                        }}
+                                    >
+                                        <Flag size={12} style={{ marginRight: 8 }} />
+                                        {p}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 );
             case 'status':
@@ -201,10 +325,34 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                     {renderCell(col)}
                 </React.Fragment>
             ))}
-            <div className="task-cell actions-cell" style={{ width: 50 }}>
-                <button className="icon-btn-ghost">
+            <div className="task-cell actions-cell" style={{ width: 50, position: 'relative', overflow: 'visible' }}>
+                <button
+                    className="icon-btn-ghost"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (isMenuOpen) onCloseMenu();
+                        else onOpenMenu(task.id, e.currentTarget);
+                    }}
+                >
                     <MoreHorizontal size={16} />
                 </button>
+                {isMenuOpen && (
+                    <TaskOptionsMenu
+                        taskId={task.id}
+                        onClose={onCloseMenu}
+                        onRename={() => {
+                            setRenameValue(task.name);
+                            setIsRenaming(true);
+                            onCloseMenu();
+                        }}
+                        onDelete={() => onDeleteSubtask(parentId, task.id)}
+                        onDuplicate={() => { }}
+                        onArchive={() => { }}
+                        triggerElement={menuTrigger}
+                        onConvertToDoc={() => { }}
+                        onStartTimer={() => { }}
+                    />
+                )}
             </div>
         </div>
     );
@@ -213,6 +361,8 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
 interface SortableRowPropsWithUpdateSubtask extends SortableRowProps {
     onUpdateSubtask: (parentId: string, subtaskId: string, updates: any) => void;
     onAddSubtask: (taskId: string, name: string) => void;
+    onDeleteSubtask: (parentId: string, subtaskId: string) => void;
+    openMenuTaskId: string | null;
 }
 
 const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
@@ -238,7 +388,9 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
     onStartTimer,
     onUpdateSubtask,
     onAddSubtask,
-    menuTrigger
+    onDeleteSubtask,
+    menuTrigger,
+    openMenuTaskId
 }) => {
     const {
         attributes,
@@ -254,6 +406,16 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
     const [renameValue, setRenameValue] = React.useState(task.name);
     const inputRef = React.useRef<HTMLInputElement>(null);
 
+    const [isAddingSubtask, setIsAddingSubtask] = React.useState(false);
+    const [newSubtaskName, setNewSubtaskName] = React.useState('');
+    const newSubtaskInputRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        if (isAddingSubtask && newSubtaskInputRef.current) {
+            newSubtaskInputRef.current.focus();
+        }
+    }, [isAddingSubtask]);
+
     React.useEffect(() => {
         if (isRenaming && inputRef.current) {
             inputRef.current.focus();
@@ -266,6 +428,16 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
             onUpdateTask(task.id, { name: renameValue.trim() });
         }
         setIsRenaming(false);
+    };
+
+    const handleSubtaskSubmit = () => {
+        if (newSubtaskName.trim()) {
+            onAddSubtask(task.id, newSubtaskName.trim());
+            setIsAddingSubtask(false);
+            setNewSubtaskName('');
+        } else {
+            setIsAddingSubtask(false);
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -383,7 +555,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                     title="Add subtask"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        onAddSubtask(task.id, "New Subtask");
+                                        setIsAddingSubtask(true);
                                         setIsExpanded(true);
                                     }}
                                 >
@@ -539,7 +711,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 </div>
             </div>
 
-            {hasSubtasks && isExpanded && (
+            {((hasSubtasks && isExpanded) || isAddingSubtask) && (
                 <div className="subtasks-container">
                     {task.subtasks?.map(st => (
                         <SubtaskRowItem
@@ -552,8 +724,49 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             tags={tags}
                             onUpdateSubtask={onUpdateSubtask}
                             parentId={task.id}
+                            activePopover={activePopover}
+                            setActivePopover={setActivePopover}
+                            onOpenMenu={onOpenMenu}
+                            isMenuOpen={openMenuTaskId === st.id}
+                            onCloseMenu={onCloseMenu}
+                            menuTrigger={menuTrigger}
+                            onDeleteSubtask={onDeleteSubtask}
                         />
+
                     ))}
+                    {isAddingSubtask && (
+                        <div className="task-item-row subtask-item-row">
+                            <div className="drag-handle-placeholder" style={{ width: 30 }}></div>
+                            {columns.filter(c => c.visible).map(col => {
+                                if (col.id === 'name') {
+                                    return (
+                                        <div key={col.id} className="task-cell name-cell" style={{ width: col.width || 350, overflow: 'visible', paddingLeft: '48px' }}>
+                                            <div className="task-cell-inner" style={{ overflow: 'visible' }}>
+                                                <div className="subtask-indent-line"></div>
+                                                <input
+                                                    ref={newSubtaskInputRef}
+                                                    type="text"
+                                                    className="task-name-input"
+                                                    placeholder="Enter subtask name..."
+                                                    value={newSubtaskName}
+                                                    onChange={e => setNewSubtaskName(e.target.value)}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter') handleSubtaskSubmit();
+                                                        if (e.key === 'Escape') { setIsAddingSubtask(false); setNewSubtaskName(''); }
+                                                        e.stopPropagation();
+                                                    }}
+                                                    onBlur={() => handleSubtaskSubmit()}
+                                                    onClick={e => e.stopPropagation()}
+                                                    style={{ flex: 1, border: '1px solid var(--primary)', borderRadius: 4, padding: '4px 8px', fontSize: 13, height: 28, background: 'var(--bg-main)', color: 'var(--text-main)' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return <div key={col.id} className={`task-cell ${col.id}-cell`} style={{ width: col.width }}></div>
+                            })}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -574,6 +787,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         deleteTag,
         startTimer,
         updateSubtask,
+        deleteSubtask,
         addStatus,
         spaces,
         lists,
@@ -855,6 +1069,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                                         }}
                                                         onUpdateSubtask={updateSubtask}
                                                         onAddSubtask={(taskId, name) => addSubtask(taskId, { name, status: 'TO DO' })}
+                                                        onDeleteSubtask={deleteSubtask}
+                                                        openMenuTaskId={openMenuTaskId}
                                                         menuTrigger={menuTrigger}
                                                     />
                                                 ))}
@@ -925,6 +1141,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                                     }}
                                                     onUpdateSubtask={updateSubtask}
                                                     onAddSubtask={(taskId, name) => addSubtask(taskId, { name, status: 'TO DO' })}
+                                                    onDeleteSubtask={deleteSubtask}
+                                                    openMenuTaskId={openMenuTaskId}
                                                     menuTrigger={menuTrigger}
                                                 />
                                             ))}
