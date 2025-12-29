@@ -112,7 +112,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: white;
+  background: var(--bg-surface);
 }
 
 .view-header {
@@ -136,7 +136,7 @@ body {
 }
 
 .breadcrumb-separator {
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .space-name {
@@ -146,8 +146,8 @@ body {
 }
 
 .task-count {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
@@ -157,7 +157,7 @@ body {
 
 .view-controls {
   display: flex;
-  background: #f1f5f9;
+  background: var(--bg-hover);
   padding: 2px;
   border-radius: 6px;
 }
@@ -168,14 +168,14 @@ body {
   padding: 4px 12px;
   font-size: 13px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-secondary);
   border-radius: 4px;
   cursor: pointer;
   transition: var(--transition);
 }
 
 .view-mode-btn.active {
-  background: white;
+  background: var(--bg-surface);
   color: var(--text-main);
   box-shadow: var(--shadow-sm);
 }
@@ -213,15 +213,15 @@ body {
 
 .btn-filter:hover,
 .btn-sort:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
+  background: var(--bg-hover);
+  border-color: var(--border);
 }
 
 .toolbar-search {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f3f4f6;
+  background: var(--bg-hover);
   padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -234,6 +234,7 @@ body {
   outline: none;
   font-size: 13px;
   width: 180px;
+  color: var(--text-main);
 }
 
 .btn-add-task {
