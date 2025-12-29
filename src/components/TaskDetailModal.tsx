@@ -121,7 +121,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
     const [pastedImages, setPastedImages] = useState<string[]>([]);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
-    const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false); // New state
+    const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false);
+    const [suggestedSubtasks, setSuggestedSubtasks] = useState<string[]>([]);
+    const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set());
     const activityFeedRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll activity feed to bottom
@@ -136,6 +138,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const handleSuggestSubtasks = async () => {
         if (!task) return;
         setIsGeneratingSubtasks(true);
+        setSuggestedSubtasks([]); // Reset previous suggestions
 
         const prompt = `Suggest 3-5 subtasks for the task "${task.name}".
         Description: ${task.description || 'No description'}.
@@ -170,9 +173,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             const suggestions = JSON.parse(cleanJson);
 
             if (Array.isArray(suggestions)) {
-                suggestions.forEach((name: string) => {
-                    addSubtask(taskId, { name, status: 'TO DO' });
-                });
+                setSuggestedSubtasks(suggestions);
+                // Select all by default
+                setSelectedSuggestions(new Set(suggestions));
             }
         } catch (error) {
             console.error("AI Subtask Error:", error);
@@ -180,6 +183,29 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         } finally {
             setIsGeneratingSubtasks(false);
         }
+    };
+
+    const handleConfirmSubtasks = () => {
+        selectedSuggestions.forEach(name => {
+            addSubtask(taskId, { name, status: 'TO DO' });
+        });
+        setSuggestedSubtasks([]);
+        setSelectedSuggestions(new Set());
+    };
+
+    const handleCancelSubtasks = () => {
+        setSuggestedSubtasks([]);
+        setSelectedSuggestions(new Set());
+    };
+
+    const toggleSuggestion = (name: string) => {
+        const newSelected = new Set(selectedSuggestions);
+        if (newSelected.has(name)) {
+            newSelected.delete(name);
+        } else {
+            newSelected.add(name);
+        }
+        setSelectedSuggestions(newSelected);
     };
 
     const handleUpdate = (updates: Partial<Task>) => {
@@ -675,17 +701,16 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                 </span>
                                             </span>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                            <button className="icon-btn-ghost-st" style={{ fontSize: '13px', gap: '4px', width: 'auto', color: '#64748b' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <button className="st-toolbar-btn">
                                                 <ArrowUpDown size={14} /> Sort
                                             </button>
                                             <button
-                                                className="icon-btn-ghost-st"
-                                                style={{ fontSize: '13px', gap: '4px', width: 'auto', color: '#334155' }}
+                                                className="st-toolbar-btn"
                                                 onClick={handleSuggestSubtasks}
                                                 disabled={isGeneratingSubtasks}
                                             >
-                                                <Sparkles size={14} className={isGeneratingSubtasks ? "animate-spin" : ""} fill="url(#sparkle-gradient)" style={{ color: '#a855f7' }} />
+                                                <Sparkles size={14} className={isGeneratingSubtasks ? "animate-spin" : ""} style={{ color: '#a855f7' }} />
                                                 {isGeneratingSubtasks ? 'Generating...' : 'Suggest subtasks'}
                                             </button>
                                         </div>
