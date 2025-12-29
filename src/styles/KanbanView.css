@@ -275,3 +275,121 @@
     border-color: var(--primary);
     color: var(--text-secondary);
 }
+
+/* Quick Add Subtask Styles */
+.quick-add-subtask {
+    margin-top: 8px;
+    background: var(--bg-surface);
+    border: 1px solid #3b82f6;
+    /* Blue border as requested */
+    border-radius: 8px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    animation: slideDown 0.2s ease-out;
+    position: relative;
+    z-index: 100;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.quick-add-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.quick-add-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: var(--text-main);
+    background: transparent;
+    padding: 4px 0;
+}
+
+.quick-add-input::placeholder {
+    color: var(--text-secondary);
+}
+
+.quick-add-save-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.quick-add-save-btn:hover {
+    background-color: #2563eb;
+}
+
+.quick-add-save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.quick-add-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.action-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-pill:hover {
+    background: var(--bg-hover);
+    color: var(--text-main);
+}
+
+.action-pill.active {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.action-pill.priority-high {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.action-pill.priority-urgent {
+    color: #b91c1c;
+    background: rgba(185, 28, 28, 0.1);
+}
+
+.action-pill.priority-medium {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+}

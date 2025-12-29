@@ -31,7 +31,9 @@ import {
     List as ListIcon,
     Hash,
     ChevronRight,
-    Calendar as CalendarIcon
+    Calendar as CalendarIcon,
+    X,
+    Check
 } from 'lucide-react';
 
 const IconMap: Record<string, any> = {
@@ -82,6 +84,8 @@ import type { Task, Tag } from '../types';
 import TaskOptionsMenu from '../components/TaskOptionsMenu';
 import '../styles/KanbanView.css';
 import '../styles/TaskOptionsMenu.css';
+import QuickAddSubtask from '../components/QuickAddSubtask';
+import type { Subtask } from '../types';
 
 interface KanbanViewProps {
     onAddTask: () => void;
@@ -100,6 +104,10 @@ interface SortableCardProps {
     onArchive: (taskId: string) => void;
     onDelete: (taskId: string) => void;
     onConvertToDoc: (task: Task) => void;
+    isAddingSubtask: boolean;
+    onStartAddSubtask: (taskId: string) => void;
+    onCancelAddSubtask: () => void;
+    onAddSubtask: (subtask: Omit<Subtask, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
 const SortableCard: React.FC<SortableCardProps> = ({
@@ -113,7 +121,11 @@ const SortableCard: React.FC<SortableCardProps> = ({
     onDuplicate,
     onArchive,
     onDelete,
-    onConvertToDoc
+    onConvertToDoc,
+    isAddingSubtask,
+    onStartAddSubtask,
+    onCancelAddSubtask,
+    onAddSubtask
 }) => {
     const {
         attributes,
@@ -158,7 +170,7 @@ const SortableCard: React.FC<SortableCardProps> = ({
                 <div className="card-hover-actions">
                     <button
                         className="hover-action-item"
-                        onClick={(e) => { e.stopPropagation(); onTaskClick(task.id); }}
+                        onClick={(e) => { e.stopPropagation(); onStartAddSubtask(task.id); }}
                         title="Add subtask"
                     >
                         <PlusCircle size={20} />
@@ -228,6 +240,14 @@ const SortableCard: React.FC<SortableCardProps> = ({
                     <div className="assignee-avatar-small">
                         {task.assignee?.[0] || '?'}
                     </div>
+                    {isAddingSubtask && (
+                        <div onClick={e => e.stopPropagation()} style={{ cursor: 'default' }}>
+                            <QuickAddSubtask
+                                onAdd={(subtask) => onAddSubtask(subtask)}
+                                onCancel={onCancelAddSubtask}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -249,6 +269,10 @@ interface KanbanColumnProps {
     onArchive: (taskId: string) => void;
     onDelete: (taskId: string) => void;
     onConvertToDoc: (task: Task) => void;
+    addSubtaskTaskId: string | null;
+    onStartAddSubtask: (taskId: string) => void;
+    onCancelAddSubtask: () => void;
+    onAddSubtask: (taskId: string, subtask: Omit<Subtask, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -265,7 +289,11 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     onDuplicate,
     onArchive,
     onDelete,
-    onConvertToDoc
+    onConvertToDoc,
+    addSubtaskTaskId,
+    onStartAddSubtask,
+    onCancelAddSubtask,
+    onAddSubtask
 }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: status,
@@ -304,6 +332,10 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                             onArchive={onArchive}
                             onDelete={onDelete}
                             onConvertToDoc={onConvertToDoc}
+                            isAddingSubtask={addSubtaskTaskId === task.id}
+                            onStartAddSubtask={onStartAddSubtask}
+                            onCancelAddSubtask={onCancelAddSubtask}
+                            onAddSubtask={(subtask) => onAddSubtask(task.id, subtask)}
                         />
                     ))}
                     <button className="btn-add-card" onClick={onAddTask}>
@@ -328,6 +360,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         archiveTask,
         addDoc,
         addStatus,
+        addSubtask,
         tags,
         spaces,
         lists
@@ -335,6 +368,10 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
     const [menuOpenUp, setMenuOpenUp] = React.useState(false);
+    const [isAddingColumn, setIsAddingColumn] = React.useState(false);
+    const [newColumnName, setNewColumnName] = React.useState('');
+
+    const [addSubtaskTaskId, setAddSubtaskTaskId] = React.useState<string | null>(null);
 
     const handleOpenMenu = (taskId: string, openUp: boolean) => {
         setOpenMenuTaskId(taskId);
@@ -401,17 +438,18 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
     ];
 
     const handleAddColumn = () => {
-        const name = prompt('Enter column name:');
-        if (!name) return;
+        if (!newColumnName.trim()) return;
 
         const targetId = (currentListId || currentSpaceId);
         const isSpace = !currentListId;
 
         addStatus(targetId, isSpace, {
-            name: name.toUpperCase(),
+            name: newColumnName.toUpperCase(),
             color: '#64748b',
             type: 'inprogress'
         });
+        setNewColumnName('');
+        setIsAddingColumn(false);
     };
 
     const handleDragStart = (event: DragStartEvent) => {
@@ -510,13 +548,107 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                             onArchive={archiveTask}
                             onDelete={deleteTask}
                             onConvertToDoc={handleConvertToDoc}
+                            addSubtaskTaskId={addSubtaskTaskId}
+                            onStartAddSubtask={setAddSubtaskTaskId}
+                            onCancelAddSubtask={() => setAddSubtaskTaskId(null)}
+                            onAddSubtask={(taskId, subtask) => {
+                                addSubtask(taskId, subtask);
+                                // Don't close immediately if we want to allow multiple? 
+                                // User usually adds one then done, or multiple. 
+                                // Let's keep it open or close? Typically Enter -> Save -> New Input for next.
+                                // For now, let's close it after adding to be safe, or clear input.
+                                // But QuickAddSubtask clears its own input.
+                                // If we want to keep it open, we just don't call setAddSubtaskTaskId(null).
+                                // Let's try keeping it open for rapid entry.
+                            }}
                         />
                     ))}
-                    <div className="add-column-container" onClick={handleAddColumn}>
-                        <div className="add-column-btn">
-                            <Plus size={18} />
-                            <span>Add Column</span>
-                        </div>
+                    <div className="add-column-container">
+                        {!isAddingColumn ? (
+                            <div className="add-column-btn" onClick={() => setIsAddingColumn(true)}>
+                                <Plus size={18} />
+                                <span>Add Column</span>
+                            </div>
+                        ) : (
+                            <div className="add-column-form" style={{
+                                padding: '16px',
+                                backgroundColor: 'var(--bg-side)',
+                                borderRadius: '12px',
+                                border: '1px solid var(--border)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '12px',
+                                minWidth: '320px'
+                            }}>
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    placeholder="Column Name"
+                                    value={newColumnName}
+                                    onChange={(e) => setNewColumnName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleAddColumn();
+                                        if (e.key === 'Escape') {
+                                            setIsAddingColumn(false);
+                                            setNewColumnName('');
+                                        }
+                                    }}
+                                    style={{
+                                        background: 'var(--bg-surface)',
+                                        border: '1px solid var(--border)',
+                                        color: 'var(--text-main)',
+                                        padding: '10px',
+                                        borderRadius: '8px',
+                                        outline: 'none',
+                                        fontSize: '14px',
+                                        width: '100%'
+                                    }}
+                                />
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        onClick={handleAddColumn}
+                                        style={{
+                                            flex: 1,
+                                            padding: '8px',
+                                            borderRadius: '6px',
+                                            background: 'var(--primary)',
+                                            color: 'white',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontWeight: 500,
+                                            fontSize: '13px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        <Check size={14} /> Add
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setIsAddingColumn(false);
+                                            setNewColumnName('');
+                                        }}
+                                        style={{
+                                            padding: '8px',
+                                            borderRadius: '6px',
+                                            background: 'transparent',
+                                            color: 'var(--text-secondary)',
+                                            border: '1px solid var(--border)',
+                                            cursor: 'pointer',
+                                            fontWeight: 500,
+                                            fontSize: '13px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <DragOverlay>

@@ -615,6 +615,10 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                     <div className="list-body">
                         {activeStatuses.map(statusObj => {
                             const statusTasks = filteredTasks.filter(t => t.status === statusObj.name);
+
+                            // Hide group if no tasks
+                            if (statusTasks.length === 0) return null;
+
                             return (
                                 <div key={statusObj.id} className="status-group-container">
                                     <DroppableStatusHeader
