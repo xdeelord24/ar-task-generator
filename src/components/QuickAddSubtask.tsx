@@ -43,6 +43,9 @@ const QuickAddSubtask: React.FC<QuickAddSubtaskProps> = ({ onAdd, onCancel }) =>
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
+        // Prevent dnd-kit from capturing key events (especially Space)
+        e.stopPropagation();
+
         if (e.key === 'Enter') {
             handleSubmit();
         } else if (e.key === 'Escape') {

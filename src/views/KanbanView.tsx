@@ -33,7 +33,10 @@ import {
     ChevronRight,
     Calendar as CalendarIcon,
     X,
-    Check
+    Check,
+    ChevronDown,
+    User,
+    CircleDashed
 } from 'lucide-react';
 
 const IconMap: Record<string, any> = {
@@ -88,7 +91,7 @@ import QuickAddSubtask from '../components/QuickAddSubtask';
 import type { Subtask } from '../types';
 
 interface KanbanViewProps {
-    onAddTask: () => void;
+    onAddTask: (status?: string) => void;
     onTaskClick: (taskId: string) => void;
 }
 
@@ -135,6 +138,8 @@ const SortableCard: React.FC<SortableCardProps> = ({
         transition,
         isDragging
     } = useSortable({ id: task.id });
+
+    const [isExpanded, setIsExpanded] = React.useState(false);
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -240,16 +245,66 @@ const SortableCard: React.FC<SortableCardProps> = ({
                     <div className="assignee-avatar-small">
                         {task.assignee?.[0] || '?'}
                     </div>
-                    {isAddingSubtask && (
-                        <div onClick={e => e.stopPropagation()} style={{ cursor: 'default' }}>
-                            <QuickAddSubtask
-                                onAdd={(subtask) => onAddSubtask(subtask)}
-                                onCancel={onCancelAddSubtask}
-                            />
-                        </div>
-                    )}
                 </div>
+
+                {task.subtasks && task.subtasks.length > 0 && (
+                    <>
+                        <div
+                            className="subtask-toggle-bar"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsExpanded(!isExpanded);
+                            }}
+                        >
+                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            <span>{task.subtasks.length} subtask{task.subtasks.length > 1 ? 's' : ''}</span>
+                        </div>
+
+                        {isExpanded && (
+                            <div className="subtasks-list">
+                                {task.subtasks.map(subtask => (
+                                    <div key={subtask.id} className="subtask-card" onClick={(e) => e.stopPropagation()}>
+                                        <div className="subtask-header">
+                                            <span className="subtask-title">{subtask.name}</span>
+                                        </div>
+                                        <div className="subtask-footer">
+                                            <div className="subtask-option-pill">
+                                                <CircleDashed size={10} className="status-spinner-icon" />
+                                                <span>{subtask.status || 'TO DO'}</span>
+                                            </div>
+
+                                            <div className="subtask-option-icon" title="Assignee">
+                                                {subtask.assignee ? (
+                                                    <div className="assignee-avatar-xs">{subtask.assignee[0]}</div>
+                                                ) : (
+                                                    <User size={12} />
+                                                )}
+                                            </div>
+
+                                            <div className="subtask-option-icon" title="Due Date">
+                                                <CalendarIcon size={12} />
+                                                {subtask.dueDate && <span className="option-text-xs">{subtask.dueDate.substring(5, 10)}</span>}
+                                            </div>
+
+                                            <div className={`subtask-option-icon ${subtask.priority ? 'has-priority' : ''}`} title="Priority">
+                                                <Flag size={12} className={subtask.priority ? `text-priority-${subtask.priority}` : ''} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
+            {isAddingSubtask && (
+                <div onClick={e => e.stopPropagation()} style={{ marginTop: '12px', cursor: 'default' }}>
+                    <QuickAddSubtask
+                        onAdd={(subtask) => onAddSubtask(subtask)}
+                        onCancel={onCancelAddSubtask}
+                    />
+                </div>
+            )}
         </div>
     );
 };
@@ -258,7 +313,7 @@ interface KanbanColumnProps {
     status: Task['status'];
     color: string;
     tasks: Task[];
-    onAddTask: () => void;
+    onAddTask: (status?: string) => void;
     onTaskClick: (taskId: string) => void;
     tags: Tag[];
     openMenuTaskId: string | null;
@@ -308,7 +363,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                     <span className="column-count">{tasks.length}</span>
                 </div>
                 <div className="column-actions">
-                    <button className="icon-btn-ghost" onClick={onAddTask}><Plus size={16} /></button>
+                    <button className="icon-btn-ghost" onClick={() => onAddTask(status)}><Plus size={16} /></button>
                     <button className="icon-btn-ghost"><MoreHorizontal size={16} /></button>
                 </div>
             </div>
@@ -338,7 +393,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                             onAddSubtask={(subtask) => onAddSubtask(task.id, subtask)}
                         />
                     ))}
-                    <button className="btn-add-card" onClick={onAddTask}>
+                    <button className="btn-add-card" onClick={() => onAddTask(status)}>
                         <Plus size={14} /> Add Task
                     </button>
                 </div>
@@ -518,7 +573,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                         <Search size={14} />
                         <input type="text" placeholder="Search tasks..." readOnly />
                     </div>
-                    <button className="btn-primary" onClick={onAddTask} style={{ padding: '8px 16px' }}>
+                    <button className="btn-primary" onClick={() => onAddTask()} style={{ padding: '8px 16px' }}>
                         <Plus size={16} /> Add Task
                     </button>
                 </div>
@@ -553,13 +608,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                             onCancelAddSubtask={() => setAddSubtaskTaskId(null)}
                             onAddSubtask={(taskId, subtask) => {
                                 addSubtask(taskId, subtask);
-                                // Don't close immediately if we want to allow multiple? 
-                                // User usually adds one then done, or multiple. 
-                                // Let's keep it open or close? Typically Enter -> Save -> New Input for next.
-                                // For now, let's close it after adding to be safe, or clear input.
-                                // But QuickAddSubtask clears its own input.
-                                // If we want to keep it open, we just don't call setAddSubtaskTaskId(null).
-                                // Let's try keeping it open for rapid entry.
+                                setAddSubtaskTaskId(null);
                             }}
                         />
                     ))}

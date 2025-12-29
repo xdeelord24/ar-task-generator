@@ -6,9 +6,10 @@ import '../styles/TaskModal.css';
 
 interface TaskModalProps {
     onClose: () => void;
+    initialStatus?: string;
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ onClose }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
     const { addTask, currentSpaceId, currentListId, spaces, lists } = useAppStore();
 
     const activeList = lists.find(l => l.id === currentListId);
@@ -25,7 +26,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose }) => {
 
     const [name, setName] = React.useState('');
     const [description, setDescription] = React.useState('');
-    const [status, setStatus] = React.useState<Task['status']>(activeStatuses[0]?.name || 'TO DO');
+    const [status, setStatus] = React.useState<Task['status']>(initialStatus || activeStatuses[0]?.name || 'TO DO');
     const [priority, setPriority] = React.useState<Priority>('medium');
     const [dueDate, setDueDate] = React.useState('');
 

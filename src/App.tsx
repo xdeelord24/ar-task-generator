@@ -20,6 +20,7 @@ function App() {
   const { currentView, theme, accentColor } = useAppStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [initialStatus, setInitialStatus] = useState<string | undefined>(undefined);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [settingsState, setSettingsState] = useState<{ open: boolean; tab?: string }>({ open: false });
@@ -60,7 +61,13 @@ function App() {
       case 'space_overview':
         return <SpaceOverview />;
       case 'kanban':
-        return <KanbanView onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
+        return <KanbanView
+          onAddTask={(status) => {
+            setInitialStatus(status);
+            setIsModalOpen(true);
+          }}
+          onTaskClick={(id) => setSelectedTaskId(id)}
+        />;
       case 'calendar':
         return <CalendarView onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
       case 'gantt':
@@ -79,7 +86,7 @@ function App() {
       onOpenSettings={openSettings}
     >
       {renderView()}
-      {isModalOpen && <TaskModal onClose={() => setIsModalOpen(false)} />}
+      {isModalOpen && <TaskModal initialStatus={initialStatus} onClose={() => { setIsModalOpen(false); setInitialStatus(undefined); }} />}
       {selectedTaskId && <TaskDetailModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />}
       {isReportOpen && <ReportModal onClose={() => setIsReportOpen(false)} />}
       {isAIOpen && <AIModal onClose={() => setIsAIOpen(false)} />}

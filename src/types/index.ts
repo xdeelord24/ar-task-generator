@@ -10,6 +10,9 @@ export interface Subtask {
   id: string;
   name: string;
   status: string;
+  priority?: Priority;
+  assignee?: string;
+  dueDate?: string;
   createdAt: string;
   updatedAt: string;
 }

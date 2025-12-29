@@ -276,6 +276,157 @@
     color: var(--text-secondary);
 }
 
+/* Subtask Styles */
+.subtask-toggle-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    margin-top: 12px;
+    background-color: #f1f5f9;
+    /* Light gray background like image */
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    transition: background-color 0.2s;
+    user-select: none;
+}
+
+.subtask-toggle-bar:hover {
+    background-color: #e2e8f0;
+    color: #475569;
+}
+
+.subtasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+    padding-left: 0;
+}
+
+.subtask-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    cursor: default;
+}
+
+.subtask-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.subtask-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-main);
+    line-height: 1.4;
+}
+
+.subtask-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Subtask Options Styles */
+.subtask-option-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.subtask-option-pill:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #475569;
+}
+
+.subtask-option-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+}
+
+.subtask-option-icon:hover {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.subtask-option-icon.has-priority {
+    border-color: #e2e8f0;
+}
+
+.option-text-xs {
+    font-size: 10px;
+    margin-left: 4px;
+    font-weight: 500;
+}
+
+.text-priority-urgent {
+    color: #ef4444;
+}
+
+.text-priority-high {
+    color: #f97316;
+}
+
+.text-priority-medium {
+    color: #f59e0b;
+}
+
+.text-priority-low {
+    color: #10b981;
+}
+
+.status-spinner-icon {
+    color: #94a3b8;
+}
+
+.assignee-avatar-xs {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #3b82f6;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.priority-flag-low {
+    color: #10b981;
+}
+
+
 /* Quick Add Subtask Styles */
 .quick-add-subtask {
     margin-top: 8px;
