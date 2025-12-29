@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     X, User, Palette, Settings, Bell, Command,
     Gift, Download, HelpCircle, Trash2, LogOut,
-    Check, Moon, Sun, Monitor, Coffee
+    Check, Moon, Sun, Monitor, Coffee, Sparkles, Globe
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import '../styles/SettingsModal.css';
@@ -17,7 +17,40 @@ declare const QRCode: any;
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'profile' }) => {
     const [activeTab, setActiveTab] = useState(initialTab);
-    const { theme, setTheme, accentColor, setAccentColor } = useAppStore();
+    const { theme, setTheme, accentColor, setAccentColor, aiConfig, setAIConfig } = useAppStore();
+    const [ollamaModels, setOllamaModels] = useState<string[]>([]);
+    const [isFetchingModels, setIsFetchingModels] = useState(false);
+    const [ollamaError, setOllamaError] = useState<string | null>(null);
+
+    const fetchOllamaModels = async (host: string) => {
+        if (!host) return;
+        setIsFetchingModels(true);
+        setOllamaError(null);
+        try {
+            const response = await fetch(`${host}/api/tags`);
+            if (!response.ok) throw new Error('Failed to fetch models');
+            const data = await response.json();
+            const names = data.models?.map((m: any) => m.name) || [];
+            setOllamaModels(names);
+
+            // If current model is not in list and list is not empty, select first as default
+            if (names.length > 0 && !names.includes(aiConfig.ollamaModel)) {
+                setAIConfig({ ollamaModel: names[0] });
+            }
+        } catch (err: any) {
+            console.error('Ollama fetch error:', err);
+            setOllamaError('Could not connect to Ollama. Ensure the server is running and CORS is enabled.');
+            setOllamaModels([]);
+        } finally {
+            setIsFetchingModels(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'ai' && aiConfig.provider === 'ollama') {
+            fetchOllamaModels(aiConfig.ollamaHost);
+        }
+    }, [activeTab, aiConfig.provider, aiConfig.ollamaHost]);
 
     // Generate QR codes when support tab is active
     useEffect(() => {
@@ -58,6 +91,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'pr
         { id: 'profile', icon: User, label: 'My Profile' },
         { id: 'themes', icon: Palette, label: 'Themes' },
         { id: 'settings', icon: Settings, label: 'General Settings' },
+        { id: 'ai', icon: Sparkles, label: 'AI Settings' },
         { id: 'notifications', icon: Bell, label: 'Notifications' },
         { id: 'shortcuts', icon: Command, label: 'Keyboard Shortcuts' },
         { id: 'support', icon: Coffee, label: 'Support' },
@@ -93,6 +127,105 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'pr
                                 <label>Job Title</label>
                                 <input type="text" defaultValue="Full Stack Developer" />
                             </div>
+                        </div>
+                    </div>
+                );
+            case 'ai':
+                return (
+                    <div className="settings-content-pane">
+                        <h2>AI Assistant Settings</h2>
+                        <div className="form-section">
+                            <h3>AI Provider</h3>
+                            <div className="provider-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                                {[
+                                    { id: 'gemini', label: 'Google Gemini', description: 'Requires API Key' },
+                                    { id: 'ollama', label: 'Ollama (Local)', description: 'Requires local server' }
+                                ].map((p) => (
+                                    <div
+                                        key={p.id}
+                                        className={`theme-card ${aiConfig.provider === p.id ? 'active' : ''}`}
+                                        onClick={() => setAIConfig({ provider: p.id as any })}
+                                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '16px', textAlign: 'left', gap: '4px' }}
+                                    >
+                                        <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontWeight: '600' }}>{p.label}</span>
+                                            {aiConfig.provider === p.id && <Check size={16} className="check-icon" />}
+                                        </div>
+                                        <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{p.description}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {aiConfig.provider === 'ollama' && (
+                                <div className="ollama-settings animated-fade-in">
+                                    <div className="form-group">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <label>Ollama Host</label>
+                                            <button
+                                                className="btn-text-small"
+                                                onClick={() => fetchOllamaModels(aiConfig.ollamaHost)}
+                                                disabled={isFetchingModels}
+                                            >
+                                                {isFetchingModels ? 'Connecting...' : 'Refresh Models'}
+                                            </button>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={aiConfig.ollamaHost}
+                                            onChange={(e) => setAIConfig({ ollamaHost: e.target.value })}
+                                            placeholder="http://localhost:11434"
+                                            onBlur={() => fetchOllamaModels(aiConfig.ollamaHost)}
+                                        />
+                                        <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>The URL where your Ollama instance is running.</p>
+                                    </div>
+
+                                    {ollamaError && (
+                                        <div style={{ padding: '8px 12px', background: 'var(--error-light)', color: 'var(--error)', borderRadius: '6px', fontSize: '12px', marginBottom: '16px', border: '1px solid var(--error)' }}>
+                                            {ollamaError}
+                                        </div>
+                                    )}
+
+                                    <div className="form-group">
+                                        <label>Model Name</label>
+                                        {ollamaModels.length > 0 ? (
+                                            <select
+                                                value={aiConfig.ollamaModel}
+                                                onChange={(e) => setAIConfig({ ollamaModel: e.target.value })}
+                                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '14px' }}
+                                            >
+                                                {ollamaModels.map(model => (
+                                                    <option key={model} value={model}>{model}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                value={aiConfig.ollamaModel}
+                                                onChange={(e) => setAIConfig({ ollamaModel: e.target.value })}
+                                                placeholder="llama3"
+                                                disabled={isFetchingModels}
+                                            />
+                                        )}
+                                        <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                                            {ollamaModels.length > 0 ? 'Select from your installed models.' : 'No models found. Enter name manually or check host.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {aiConfig.provider === 'gemini' && (
+                                <div className="gemini-info animated-fade-in" style={{ padding: '16px', background: 'var(--bg-side)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                        <Globe size={20} className="text-primary" />
+                                        <div>
+                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '14px' }}>Cloud AI Powered</h4>
+                                            <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                                                Using Gemini 1.5 Flash for fast and intelligent responses. Ensure your API key is correctly configured in the `.env` file.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 );

@@ -27,9 +27,13 @@
 
   /* Semantic Colors */
   --success: #10b981;
+  --success-light: #f0fdf4;
   --warning: #f59e0b;
+  --warning-light: #fffbeb;
   --error: #ef4444;
+  --error-light: #fef2f2;
   --info: #3b82f6;
+  --info-light: #eff6ff;
 
   /* Layout */
   --sidebar-width: 260px;
@@ -71,6 +75,12 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.8);
+
+  /* Semantic Colors Dark */
+  --error-light: rgba(239, 68, 68, 0.1);
+  --success-light: rgba(16, 185, 129, 0.1);
+  --warning-light: rgba(245, 158, 11, 0.1);
+  --info-light: rgba(59, 130, 246, 0.1);
 }
 
 * {

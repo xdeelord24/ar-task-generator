@@ -126,6 +126,12 @@ export interface SavedView {
   createdAt: string;
 }
 
+export interface AIConfig {
+  provider: 'gemini' | 'ollama';
+  ollamaHost: string;
+  ollamaModel: string;
+}
+
 export interface AppState {
   tasks: Task[];
   spaces: Space[];
@@ -141,4 +147,5 @@ export interface AppState {
   theme: ThemeMode;
   accentColor: string;
   activeTimer: { taskId: string; startTime: string } | null;
+  aiConfig: AIConfig;
 }

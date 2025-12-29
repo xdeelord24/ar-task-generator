@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView } from '../types';
+import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig } from '../types';
 
 interface AppStore extends AppState {
     setTasks: (tasks: Task[]) => void;
@@ -43,6 +43,7 @@ interface AppStore extends AppState {
     addSavedView: (view: Omit<SavedView, 'id' | 'createdAt'>) => void;
     updateSavedView: (viewId: string, updates: Partial<SavedView>) => void;
     deleteSavedView: (viewId: string) => void;
+    setAIConfig: (config: Partial<AIConfig>) => void;
     sidebarCollapsed: boolean;
     toggleSidebar: () => void;
 }
@@ -124,6 +125,11 @@ export const useAppStore = create<AppStore>()(
                 { id: 'default-calendar', name: 'Calendar', viewType: 'calendar', isPinned: true, isPrivate: false, createdAt: new Date().toISOString() },
                 { id: 'default-gantt', name: 'Gantt', viewType: 'gantt', isPinned: true, isPrivate: false, createdAt: new Date().toISOString() },
             ],
+            aiConfig: {
+                provider: 'gemini',
+                ollamaHost: 'http://localhost:11434',
+                ollamaModel: 'llama3'
+            },
             sidebarCollapsed: false,
 
             setTasks: (tasks) => set({ tasks }),
@@ -317,6 +323,9 @@ export const useAppStore = create<AppStore>()(
             })),
             deleteSavedView: (viewId) => set((state) => ({
                 savedViews: state.savedViews.filter(v => v.id !== viewId)
+            })),
+            setAIConfig: (config) => set((state) => ({
+                aiConfig: { ...state.aiConfig, ...config }
             })),
         }),
         {
