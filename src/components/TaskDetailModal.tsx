@@ -336,16 +336,21 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         setIsOptionsMenuOpen(false);
     };
 
-    const handleDelete = () => {
-        if (confirm('Are you sure you want to delete this task?')) {
-            if (isSubtask && parentTask) {
-                const newSubtasks = parentTask.subtasks?.filter(st => st.id !== taskId) || [];
-                updateTask(parentTask.id, { subtasks: newSubtasks });
-            } else {
-                deleteTask(taskId);
-            }
-            onClose();
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    const handleDeleteClick = () => {
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (isSubtask && parentTask) {
+            const newSubtasks = parentTask.subtasks?.filter(st => st.id !== taskId) || [];
+            updateTask(parentTask.id, { subtasks: newSubtasks });
+        } else {
+            deleteTask(taskId);
         }
+        setShowDeleteConfirm(false);
+        onClose();
     };
 
     const handleAddSubtask = (e: React.FormEvent) => {
@@ -549,7 +554,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                         <span className="task-id">ID: {task.id.substring(0, 8)}</span>
                     </div>
                     <div className="detail-header-right">
-                        <button className="icon-btn-ghost" onClick={handleDelete} title="Delete Task">
+                        <button className="icon-btn-ghost" onClick={handleDeleteClick} title="Delete Task">
                             <Trash2 size={18} />
                         </button>
                         <div style={{ position: 'relative' }}>
@@ -573,7 +578,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                     onRename={handleRename}
                                     onDuplicate={handleDuplicate}
                                     onArchive={handleArchive}
-                                    onDelete={handleDelete}
+                                    onDelete={handleDeleteClick}
                                     onConvertToDoc={handleConvertToDoc}
                                     onMove={() => { setIsLocationPickerOpen(true); setIsOptionsMenuOpen(false); }}
                                     onStartTimer={() => { alert('Timer started for task ' + taskId); setIsOptionsMenuOpen(false); }}
@@ -584,6 +589,47 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                         <button className="icon-btn-ghost" onClick={onClose}><X size={20} /></button>
                     </div>
                 </div>
+
+                {showDeleteConfirm && (
+                    <div className="modal-overlay" style={{ zIndex: 3000 }} onClick={() => setShowDeleteConfirm(false)}>
+                        <div className="modal-content confirm-modal" onClick={e => e.stopPropagation()} style={{ width: '400px', height: 'auto', padding: '24px', maxWidth: '90vw' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '12px', color: 'var(--text-main)' }}>Delete Task?</h3>
+                            <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '14px', lineHeight: 1.5 }}>
+                                Are you sure you want to delete <strong>"{task.name}"</strong>? This action cannot be undone.
+                            </p>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                                <button
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    style={{
+                                        padding: '8px 16px',
+                                        background: 'transparent',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: '6px',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        color: 'var(--text-main)'
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmDelete}
+                                    style={{
+                                        padding: '8px 16px',
+                                        background: '#ef4444',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Delete Task
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="detail-body">
                     <div className="detail-main">
