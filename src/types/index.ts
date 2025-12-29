@@ -160,6 +160,20 @@ export interface Dashboard {
   lastViewed?: string;
 }
 
+export interface Clip {
+  id: string;
+  name: string;
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  duration: string;
+  createdAt: string;
+  ownerId: string;
+  ownerName: string;
+  type: 'video' | 'voice';
+  comments?: Comment[];
+  transcript?: string;
+}
+
 export interface AppState {
   tasks: Task[];
   spaces: Space[];
@@ -180,6 +194,7 @@ export interface AppState {
   aiSessions: ChatSession[];
   dashboards: Dashboard[];
   currentDashboardId: string | null;
+  clips: Clip[];
 }
 
 export interface ChatSession {

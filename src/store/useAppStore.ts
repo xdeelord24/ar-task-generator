@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard } from '../types';
+import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard, Clip } from '../types';
 
 interface AppStore extends AppState {
     setTasks: (tasks: Task[]) => void;
@@ -56,6 +56,10 @@ interface AppStore extends AppState {
     updateDashboard: (id: string, updates: Partial<Dashboard>) => void;
     deleteDashboard: (id: string) => void;
     setCurrentDashboardId: (id: string | null) => void;
+    addClip: (clip: Omit<Clip, 'id' | 'createdAt' | 'ownerId' | 'ownerName'>) => void;
+    deleteClip: (id: string) => void;
+    addClipComment: (clipId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => void;
+    renameClip: (id: string, name: string) => void;
 }
 
 const DEFAULT_STATUSES: Status[] = [
@@ -162,6 +166,18 @@ export const useAppStore = create<AppStore>()(
                 }
             ],
             currentDashboardId: null,
+            clips: [
+                {
+                    id: 'clip-1',
+                    name: 'screen-recording-2025-12-30-02:27',
+                    duration: '00:06',
+                    createdAt: new Date().toISOString(),
+                    ownerId: 'user-1',
+                    ownerName: 'Jundee Mark Gerona Molina',
+                    type: 'video',
+                    transcript: 'Welcome to Clips. Capture your device screen with just a few clicks. Record and effortlessly share your videos with anyone.'
+                }
+            ],
             sidebarCollapsed: false,
 
             setTasks: (tasks) => set({ tasks }),
@@ -432,6 +448,30 @@ export const useAppStore = create<AppStore>()(
                 currentDashboardId: state.currentDashboardId === id ? null : state.currentDashboardId
             })),
             setCurrentDashboardId: (id) => set({ currentDashboardId: id }),
+            addClip: (clip) => set((state) => ({
+                clips: [
+                    {
+                        ...clip,
+                        id: crypto.randomUUID(),
+                        createdAt: new Date().toISOString(),
+                        ownerId: 'user-1',
+                        ownerName: 'Jundee Mark Gerona Molina'
+                    },
+                    ...state.clips
+                ]
+            })),
+            deleteClip: (id) => set((state) => ({
+                clips: state.clips.filter(c => c.id !== id)
+            })),
+            addClipComment: (clipId, comment) => set((state) => ({
+                clips: state.clips.map(c => c.id === clipId ? {
+                    ...c,
+                    comments: [...(c.comments || []), { ...comment, id: crypto.randomUUID(), createdAt: new Date().toISOString() }]
+                } : c)
+            })),
+            renameClip: (id, name) => set((state) => ({
+                clips: state.clips.map(c => c.id === id ? { ...c, name, updatedAt: new Date().toISOString() } : c)
+            })),
         }),
         {
             name: 'ar-generator-app-storage',

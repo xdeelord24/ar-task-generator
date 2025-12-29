@@ -33,7 +33,8 @@ import {
     CheckSquare,
     Calendar,
     Hash,
-    Folder
+    Folder,
+    Video
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import ContextMenu, { useContextMenu } from './ContextMenu';
@@ -69,7 +70,8 @@ const IconMap: Record<string, any> = {
     'list': ListIcon,
     'check-square': CheckSquare,
     'calendar': Calendar,
-    'hash': Hash
+    'hash': Hash,
+    'clips': Video
 };
 
 const Sidebar: React.FC = () => {
@@ -141,6 +143,7 @@ const Sidebar: React.FC = () => {
         { id: 'inbox', icon: Inbox, label: 'Inbox' },
         { id: 'dashboards', icon: BarChart2, label: 'Dashboards' },
         { id: 'docs', icon: FileText, label: 'Docs' },
+        { id: 'clips', icon: Video, label: 'Clips' },
         { id: 'timesheet', icon: Clock, label: 'Timesheets' },
     ];
 

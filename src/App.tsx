@@ -9,6 +9,7 @@ import TimesheetView from './views/TimesheetView';
 import DashboardView from './views/DashboardView';
 import DocsView from './views/DocsView';
 import SpaceOverview from './views/SpaceOverview';
+import ClipsView from './views/ClipsView';
 import TaskModal from './components/TaskModal';
 import TaskDetailModal from './components/TaskDetailModal';
 import ReportModal from './components/ReportModal';
@@ -58,6 +59,8 @@ function App() {
         return <DashboardView />;
       case 'docs':
         return <DocsView />;
+      case 'clips':
+        return <ClipsView />;
       case 'space_overview':
         return <SpaceOverview />;
       case 'kanban':
