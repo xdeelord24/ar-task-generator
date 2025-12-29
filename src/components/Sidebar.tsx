@@ -95,13 +95,17 @@ const Sidebar: React.FC = () => {
         toggleSidebar,
         dashboards,
         currentDashboardId,
-        setCurrentDashboardId
+        setCurrentDashboardId,
+        updateDashboard,
+        deleteDashboard
     } = useAppStore();
 
     const [isCreateSpaceOpen, setIsCreateSpaceOpen] = React.useState(false);
     const [editingSpace, setEditingSpace] = React.useState<any>(null);
     const [editingFolder, setEditingFolder] = React.useState<any>(null);
     const [editingList, setEditingList] = React.useState<any>(null);
+    const [renamingDashboardId, setRenamingDashboardId] = React.useState<string | null>(null);
+    const [dashboardNewName, setDashboardNewName] = React.useState('');
     const [createListSpaceId, setCreateListSpaceId] = React.useState<string | null>(null);
     const [createListFolderId, setCreateListFolderId] = React.useState<string | null>(null);
     const [createFolderSpaceId, setCreateFolderSpaceId] = React.useState<string | null>(null);
@@ -311,11 +315,40 @@ const Sidebar: React.FC = () => {
                                                                                 setCurrentDashboardId(dash.id);
                                                                                 setCurrentView('dashboards');
                                                                             }}
+                                                                            onContextMenu={(e) => showContextMenu(e, [
+                                                                                { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => { setRenamingDashboardId(dash.id); setDashboardNewName(dash.name); } },
+                                                                                { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteDashboard(dash.id), danger: true },
+                                                                            ])}
                                                                         >
                                                                             <div className="list-icon-wrapper" style={{ paddingLeft: '12px' }}>
                                                                                 <BarChart2 size={12} />
                                                                             </div>
-                                                                            <span>{dash.name}</span>
+                                                                            {renamingDashboardId === dash.id ? (
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={dashboardNewName}
+                                                                                    onChange={(e) => setDashboardNewName(e.target.value)}
+                                                                                    onKeyDown={(e) => {
+                                                                                        if (e.key === 'Enter') {
+                                                                                            updateDashboard(dash.id, { name: dashboardNewName });
+                                                                                            setRenamingDashboardId(null);
+                                                                                        }
+                                                                                        if (e.key === 'Escape') setRenamingDashboardId(null);
+                                                                                        e.stopPropagation();
+                                                                                    }}
+                                                                                    onBlur={() => {
+                                                                                        if (dashboardNewName.trim()) {
+                                                                                            updateDashboard(dash.id, { name: dashboardNewName });
+                                                                                        }
+                                                                                        setRenamingDashboardId(null);
+                                                                                    }}
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                    autoFocus
+                                                                                    className="sidebar-rename-input"
+                                                                                />
+                                                                            ) : (
+                                                                                <span>{dash.name}</span>
+                                                                            )}
                                                                         </a>
                                                                     ))}
                                                                 </React.Fragment>
@@ -360,11 +393,40 @@ const Sidebar: React.FC = () => {
                                                             setCurrentDashboardId(dash.id);
                                                             setCurrentView('dashboards');
                                                         }}
+                                                        onContextMenu={(e) => showContextMenu(e, [
+                                                            { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => { setRenamingDashboardId(dash.id); setDashboardNewName(dash.name); } },
+                                                            { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteDashboard(dash.id), danger: true },
+                                                        ])}
                                                     >
                                                         <div className="list-icon-wrapper" style={{ paddingLeft: '12px' }}>
                                                             <BarChart2 size={12} />
                                                         </div>
-                                                        <span>{dash.name}</span>
+                                                        {renamingDashboardId === dash.id ? (
+                                                            <input
+                                                                type="text"
+                                                                value={dashboardNewName}
+                                                                onChange={(e) => setDashboardNewName(e.target.value)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') {
+                                                                        updateDashboard(dash.id, { name: dashboardNewName });
+                                                                        setRenamingDashboardId(null);
+                                                                    }
+                                                                    if (e.key === 'Escape') setRenamingDashboardId(null);
+                                                                    e.stopPropagation();
+                                                                }}
+                                                                onBlur={() => {
+                                                                    if (dashboardNewName.trim()) {
+                                                                        updateDashboard(dash.id, { name: dashboardNewName });
+                                                                    }
+                                                                    setRenamingDashboardId(null);
+                                                                }}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                autoFocus
+                                                                className="sidebar-rename-input"
+                                                            />
+                                                        ) : (
+                                                            <span>{dash.name}</span>
+                                                        )}
                                                     </a>
                                                 ))}
                                             </React.Fragment>
@@ -382,11 +444,40 @@ const Sidebar: React.FC = () => {
                                                     setCurrentDashboardId(dash.id);
                                                     setCurrentView('dashboards');
                                                 }}
+                                                onContextMenu={(e) => showContextMenu(e, [
+                                                    { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => { setRenamingDashboardId(dash.id); setDashboardNewName(dash.name); } },
+                                                    { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteDashboard(dash.id), danger: true },
+                                                ])}
                                             >
                                                 <div className="list-icon-wrapper">
                                                     <BarChart2 size={14} />
                                                 </div>
-                                                <span>{dash.name}</span>
+                                                {renamingDashboardId === dash.id ? (
+                                                    <input
+                                                        type="text"
+                                                        value={dashboardNewName}
+                                                        onChange={(e) => setDashboardNewName(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                updateDashboard(dash.id, { name: dashboardNewName });
+                                                                setRenamingDashboardId(null);
+                                                            }
+                                                            if (e.key === 'Escape') setRenamingDashboardId(null);
+                                                            e.stopPropagation();
+                                                        }}
+                                                        onBlur={() => {
+                                                            if (dashboardNewName.trim()) {
+                                                                updateDashboard(dash.id, { name: dashboardNewName });
+                                                            }
+                                                            setRenamingDashboardId(null);
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        autoFocus
+                                                        className="sidebar-rename-input"
+                                                    />
+                                                ) : (
+                                                    <span>{dash.name}</span>
+                                                )}
                                             </a>
                                         ))}
                                     </div>
