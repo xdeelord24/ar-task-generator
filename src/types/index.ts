@@ -196,6 +196,8 @@ export interface AppState {
   dashboards: Dashboard[];
   currentDashboardId: string | null;
   clips: Clip[];
+  notifications: Notification[];
+  notificationSettings: NotificationSettings;
 }
 
 export interface ChatSession {
@@ -203,4 +205,28 @@ export interface ChatSession {
   title: string;
   createdAt: string;
   messages: Message[];
+}
+
+export type NotificationType = 'due_soon' | 'overdue' | 'task_assigned' | 'task_completed' | 'comment_added';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  taskId?: string;
+  taskName?: string;
+  isRead: boolean;
+  createdAt: string;
+  dueDate?: string;
+}
+
+export interface NotificationSettings {
+  enabled: boolean;
+  dueSoonDays: number; // How many days before due date to notify
+  browserNotifications: boolean;
+  soundEnabled: boolean;
+  notifyOnOverdue: boolean;
+  notifyOnDueSoon: boolean;
+  notifyOnAssignment: boolean;
 }

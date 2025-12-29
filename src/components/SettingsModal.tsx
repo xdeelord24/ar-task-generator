@@ -17,7 +17,7 @@ declare const QRCode: any;
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'profile' }) => {
     const [activeTab, setActiveTab] = useState(initialTab);
-    const { theme, setTheme, accentColor, setAccentColor, aiConfig, setAIConfig } = useAppStore();
+    const { theme, setTheme, accentColor, setAccentColor, aiConfig, setAIConfig, notificationSettings, updateNotificationSettings } = useAppStore();
     const [ollamaModels, setOllamaModels] = useState<string[]>([]);
     const [isFetchingModels, setIsFetchingModels] = useState(false);
     const [ollamaError, setOllamaError] = useState<string | null>(null);
@@ -298,6 +298,152 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'pr
                                     <kbd>g</kbd> <kbd>i</kbd>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                );
+            case 'notifications':
+                const requestBrowserPermission = async () => {
+                    if ('Notification' in window && Notification.permission === 'default') {
+                        const permission = await Notification.requestPermission();
+                        if (permission === 'granted') {
+                            updateNotificationSettings({ browserNotifications: true });
+                        }
+                    }
+                };
+
+                return (
+                    <div className="settings-content-pane">
+                        <h2>Notification Settings</h2>
+                        <div className="form-section">
+                            <div className="form-group">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <div>
+                                        <label style={{ marginBottom: '4px', display: 'block' }}>Enable Notifications</label>
+                                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>Receive notifications for tasks and updates</p>
+                                    </div>
+                                    <label className="toggle-switch">
+                                        <input
+                                            type="checkbox"
+                                            checked={notificationSettings.enabled}
+                                            onChange={(e) => updateNotificationSettings({ enabled: e.target.checked })}
+                                        />
+                                        <span className="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {notificationSettings.enabled && (
+                                <>
+                                    <div className="form-group">
+                                        <label>Due Date Notifications</label>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '14px' }}>Notify when task is overdue</span>
+                                                <label className="toggle-switch">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={notificationSettings.notifyOnOverdue}
+                                                        onChange={(e) => updateNotificationSettings({ notifyOnOverdue: e.target.checked })}
+                                                    />
+                                                    <span className="toggle-slider"></span>
+                                                </label>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '14px' }}>Notify when task is due soon</span>
+                                                <label className="toggle-switch">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={notificationSettings.notifyOnDueSoon}
+                                                        onChange={(e) => updateNotificationSettings({ notifyOnDueSoon: e.target.checked })}
+                                                    />
+                                                    <span className="toggle-slider"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {notificationSettings.notifyOnDueSoon && (
+                                        <div className="form-group">
+                                            <label>Due Soon Threshold</label>
+                                            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>Notify me when a task is due within</p>
+                                            <select
+                                                value={notificationSettings.dueSoonDays}
+                                                onChange={(e) => updateNotificationSettings({ dueSoonDays: parseInt(e.target.value) })}
+                                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                                            >
+                                                <option value="1">1 day</option>
+                                                <option value="2">2 days</option>
+                                                <option value="3">3 days</option>
+                                                <option value="5">5 days</option>
+                                                <option value="7">1 week</option>
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    <div className="form-group">
+                                        <label>Other Notifications</label>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '14px' }}>Task assignments</span>
+                                                <label className="toggle-switch">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={notificationSettings.notifyOnAssignment}
+                                                        onChange={(e) => updateNotificationSettings({ notifyOnAssignment: e.target.checked })}
+                                                    />
+                                                    <span className="toggle-slider"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <div>
+                                                <label style={{ marginBottom: '4px', display: 'block' }}>Browser Notifications</label>
+                                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>Show desktop notifications</p>
+                                            </div>
+                                            <label className="toggle-switch">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={notificationSettings.browserNotifications}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            requestBrowserPermission();
+                                                        } else {
+                                                            updateNotificationSettings({ browserNotifications: false });
+                                                        }
+                                                    }}
+                                                    disabled={'Notification' in window && Notification.permission === 'denied'}
+                                                />
+                                                <span className="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                        {'Notification' in window && Notification.permission === 'denied' && (
+                                            <p style={{ fontSize: '12px', color: 'var(--danger)', marginTop: '8px' }}>
+                                                Browser notifications are blocked. Please enable them in your browser settings.
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="form-group">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <label style={{ marginBottom: '4px', display: 'block' }}>Sound</label>
+                                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>Play sound for notifications</p>
+                                            </div>
+                                            <label className="toggle-switch">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={notificationSettings.soundEnabled}
+                                                    onChange={(e) => updateNotificationSettings({ soundEnabled: e.target.checked })}
+                                                />
+                                                <span className="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 );

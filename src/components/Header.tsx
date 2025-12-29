@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, Calendar, Grid, FileText, ChevronDown, Sparkles } from 'lucide-react';
+import { Search, Calendar, Grid, FileText, ChevronDown, Sparkles } from 'lucide-react';
 import ProfileDropdown from './ProfileDropdown';
+import NotificationCenter from './NotificationCenter';
 import '../styles/Header.css';
 
 interface HeaderProps {
@@ -8,6 +9,7 @@ interface HeaderProps {
     onOpenReport: () => void;
     onOpenAI: () => void;
     onOpenSettings: (tab?: string) => void;
+    onTaskClick?: (taskId: string) => void;
 }
 
 import { useAppStore } from '../store/useAppStore';
@@ -52,7 +54,7 @@ const ActiveTimerDisplay: React.FC = () => {
     );
 };
 
-const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI, onOpenSettings }) => {
+const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI, onOpenSettings, onTaskClick }) => {
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState<'left' | 'right'>('right');
 
@@ -85,7 +87,7 @@ const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI, onOp
                     AR
                 </div>
                 <div className="header-icons">
-                    <button className="icon-btn"><Bell size={18} /></button>
+                    <NotificationCenter onTaskClick={onTaskClick} />
                     <button className="icon-btn"><Calendar size={18} /></button>
                 </div>
                 <div className="search-bar">

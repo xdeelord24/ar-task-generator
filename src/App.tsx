@@ -18,7 +18,7 @@ import SettingsModal from './components/SettingsModal';
 import { useAppStore } from './store/useAppStore';
 
 function App() {
-  const { currentView, theme, accentColor } = useAppStore();
+  const { currentView, theme, accentColor, checkDueDates } = useAppStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [initialStatus, setInitialStatus] = useState<string | undefined>(undefined);
@@ -48,6 +48,19 @@ function App() {
     root.style.setProperty('--primary', accentColor);
     root.style.setProperty('--primary-hover', accentColor + 'ee');
   }, [theme, accentColor]);
+
+  // Check for due dates on mount and periodically
+  useEffect(() => {
+    // Check immediately on mount
+    checkDueDates();
+
+    // Check every 5 minutes
+    const interval = setInterval(() => {
+      checkDueDates();
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [checkDueDates]);
 
   const renderView = () => {
     switch (currentView) {
@@ -87,6 +100,7 @@ function App() {
       onOpenReport={() => setIsReportOpen(true)}
       onOpenAI={() => setIsAIOpen(true)}
       onOpenSettings={openSettings}
+      onTaskClick={setSelectedTaskId}
     >
       {renderView()}
       {isModalOpen && <TaskModal initialStatus={initialStatus} onClose={() => { setIsModalOpen(false); setInitialStatus(undefined); }} />}

@@ -9,9 +9,10 @@ interface LayoutProps {
     onOpenReport: () => void;
     onOpenAI: () => void;
     onOpenSettings: (tab?: string) => void;
+    onTaskClick?: (taskId: string) => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, onAddTask, onOpenReport, onOpenAI, onOpenSettings }) => {
+const Layout: React.FC<LayoutProps> = ({ children, onAddTask, onOpenReport, onOpenAI, onOpenSettings, onTaskClick }) => {
     return (
         <div className="app-container">
             <Header
@@ -19,6 +20,7 @@ const Layout: React.FC<LayoutProps> = ({ children, onAddTask, onOpenReport, onOp
                 onOpenReport={onOpenReport}
                 onOpenAI={onOpenAI}
                 onOpenSettings={onOpenSettings}
+                onTaskClick={onTaskClick}
             />
             <div className="main-layout">
                 <Sidebar />

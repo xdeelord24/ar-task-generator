@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard, Clip } from '../types';
+import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard, Clip, Notification, NotificationSettings } from '../types';
 
 interface AppStore extends AppState {
     setTasks: (tasks: Task[]) => void;
@@ -60,6 +60,13 @@ interface AppStore extends AppState {
     deleteClip: (id: string) => void;
     addClipComment: (clipId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => void;
     renameClip: (id: string, name: string) => void;
+    addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => void;
+    markNotificationAsRead: (notificationId: string) => void;
+    markAllNotificationsAsRead: () => void;
+    clearNotification: (notificationId: string) => void;
+    clearAllNotifications: () => void;
+    updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
+    checkDueDates: () => void;
 }
 
 const DEFAULT_STATUSES: Status[] = [
@@ -179,6 +186,16 @@ export const useAppStore = create<AppStore>()(
                 }
             ],
             sidebarCollapsed: false,
+            notifications: [],
+            notificationSettings: {
+                enabled: true,
+                dueSoonDays: 3,
+                browserNotifications: false,
+                soundEnabled: false,
+                notifyOnOverdue: true,
+                notifyOnDueSoon: true,
+                notifyOnAssignment: true
+            },
 
             setTasks: (tasks) => set({ tasks }),
             addTask: (task) => set((state) => ({
@@ -478,6 +495,108 @@ export const useAppStore = create<AppStore>()(
                     clips: state.clips.map(c => c.id === id ? { ...c, name, updatedAt: new Date().toISOString() } : c)
                 };
             }),
+
+            // Notification actions
+            addNotification: (notification) => set((state) => ({
+                notifications: [
+                    {
+                        ...notification,
+                        id: crypto.randomUUID(),
+                        createdAt: new Date().toISOString(),
+                        isRead: false
+                    },
+                    ...state.notifications
+                ]
+            })),
+
+            markNotificationAsRead: (notificationId) => set((state) => ({
+                notifications: state.notifications.map(n =>
+                    n.id === notificationId ? { ...n, isRead: true } : n
+                )
+            })),
+
+            markAllNotificationsAsRead: () => set((state) => ({
+                notifications: state.notifications.map(n => ({ ...n, isRead: true }))
+            })),
+
+            clearNotification: (notificationId) => set((state) => ({
+                notifications: state.notifications.filter(n => n.id !== notificationId)
+            })),
+
+            clearAllNotifications: () => set({ notifications: [] }),
+
+            updateNotificationSettings: (settings) => set((state) => ({
+                notificationSettings: { ...state.notificationSettings, ...settings }
+            })),
+
+            checkDueDates: () => {
+                const state = get();
+                if (!state.notificationSettings.enabled) return;
+
+                const now = new Date();
+                const dueSoonThreshold = new Date();
+                dueSoonThreshold.setDate(now.getDate() + state.notificationSettings.dueSoonDays);
+
+                state.tasks.forEach(task => {
+                    if (!task.dueDate) return;
+
+                    const dueDate = new Date(task.dueDate);
+                    const taskId = task.id;
+
+                    // Check if notification already exists for this task
+                    const existingNotification = state.notifications.find(
+                        n => n.taskId === taskId && (n.type === 'due_soon' || n.type === 'overdue')
+                    );
+
+                    // Check for overdue tasks
+                    if (state.notificationSettings.notifyOnOverdue && dueDate < now && task.status !== 'COMPLETED') {
+                        if (!existingNotification || existingNotification.type !== 'overdue') {
+                            state.addNotification({
+                                type: 'overdue',
+                                title: 'Task Overdue',
+                                message: `"${task.name}" is overdue`,
+                                taskId: task.id,
+                                taskName: task.name,
+                                dueDate: task.dueDate
+                            });
+
+                            // Browser notification
+                            if (state.notificationSettings.browserNotifications && 'Notification' in window) {
+                                if (Notification.permission === 'granted') {
+                                    new Notification('Task Overdue', {
+                                        body: `"${task.name}" is overdue`,
+                                        icon: '/favicon.ico'
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    // Check for due soon tasks
+                    else if (state.notificationSettings.notifyOnDueSoon && dueDate <= dueSoonThreshold && dueDate >= now && task.status !== 'COMPLETED') {
+                        if (!existingNotification) {
+                            const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                            state.addNotification({
+                                type: 'due_soon',
+                                title: 'Task Due Soon',
+                                message: `"${task.name}" is due in ${daysUntilDue} day${daysUntilDue !== 1 ? 's' : ''}`,
+                                taskId: task.id,
+                                taskName: task.name,
+                                dueDate: task.dueDate
+                            });
+
+                            // Browser notification
+                            if (state.notificationSettings.browserNotifications && 'Notification' in window) {
+                                if (Notification.permission === 'granted') {
+                                    new Notification('Task Due Soon', {
+                                        body: `"${task.name}" is due in ${daysUntilDue} day${daysUntilDue !== 1 ? 's' : ''}`,
+                                        icon: '/favicon.ico'
+                                    });
+                                }
+                            }
+                        }
+                    }
+                });
+            },
         }),
         {
             name: 'ar-generator-app-storage',
