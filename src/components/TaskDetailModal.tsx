@@ -664,6 +664,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                             taskId={taskId}
                                             onClose={() => { }}
                                             inline
+                                            modalPicker
                                         />
                                     </div>
                                 </div>
