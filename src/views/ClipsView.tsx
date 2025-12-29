@@ -364,65 +364,21 @@ const ClipsView: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="clips-content">
-                    <div className="welcome-section">
-                        <h1>Welcome to Clips</h1>
-                    </div>
-
-                    <div className="feature-cards">
-                        <div className="feature-card">
-                            <div className="card-image-wrapper">
-                                <img
-                                    src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1000&auto=format&fit=crop"
-                                    alt="Record in a snap"
-                                    className="card-illustration"
-                                />
-                                <div className="recording-overlay">
-                                    <div className="rec-dot"></div>
-                                    <span>REC</span>
-                                </div>
-                            </div>
-                            <div className="card-content">
-                                <h3>Record in a snap</h3>
-                                <p>Capture your device's screen with just a few clicks. Record and effortlessly share your videos with anyone.</p>
-                            </div>
+                <div className="clips-empty-hero">
+                    <div className="hero-content">
+                        <h1 className="hero-title">Welcome to Clips</h1>
+                        <div className="hero-illustration-wrapper">
+                            <img
+                                src="/clips_empty_illustration_1767034347079.png"
+                                alt="Welcome to Clips"
+                                className="hero-illustration"
+                            />
+                            <div className="hero-overlay-gradient"></div>
                         </div>
-
-                        <div className="feature-card">
-                            <div className="card-image-wrapper">
-                                <img
-                                    src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1000&auto=format&fit=crop"
-                                    alt="Unlock async productivity"
-                                    className="card-illustration"
-                                />
-                            </div>
-                            <div className="card-content">
-                                <h3>Unlock async productivity</h3>
-                                <p>Skip the meetings and share all of your design updates, feedback videos, onboarding videos, and more in one place.</p>
-                            </div>
-                        </div>
-
-                        <div className="feature-card">
-                            <div className="card-image-wrapper">
-                                <img
-                                    src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000&auto=format&fit=crop"
-                                    alt="Watch, share, collaborate"
-                                    className="card-illustration"
-                                />
-                            </div>
-                            <div className="card-content">
-                                <h3>Watch, share, collaborate</h3>
-                                <p>Clips automatically generate a link, allowing you to quickly share your clips anywhere, even outside of your Workspace.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="empty-state-section">
-                        <div className="empty-content">
-                            <h2>Create your first Clip!</h2>
-                            <p>Create and share screen recordings to give your teammates context. Save your recordings, attach them to tasks, or share them anywhere. <a href="#">Learn more</a></p>
+                        <div className="hero-footer-cta">
+                            <p>Capture, share, and collaborate with async video clips.</p>
                             <button className="btn-primary-lg" onClick={() => setIsCreateOpen(true)}>
-                                Create Clip
+                                <Video size={20} /> Create your first Clip
                             </button>
                         </div>
                     </div>
