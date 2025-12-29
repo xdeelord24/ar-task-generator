@@ -57,6 +57,7 @@ import TaskOptionsMenu from '../components/TaskOptionsMenu';
 import DatePicker from '../components/DatePicker';
 import TagMenu from '../components/TagMenu';
 import ViewSelectorModal from '../components/ViewSelectorModal';
+import ViewContextMenu from '../components/ViewContextMenu';
 import '../styles/ListView.css';
 import '../styles/TaskOptionsMenu.css';
 
@@ -540,12 +541,14 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         deleteTag,
         startTimer,
         updateSubtask,
-        addStatus
+        addStatus,
+        savedViews
     } = useAppStore();
     const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
     const [activePopover, setActivePopover] = React.useState<ActivePopover | null>(null);
     const [showViewSelector, setShowViewSelector] = React.useState(false);
+    const [contextMenu, setContextMenu] = React.useState<{ view: any; position: { x: number; y: number } } | null>(null);
 
     React.useEffect(() => {
         const handleClickOutside = () => {
@@ -711,10 +714,32 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                     <span className="task-count">{filteredTasks.length}</span>
                 </div>
                 <div className="view-controls">
-                    <button className={`view-mode-btn ${currentView === 'list' ? 'active' : ''}`} onClick={() => setCurrentView('list')}>List</button>
-                    <button className={`view-mode-btn ${currentView === 'kanban' ? 'active' : ''}`} onClick={() => setCurrentView('kanban')}>Board</button>
-                    <button className={`view-mode-btn ${currentView === 'calendar' ? 'active' : ''}`} onClick={() => setCurrentView('calendar')}>Calendar</button>
-                    <button className={`view-mode-btn ${currentView === 'gantt' ? 'active' : ''}`} onClick={() => setCurrentView('gantt')}>Gantt</button>
+                    {savedViews
+                        .filter(v => !v.spaceId || v.spaceId === currentSpaceId)
+                        .filter(v => !v.listId || v.listId === currentListId)
+                        .sort((a, b) => {
+                            // Pinned views first
+                            if (a.isPinned && !b.isPinned) return -1;
+                            if (!a.isPinned && b.isPinned) return 1;
+                            return 0;
+                        })
+                        .map(savedView => (
+                            <button
+                                key={savedView.id}
+                                className={`view-mode-btn ${currentView === savedView.viewType ? 'active' : ''}`}
+                                onClick={() => setCurrentView(savedView.viewType)}
+                                onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    setContextMenu({
+                                        view: savedView,
+                                        position: { x: e.clientX, y: e.clientY }
+                                    });
+                                }}
+                            >
+                                {savedView.name}
+                            </button>
+                        ))
+                    }
                     <button className="view-mode-btn add-view-btn" onClick={() => setShowViewSelector(true)}>
                         <Plus size={14} /> View
                     </button>
@@ -841,6 +866,14 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                     onSelectView={(viewType) => {
                         setCurrentView(viewType);
                     }}
+                />
+            )}
+
+            {contextMenu && (
+                <ViewContextMenu
+                    view={contextMenu.view}
+                    position={contextMenu.position}
+                    onClose={() => setContextMenu(null)}
                 />
             )}
         </div>

@@ -82,6 +82,8 @@ import {
     differenceInMinutes
 } from 'date-fns';
 import type { Task } from '../types';
+import ViewSelectorModal from '../components/ViewSelectorModal';
+import ViewContextMenu from '../components/ViewContextMenu';
 import '../styles/CalendarView.css';
 import '../styles/ListView.css';
 
@@ -362,10 +364,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
         setCurrentView,
         updateTask,
         spaces,
-        lists
+        lists,
+        savedViews
     } = useAppStore();
     const [viewDate, setViewDate] = useState(new Date());
     const [calendarMode, setCalendarMode] = useState<CalendarMode>('month');
+    const [showViewSelector, setShowViewSelector] = useState(false);
+    const [contextMenu, setContextMenu] = useState<{ view: any; position: { x: number; y: number } } | null>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -501,10 +506,34 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
                     <span className="task-count">{filteredTasks.length}</span>
                 </div>
                 <div className="view-controls">
-                    <button className="view-mode-btn" onClick={() => setCurrentView('list')}>List</button>
-                    <button className="view-mode-btn" onClick={() => setCurrentView('kanban')}>Board</button>
-                    <button className="view-mode-btn active" onClick={() => setCurrentView('calendar')}>Calendar</button>
-                    <button className="view-mode-btn" onClick={() => setCurrentView('gantt')}>Gantt</button>
+                    {savedViews
+                        .filter(v => !v.spaceId || v.spaceId === currentSpaceId)
+                        .filter(v => !v.listId || v.listId === currentListId)
+                        .sort((a, b) => {
+                            if (a.isPinned && !b.isPinned) return -1;
+                            if (!a.isPinned && b.isPinned) return 1;
+                            return 0;
+                        })
+                        .map(savedView => (
+                            <button
+                                key={savedView.id}
+                                className={`view-mode-btn ${savedView.viewType === 'calendar' ? 'active' : ''}`}
+                                onClick={() => setCurrentView(savedView.viewType)}
+                                onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    setContextMenu({
+                                        view: savedView,
+                                        position: { x: e.clientX, y: e.clientY }
+                                    });
+                                }}
+                            >
+                                {savedView.name}
+                            </button>
+                        ))
+                    }
+                    <button className="view-mode-btn add-view-btn" onClick={() => setShowViewSelector(true)}>
+                        <Plus size={14} /> View
+                    </button>
                 </div>
             </div>
 
@@ -567,6 +596,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
                     <TimeGrid days={days} tasks={filteredTasks} onTaskClick={onTaskClick} />
                 )}
             </DndContext>
+
+            {showViewSelector && (
+                <ViewSelectorModal
+                    onClose={() => setShowViewSelector(false)}
+                    onSelectView={(viewType) => {
+                        setCurrentView(viewType);
+                    }}
+                />
+            )}
+
+            {contextMenu && (
+                <ViewContextMenu
+                    view={contextMenu.view}
+                    position={contextMenu.position}
+                    onClose={() => setContextMenu(null)}
+                />
+            )}
         </div>
     );
 };

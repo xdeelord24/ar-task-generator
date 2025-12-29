@@ -115,6 +115,17 @@ export interface ColumnSetting {
   width?: number;
 }
 
+export interface SavedView {
+  id: string;
+  name: string;
+  viewType: ViewType;
+  spaceId?: string;
+  listId?: string;
+  isPinned: boolean;
+  isPrivate: boolean;
+  createdAt: string;
+}
+
 export interface AppState {
   tasks: Task[];
   spaces: Space[];
@@ -125,6 +136,7 @@ export interface AppState {
   currentSpaceId: string;
   currentListId: string | null;
   currentView: ViewType;
+  savedViews: SavedView[];
   columnSettings: Record<string, ColumnSetting[]>; // keyed by spaceId or listId
   theme: ThemeMode;
   accentColor: string;

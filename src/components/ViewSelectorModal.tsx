@@ -17,6 +17,7 @@ import {
     Search,
     X
 } from 'lucide-react';
+import { useAppStore } from '../store/useAppStore';
 import '../styles/ViewSelectorModal.css';
 import type { ViewType } from '../types';
 
@@ -86,7 +87,7 @@ const VIEW_OPTIONS: ViewOption[] = [
         category: 'more'
     },
     {
-        id: 'list',
+        id: 'timesheet',
         name: 'Timeline',
         description: 'See tasks by start & due date',
         icon: Clock,
@@ -136,6 +137,13 @@ interface ViewSelectorModalProps {
 
 const ViewSelectorModal: React.FC<ViewSelectorModalProps> = ({ onClose, onSelectView }) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [isPinned, setIsPinned] = useState(false);
+    const [isPrivate, setIsPrivate] = useState(false);
+    const [viewName, setViewName] = useState('');
+    const [showNameInput, setShowNameInput] = useState(false);
+    const [selectedViewType, setSelectedViewType] = useState<ViewType | null>(null);
+
+    const { addSavedView, currentSpaceId, currentListId } = useAppStore();
 
     const filteredViews = VIEW_OPTIONS.filter(view =>
         view.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -145,10 +153,99 @@ const ViewSelectorModal: React.FC<ViewSelectorModalProps> = ({ onClose, onSelect
     const popularViews = filteredViews.filter(v => v.category === 'popular');
     const moreViews = filteredViews.filter(v => v.category === 'more');
 
-    const handleSelectView = (viewId: ViewType) => {
-        onSelectView(viewId);
+    const handleSelectViewType = (viewType: ViewType, defaultName: string) => {
+        setSelectedViewType(viewType);
+        setViewName(defaultName);
+        setShowNameInput(true);
+    };
+
+    const handleCreateView = () => {
+        if (!selectedViewType || !viewName.trim()) return;
+
+        addSavedView({
+            name: viewName.trim(),
+            viewType: selectedViewType,
+            spaceId: currentSpaceId === 'everything' ? undefined : currentSpaceId,
+            listId: currentListId || undefined,
+            isPinned,
+            isPrivate
+        });
+
+        // Switch to the newly created view
+        onSelectView(selectedViewType);
         onClose();
     };
+
+    const handleCancel = () => {
+        setShowNameInput(false);
+        setSelectedViewType(null);
+        setViewName('');
+        setIsPinned(false);
+        setIsPrivate(false);
+    };
+
+    if (showNameInput && selectedViewType) {
+        return (
+            <>
+                <div className="view-selector-overlay" onClick={onClose}></div>
+                <div className="view-selector-modal view-name-modal">
+                    <div className="view-name-header">
+                        <h2>Name your view</h2>
+                        <button className="close-btn" onClick={onClose}>
+                            <X size={16} />
+                        </button>
+                    </div>
+
+                    <div className="view-name-content">
+                        <div className="form-group">
+                            <label>View Name</label>
+                            <input
+                                type="text"
+                                placeholder="Enter view name..."
+                                value={viewName}
+                                onChange={(e) => setViewName(e.target.value)}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleCreateView();
+                                    if (e.key === 'Escape') handleCancel();
+                                }}
+                            />
+                        </div>
+
+                        <div className="view-options">
+                            <label className="view-option-checkbox">
+                                <input
+                                    type="checkbox"
+                                    checked={isPinned}
+                                    onChange={(e) => setIsPinned(e.target.checked)}
+                                />
+                                <span>Pin view</span>
+                            </label>
+                            <label className="view-option-checkbox">
+                                <input
+                                    type="checkbox"
+                                    checked={isPrivate}
+                                    onChange={(e) => setIsPrivate(e.target.checked)}
+                                />
+                                <span>Private view</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="view-name-footer">
+                        <button className="btn-secondary" onClick={handleCancel}>Cancel</button>
+                        <button
+                            className="btn-primary"
+                            onClick={handleCreateView}
+                            disabled={!viewName.trim()}
+                        >
+                            Create View
+                        </button>
+                    </div>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
@@ -173,13 +270,13 @@ const ViewSelectorModal: React.FC<ViewSelectorModalProps> = ({ onClose, onSelect
                         <div className="view-section">
                             <h3 className="view-section-title">Popular</h3>
                             <div className="view-grid">
-                                {popularViews.map(view => {
+                                {popularViews.map((view, index) => {
                                     const Icon = view.icon;
                                     return (
                                         <button
-                                            key={view.name}
+                                            key={`${view.id}-${index}`}
                                             className="view-option"
-                                            onClick={() => handleSelectView(view.id)}
+                                            onClick={() => handleSelectViewType(view.id, view.name)}
                                         >
                                             <div className="view-icon">
                                                 <Icon size={20} />
@@ -199,13 +296,13 @@ const ViewSelectorModal: React.FC<ViewSelectorModalProps> = ({ onClose, onSelect
                         <div className="view-section">
                             <h3 className="view-section-title">More views</h3>
                             <div className="view-grid">
-                                {moreViews.map(view => {
+                                {moreViews.map((view, index) => {
                                     const Icon = view.icon;
                                     return (
                                         <button
-                                            key={view.name}
+                                            key={`${view.id}-${index}`}
                                             className="view-option"
-                                            onClick={() => handleSelectView(view.id)}
+                                            onClick={() => handleSelectViewType(view.id, view.name)}
                                         >
                                             <div className="view-icon">
                                                 <Icon size={20} />
@@ -221,20 +318,10 @@ const ViewSelectorModal: React.FC<ViewSelectorModalProps> = ({ onClose, onSelect
                         </div>
                     )}
                 </div>
-
-                <div className="view-selector-footer">
-                    <label className="view-option-checkbox">
-                        <input type="checkbox" />
-                        <span>Private view</span>
-                    </label>
-                    <label className="view-option-checkbox">
-                        <input type="checkbox" />
-                        <span>Pin view</span>
-                    </label>
-                </div>
             </div>
         </>
     );
 };
 
 export default ViewSelectorModal;
+

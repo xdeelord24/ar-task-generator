@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status } from '../types';
+import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView } from '../types';
 
 interface AppStore extends AppState {
     setTasks: (tasks: Task[]) => void;
@@ -40,6 +40,9 @@ interface AppStore extends AppState {
     setAccentColor: (color: string) => void;
     startTimer: (taskId: string) => void;
     stopTimer: () => void;
+    addSavedView: (view: Omit<SavedView, 'id' | 'createdAt'>) => void;
+    updateSavedView: (viewId: string, updates: Partial<SavedView>) => void;
+    deleteSavedView: (viewId: string) => void;
     sidebarCollapsed: boolean;
     toggleSidebar: () => void;
 }
@@ -115,6 +118,12 @@ export const useAppStore = create<AppStore>()(
             theme: 'system',
             accentColor: '#2563eb',
             activeTimer: null,
+            savedViews: [
+                { id: 'default-list', name: 'List', viewType: 'list', isPinned: true, isPrivate: false, createdAt: new Date().toISOString() },
+                { id: 'default-kanban', name: 'Board', viewType: 'kanban', isPinned: true, isPrivate: false, createdAt: new Date().toISOString() },
+                { id: 'default-calendar', name: 'Calendar', viewType: 'calendar', isPinned: true, isPrivate: false, createdAt: new Date().toISOString() },
+                { id: 'default-gantt', name: 'Gantt', viewType: 'gantt', isPinned: true, isPrivate: false, createdAt: new Date().toISOString() },
+            ],
             sidebarCollapsed: false,
 
             setTasks: (tasks) => set({ tasks }),
@@ -299,6 +308,16 @@ export const useAppStore = create<AppStore>()(
             },
 
             toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+
+            addSavedView: (view) => set((state) => ({
+                savedViews: [...state.savedViews, { ...view, id: crypto.randomUUID(), createdAt: new Date().toISOString() }]
+            })),
+            updateSavedView: (viewId, updates) => set((state) => ({
+                savedViews: state.savedViews.map(v => v.id === viewId ? { ...v, ...updates } : v)
+            })),
+            deleteSavedView: (viewId) => set((state) => ({
+                savedViews: state.savedViews.filter(v => v.id !== viewId)
+            })),
         }),
         {
             name: 'ar-generator-app-storage',

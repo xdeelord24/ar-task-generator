@@ -26,6 +26,110 @@
     animation: slideUp 0.2s ease;
 }
 
+.view-name-modal {
+    max-width: 500px;
+}
+
+.view-name-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.view-name-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.view-name-content {
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.form-group input {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--text-main);
+    background: var(--bg-main);
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.form-group input:focus {
+    border-color: var(--primary);
+}
+
+.view-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.view-name-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-hover);
+}
+
+.view-name-footer .btn-secondary,
+.view-name-footer .btn-primary {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.view-name-footer .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-main);
+}
+
+.view-name-footer .btn-secondary:hover {
+    background: var(--bg-hover);
+}
+
+.view-name-footer .btn-primary {
+    background: var(--primary);
+    border: none;
+    color: white;
+}
+
+.view-name-footer .btn-primary:hover {
+    opacity: 0.9;
+}
+
+.view-name-footer .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .view-selector-search {
     display: flex;
     align-items: center;
