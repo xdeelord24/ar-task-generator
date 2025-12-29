@@ -39,6 +39,38 @@ const TagMenu: React.FC<TagMenuProps> = ({
     const [newTagColor, setNewTagColor] = useState(COLORS[Math.floor(Math.random() * COLORS.length)]);
 
     const menuRef = useRef<HTMLDivElement>(null);
+    const [style, setStyle] = useState<React.CSSProperties>({});
+
+    React.useLayoutEffect(() => {
+        if (!menuRef.current) return;
+
+        const rect = menuRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+
+        const newStyle: React.CSSProperties = {};
+
+        // Vertical adjustment
+        if (rect.bottom > viewportHeight) {
+            newStyle.top = 'auto';
+            newStyle.bottom = '100%';
+            newStyle.marginTop = '0';
+            newStyle.marginBottom = '8px';
+        }
+
+        // Horizontal adjustment
+        if (rect.right > viewportWidth) {
+            newStyle.right = '0';
+            newStyle.left = 'auto';
+        } else if (rect.left < 0) {
+            newStyle.left = '0';
+            newStyle.right = 'auto';
+        }
+
+        if (Object.keys(newStyle).length > 0) {
+            setStyle(newStyle);
+        }
+    }, []);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -92,7 +124,7 @@ const TagMenu: React.FC<TagMenuProps> = ({
     };
 
     return (
-        <div className="tag-menu-dropdown" ref={menuRef} onClick={e => e.stopPropagation()}>
+        <div className="tag-menu-dropdown" ref={menuRef} style={style} onClick={e => e.stopPropagation()}>
             <div className="tag-menu-header">
                 <Search size={14} className="search-icon" />
                 <input

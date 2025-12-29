@@ -35,6 +35,39 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose 
 
     const [currentMonth, setCurrentMonth] = useState(initialDate || new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(initialDate || null);
+    const pickerRef = React.useRef<HTMLDivElement>(null);
+    const [style, setStyle] = useState<React.CSSProperties>({});
+
+    React.useLayoutEffect(() => {
+        if (!pickerRef.current) return;
+
+        const rect = pickerRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+
+        const newStyle: React.CSSProperties = {};
+
+        // Vertical adjustment
+        if (rect.bottom > viewportHeight) {
+            newStyle.top = 'auto';
+            newStyle.bottom = '100%';
+            newStyle.marginTop = '0';
+            newStyle.marginBottom = '8px';
+        }
+
+        // Horizontal adjustment
+        if (rect.right > viewportWidth) {
+            newStyle.right = '0';
+            newStyle.left = 'auto';
+        } else if (rect.left < 0) {
+            newStyle.left = '0';
+            newStyle.right = 'auto';
+        }
+
+        if (Object.keys(newStyle).length > 0) {
+            setStyle(newStyle);
+        }
+    }, []);
 
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
@@ -107,7 +140,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose 
     };
 
     return (
-        <div className="date-picker-container" onClick={e => e.stopPropagation()}>
+        <div className="date-picker-container" ref={pickerRef} style={style} onClick={e => e.stopPropagation()}>
             <div className="date-picker-sidebar">
                 <div className="sidebar-section">
                     <div className="sidebar-item" onClick={() => handleQuickSelect('Today')}>

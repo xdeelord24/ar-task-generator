@@ -47,6 +47,39 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
     taskId
 }) => {
     const [isRelationshipMenuOpen, setIsRelationshipMenuOpen] = React.useState(false);
+    const menuRef = React.useRef<HTMLDivElement>(null);
+    const [style, setStyle] = React.useState<React.CSSProperties>({});
+
+    React.useLayoutEffect(() => {
+        if (!menuRef.current) return;
+
+        const rect = menuRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+
+        const newStyle: React.CSSProperties = {};
+
+        // Vertical adjustment - check if it goes below the screen
+        if (rect.bottom > viewportHeight) {
+            newStyle.top = 'auto';
+            newStyle.bottom = '100%';
+            newStyle.marginTop = '0';
+            newStyle.marginBottom = '8px';
+        }
+
+        // Horizontal adjustment - check if it goes beyond the right edge
+        if (rect.right > viewportWidth) {
+            newStyle.right = '0';
+            newStyle.left = 'auto';
+        }
+        // Horizontal adjustment - check if it goes beyond the left edge
+        else if (rect.left < 0) {
+            newStyle.left = '0';
+            newStyle.right = 'auto';
+        }
+
+        setStyle(newStyle);
+    }, []);
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(window.location.href);
@@ -65,7 +98,12 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
         onClose();
     };
     return (
-        <div className="task-options-menu" onClick={e => e.stopPropagation()}>
+        <div
+            ref={menuRef}
+            className="task-options-menu"
+            style={style}
+            onClick={e => e.stopPropagation()}
+        >
             <div className="menu-header-row">
                 <button onClick={handleCopyLink}>
                     <Link2 size={14} />

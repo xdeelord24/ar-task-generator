@@ -35,6 +35,7 @@ import TimePicker from './TimePicker';
 import RichTextEditor from './RichTextEditor';
 import TaskOptionsMenu from './TaskOptionsMenu';
 import RelationshipMenu from './RelationshipMenu';
+import TagMenu from './TagMenu';
 import '../styles/TaskDetailModal.css';
 
 interface TaskDetailModalProps {
@@ -61,7 +62,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         addComment,
         addTimeEntry,
         duplicateTask,
-        archiveTask
+        archiveTask,
+        addTag,
+        updateTag,
+        deleteTag
     } = useAppStore();
 
     // Logic to find task or subtask
@@ -498,21 +502,16 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                 <Plus size={12} />
                                             </button>
                                             {isTagPickerOpen && (
-                                                <div className="tag-picker-dropdown">
-                                                    <div className="tag-picker-header">Select Tags</div>
-                                                    <div className="tag-picker-list">
-                                                        {tags.map(tag => (
-                                                            <div
-                                                                key={tag.id}
-                                                                className="tag-picker-item"
-                                                                onClick={() => toggleTag(tag.id)}
-                                                            >
-                                                                <span className="tag-dot" style={{ backgroundColor: tag.color }}></span>
-                                                                <span className="tag-name">{tag.name}</span>
-                                                                {task.tags?.includes(tag.id) && <Check size={12} className="check-icon" />}
-                                                            </div>
-                                                        ))}
-                                                    </div>
+                                                <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 100 }}>
+                                                    <TagMenu
+                                                        tags={tags}
+                                                        selectedTagIds={task.tags || []}
+                                                        onToggleTag={toggleTag}
+                                                        onCreateTag={addTag}
+                                                        onUpdateTag={updateTag}
+                                                        onDeleteTag={deleteTag}
+                                                        onClose={() => setIsTagPickerOpen(false)}
+                                                    />
                                                 </div>
                                             )}
                                         </div>

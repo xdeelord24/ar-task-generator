@@ -10,6 +10,36 @@ interface TimePickerProps {
 const TimePicker: React.FC<TimePickerProps> = ({ onSelect, onClose }) => {
     const [search, setSearch] = useState('');
     const listRef = useRef<HTMLDivElement>(null);
+    const [style, setStyle] = useState<React.CSSProperties>({});
+
+    React.useLayoutEffect(() => {
+        if (!listRef.current) return;
+
+        const rect = listRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+
+        const newStyle: React.CSSProperties = {};
+
+        // Vertical adjustment
+        if (rect.bottom > viewportHeight) {
+            newStyle.top = 'auto';
+            newStyle.bottom = '100%';
+            newStyle.marginTop = '0';
+            newStyle.marginBottom = '8px';
+        }
+
+        // Horizontal adjustment
+        if (rect.right > viewportWidth) {
+            newStyle.right = '0';
+            newStyle.left = 'auto';
+        } else if (rect.left < 0) {
+            newStyle.left = '0';
+            newStyle.right = 'auto';
+        }
+
+        setStyle(newStyle);
+    }, []);
 
     const generateTimes = () => {
         const times = [];
@@ -38,7 +68,7 @@ const TimePicker: React.FC<TimePickerProps> = ({ onSelect, onClose }) => {
     }, [onClose]);
 
     return (
-        <div className="time-picker-popover" ref={listRef}>
+        <div className="time-picker-popover" ref={listRef} style={style}>
             <div className="time-picker-search">
                 <input
                     autoFocus
