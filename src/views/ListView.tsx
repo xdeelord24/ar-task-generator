@@ -116,6 +116,7 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column }) => {
             ref={setNodeRef}
             style={style}
             className="column-header-cell"
+            data-column={column.id}
             {...attributes}
             {...listeners}
         >
@@ -178,7 +179,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
         switch (col.id) {
             case 'name':
                 return (
-                    <div className="task-cell name-cell" style={{ width: col.width || 300, overflow: 'visible', paddingLeft: '40px' }}>
+                    <div className="task-cell name-cell" style={{ width: col.width || 350, overflow: 'visible', paddingLeft: '48px' }}>
                         <div className="task-cell-inner" style={{ overflow: 'visible' }}>
                             <div className="subtask-indent-line"></div>
                             <input
@@ -206,7 +207,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                 );
             case 'dueDate':
                 return (
-                    <div className="task-cell date-cell" style={{ width: col.width || 150 }}>
+                    <div className="task-cell date-cell" style={{ width: col.width || 130 }}>
                         <div className={`date-badge-interactive ${task.dueDate ? getDateStatus(task.dueDate) : 'empty'}`}>
                             <CalendarIcon size={12} />
                             {task.dueDate ? format(new Date(task.dueDate), 'MMM d') : '-'}
@@ -215,14 +216,14 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                 );
             case 'priority':
                 return (
-                    <div className="task-cell priority-cell" style={{ width: col.width || 120 }}>
+                    <div className="task-cell priority-cell" style={{ width: col.width || 110 }}>
                         <Flag size={12} style={{ color: getPriorityColor(task.priority), marginRight: 6 }} />
                         <span style={{ color: getPriorityColor(task.priority), fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{task.priority || '-'}</span>
                     </div>
                 );
             case 'status':
                 return (
-                    <div className="task-cell status-cell" style={{ width: col.width || 120 }}>
+                    <div className="task-cell status-cell" style={{ width: col.width || 130 }}>
                         <span className="status-pill">{task.status}</span>
                     </div>
                 );
@@ -300,7 +301,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
         switch (col.id) {
             case 'name':
                 return (
-                    <div className="task-cell name-cell" style={{ width: col.width || 300, overflow: 'visible' }}>
+                    <div className="task-cell name-cell" style={{ width: col.width || 350, overflow: 'visible' }}>
                         <div className="task-cell-inner" style={{ overflow: 'visible' }}>
                             <div
                                 style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: 4 }}
@@ -380,7 +381,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 );
             case 'dueDate':
                 return (
-                    <div className="task-cell date-cell" style={{ width: col.width || 150, position: 'relative', overflow: 'visible' }}>
+                    <div className="task-cell date-cell" style={{ width: col.width || 130, position: 'relative', overflow: 'visible' }}>
                         <div
                             className={`date-badge-interactive ${task.dueDate ? getDateStatus(task.dueDate) : 'empty'}`}
                             onClick={(e) => {
@@ -407,7 +408,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 );
             case 'priority':
                 return (
-                    <div className="task-cell priority-cell" style={{ width: col.width || 120, position: 'relative', overflow: 'visible' }}>
+                    <div className="task-cell priority-cell" style={{ width: col.width || 110, position: 'relative', overflow: 'visible' }}>
                         <div
                             className="priority-badge-interactive"
                             style={{ color: getPriorityColor(task.priority) }}
@@ -440,7 +441,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 );
             case 'status':
                 return (
-                    <div className="task-cell status-cell" style={{ width: col.width || 120 }}>
+                    <div className="task-cell status-cell" style={{ width: col.width || 130 }}>
                         <span className="status-pill">{task.status}</span>
                     </div>
                 );

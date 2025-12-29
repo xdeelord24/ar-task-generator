@@ -88,7 +88,9 @@ const Sidebar: React.FC = () => {
         deleteFolder,
         updateFolder,
         deleteList,
-        updateList
+        updateList,
+        sidebarCollapsed,
+        toggleSidebar
     } = useAppStore();
     const [isCreateSpaceOpen, setIsCreateSpaceOpen] = React.useState(false);
     const [editingSpace, setEditingSpace] = React.useState<any>(null);
@@ -148,13 +150,15 @@ const Sidebar: React.FC = () => {
     };
 
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
             <div className="workspace-selector">
                 <div className="workspace-info">
                     <div className="workspace-avatar">M</div>
-                    <span>My Workspace</span>
+                    {!sidebarCollapsed && <span>My Workspace</span>}
                 </div>
-                <ChevronLeft size={16} />
+                <button className="sidebar-toggle-btn" onClick={toggleSidebar} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
+                    {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                </button>
             </div>
 
             <nav className="main-nav">
@@ -171,22 +175,23 @@ const Sidebar: React.FC = () => {
                                 setCurrentSpaceId('everything');
                                 setCurrentListId(null);
                             }}
+                            title={sidebarCollapsed ? item.label : undefined}
                         >
                             <Icon size={18} />
-                            <span>{item.label}</span>
+                            {!sidebarCollapsed && <span>{item.label}</span>}
                         </a>
                     );
                 })}
-                <a href="#" className="nav-item">
+                <a href="#" className="nav-item" title={sidebarCollapsed ? "More" : undefined}>
                     <Plus size={18} />
-                    <span>More</span>
+                    {!sidebarCollapsed && <span>More</span>}
                 </a>
             </nav>
 
             {favorites.length > 0 && (
                 <div className="sidebar-section">
                     <div className="section-header clickable" onClick={() => {/* Toggle favorites */ }}>
-                        <span>FAVORITES</span>
+                        {!sidebarCollapsed && <span>FAVORITES</span>}
                         <ChevronRight size={14} />
                     </div>
                 </div>
@@ -194,8 +199,8 @@ const Sidebar: React.FC = () => {
 
             <div className="sidebar-section">
                 <div className="section-header">
-                    <span>SPACES</span>
-                    <button className="add-btn" onClick={() => setIsCreateSpaceOpen(true)}><Plus size={14} /></button>
+                    {!sidebarCollapsed && <span>SPACES</span>}
+                    <button className="add-btn" onClick={() => setIsCreateSpaceOpen(true)} title="Create new space"><Plus size={14} /></button>
                 </div>
                 <div className="spaces-list">
                     {/* Everything Item */}
@@ -208,6 +213,7 @@ const Sidebar: React.FC = () => {
                             setCurrentView('space_overview');
                             setCurrentListId(null);
                         }}
+                        title={sidebarCollapsed ? "Everything" : undefined}
                     >
                         <div className="expand-icon-wrapper invisible">
                             <ChevronRight size={14} />
@@ -215,7 +221,7 @@ const Sidebar: React.FC = () => {
                         <div className="space-icon star-icon">
                             <StarIcon size={14} />
                         </div>
-                        <span>Everything</span>
+                        {!sidebarCollapsed && <span>Everything</span>}
                     </a>
 
                     {spaces.map(space => {
@@ -237,6 +243,7 @@ const Sidebar: React.FC = () => {
                                         { label: 'Duplicate', icon: <StarIcon size={14} />, onClick: () => console.log('Duplicate', space.name) },
                                         { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteSpace(space.id), danger: true },
                                     ])}
+                                    title={sidebarCollapsed ? space.name : undefined}
                                 >
                                     <div
                                         className="expand-icon-wrapper"
@@ -250,9 +257,9 @@ const Sidebar: React.FC = () => {
                                     }}>
                                         {renderIcon(space.icon || 'star', 14, space.color || '#64748b')}
                                     </div>
-                                    <span className="space-name">{space.name}</span>
+                                    {!sidebarCollapsed && <span className="space-name">{space.name}</span>}
                                 </div>
-                                {isExpanded && (
+                                {isExpanded && !sidebarCollapsed && (
                                     <div className="space-children">
                                         {/* Render Folders */}
                                         {folders.filter(f => f.spaceId === space.id).map(folder => {
@@ -338,16 +345,20 @@ const Sidebar: React.FC = () => {
                         );
                     })}
                 </div>
-                <a href="#" className="nav-item create-space-btn" onClick={(e) => { e.preventDefault(); setIsCreateSpaceOpen(true); }}>
-                    <Plus size={14} />
-                    <span>New Space</span>
-                </a>
+                {!sidebarCollapsed && (
+                    <a href="#" className="nav-item create-space-btn" onClick={(e) => { e.preventDefault(); setIsCreateSpaceOpen(true); }}>
+                        <Plus size={14} />
+                        <span>New Space</span>
+                    </a>
+                )}
             </div>
 
-            <div className="sidebar-footer">
-                <a href="#">Invite</a>
-                <a href="#">Help</a>
-            </div>
+            {!sidebarCollapsed && (
+                <div className="sidebar-footer">
+                    <a href="#">Invite</a>
+                    <a href="#">Help</a>
+                </div>
+            )}
 
             {isCreateSpaceOpen && <CreateSpaceModal onClose={() => setIsCreateSpaceOpen(false)} />}
             {editingSpace && (

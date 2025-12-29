@@ -40,6 +40,8 @@ interface AppStore extends AppState {
     setAccentColor: (color: string) => void;
     startTimer: (taskId: string) => void;
     stopTimer: () => void;
+    sidebarCollapsed: boolean;
+    toggleSidebar: () => void;
 }
 
 const DEFAULT_STATUSES: Status[] = [
@@ -103,16 +105,17 @@ export const useAppStore = create<AppStore>()(
             currentView: 'home',
             columnSettings: {
                 'default': [
-                    { id: 'name', name: 'Name', visible: true, width: 300 },
-                    { id: 'assignee', name: 'Assignee', visible: true, width: 150 },
-                    { id: 'dueDate', name: 'Due Date', visible: true, width: 150 },
-                    { id: 'priority', name: 'Priority', visible: true, width: 120 },
-                    { id: 'status', name: 'Status', visible: true, width: 120 },
+                    { id: 'name', name: 'Name', visible: true, width: 350 },
+                    { id: 'assignee', name: 'Assignee', visible: true, width: 140 },
+                    { id: 'dueDate', name: 'Due Date', visible: true, width: 130 },
+                    { id: 'priority', name: 'Priority', visible: true, width: 110 },
+                    { id: 'status', name: 'Status', visible: true, width: 130 },
                 ]
             },
             theme: 'system',
             accentColor: '#2563eb',
             activeTimer: null,
+            sidebarCollapsed: false,
 
             setTasks: (tasks) => set({ tasks }),
             addTask: (task) => set((state) => ({
@@ -293,7 +296,9 @@ export const useAppStore = create<AppStore>()(
                 });
 
                 set({ activeTimer: null });
-            }
+            },
+
+            toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
         }),
         {
             name: 'ar-generator-app-storage',
