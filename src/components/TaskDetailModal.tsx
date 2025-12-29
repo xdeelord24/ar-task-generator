@@ -782,6 +782,46 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                             </div>
                                         ))}
 
+                                        {/* Suggested Subtasks Review */}
+                                        {suggestedSubtasks.length > 0 && (
+                                            <div className="suggested-subtasks-review">
+                                                {suggestedSubtasks.map((name, index) => (
+                                                    <div key={index} className="subtask-row-item suggestion-item">
+                                                        <div className="st-cell-name">
+                                                            <div className="st-checkbox-area">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedSuggestions.has(name)}
+                                                                    onChange={() => toggleSuggestion(name)}
+                                                                    style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                                                                />
+                                                            </div>
+                                                            <div className="st-name-group">
+                                                                <span className="st-name-text">{name}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="st-cell-assignee">
+                                                            <div className="st-suggestion-badge" style={{ padding: '4px 8px', background: '#e0f2fe', color: '#0284c7', borderRadius: '4px', fontSize: '11px', fontWeight: 600 }}>Suggested</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <div className="suggestion-actions-row" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
+                                                    <button
+                                                        onClick={handleCancelSubtasks}
+                                                        style={{ background: 'transparent', border: 'none', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        onClick={handleConfirmSubtasks}
+                                                        style={{ background: '#3b82f6', border: 'none', color: 'white', padding: '6px 16px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}
+                                                    >
+                                                        Create {selectedSuggestions.size} subtasks
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <form onSubmit={handleAddSubtask} className="subtask-add-row">
                                             <div className="st-cell-name">
                                                 <Plus size={14} className="plus-icon-st" />
