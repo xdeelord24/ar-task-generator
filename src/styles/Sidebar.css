@@ -254,20 +254,47 @@
 
 .dashboard-sub-item {
     gap: 10px;
-    padding: 6px 12px;
+    padding: 6px 12px 6px 8px;
     color: var(--text-secondary);
     font-size: 13px;
-    margin-left: 8px;
+    margin-left: 0;
+    padding-left: 32px;
+    /* Indent to align with list items */
+    border-radius: 6px;
+    transition: all 0.2s;
 }
 
 .dashboard-sub-item:hover {
-    color: var(--primary);
+    color: var(--text-main);
+    background: var(--bg-hover);
 }
 
 .dashboard-sub-item.active {
     color: var(--primary);
-    background: var(--primary-light);
+    background: rgba(37, 99, 235, 0.1);
     font-weight: 600;
+    position: relative;
+}
+
+.dashboard-sub-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 16px;
+    background: var(--primary);
+    border-radius: 0 2px 2px 0;
+}
+
+.dashboard-sub-item .list-icon-wrapper {
+    opacity: 0.7;
+}
+
+.dashboard-sub-item.active .list-icon-wrapper {
+    opacity: 1;
+    color: var(--primary);
 }
 
 .create-space-btn {
