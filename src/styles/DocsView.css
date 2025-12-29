@@ -1,5 +1,5 @@
 .docs-view {
-    background: #f8fafc;
+    background: var(--bg-main);
 }
 
 .docs-grid {
@@ -11,9 +11,9 @@
 }
 
 .doc-card {
-    background: white;
+    background: var(--bg-surface);
     border-radius: 12px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border);
     overflow: hidden;
     transition: all 0.2s ease;
     cursor: pointer;
@@ -24,16 +24,16 @@
 .doc-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    border-color: #3b82f6;
+    border-color: var(--primary);
 }
 
 .doc-preview {
     height: 160px;
-    background: #f1f5f9;
+    background: var(--bg-hover);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
 .doc-icon {
@@ -54,7 +54,7 @@
 .doc-title {
     font-size: 16px;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text-main);
     margin: 0;
 }
 
@@ -62,11 +62,11 @@
     display: flex;
     gap: 8px;
     font-size: 12px;
-    color: #64748b;
+    color: var(--text-secondary);
 }
 
 .add-new-doc {
-    border: 2px dashed #cbd5e1;
+    border: 2px dashed var(--border);
     background: transparent;
     display: flex;
     align-items: center;
@@ -79,14 +79,14 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
 .add-new-doc:hover {
-    border-color: #3b82f6;
-    background: #eff6ff;
+    border-color: var(--primary);
+    background: var(--bg-hover);
 }
 
 .add-new-doc:hover .add-content {
-    color: #3b82f6;
+    color: var(--primary);
 }

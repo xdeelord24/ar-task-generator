@@ -405,11 +405,6 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         if (!name) return;
 
         const targetId = (currentListId || currentSpaceId);
-        if (targetId === 'everything') {
-            alert('Cannot add columns to "Everything" view. Please select a Space or List.');
-            return;
-        }
-
         const isSpace = !currentListId;
 
         addStatus(targetId, isSpace, {
@@ -520,7 +515,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                     <div className="add-column-container" onClick={handleAddColumn}>
                         <div className="add-column-btn">
                             <Plus size={18} />
-                            <span>Add Board</span>
+                            <span>Add Column</span>
                         </div>
                     </div>
                 </div>

@@ -136,3 +136,99 @@
     font-size: 12px;
     font-weight: 600;
 }
+
+/* Timer Styles */
+.active-timer-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: #fef2f2;
+    border: 1px solid #fee2e2;
+    border-radius: 999px;
+    margin-right: 12px;
+    animation: pulse-soft 2s infinite;
+}
+
+.dark .active-timer-pill {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.timer-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    animation: pulse 1.5s infinite;
+}
+
+.timer-time {
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-weight: 700;
+    font-size: 14px;
+    color: #ef4444;
+}
+
+.timer-task {
+    font-size: 13px;
+    color: var(--text-secondary);
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.timer-stop-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ef4444;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 4px;
+    transition: transform 0.2s;
+}
+
+.timer-stop-btn:hover {
+    transform: scale(1.1);
+    background: #dc2626;
+}
+
+.stop-icon {
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 2px;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes pulse-soft {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.1);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}

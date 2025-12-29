@@ -10,6 +10,48 @@ interface HeaderProps {
     onOpenSettings: (tab?: string) => void;
 }
 
+import { useAppStore } from '../store/useAppStore';
+
+const ActiveTimerDisplay: React.FC = () => {
+    const { activeTimer, stopTimer, tasks } = useAppStore();
+    const [elapsed, setElapsed] = useState('00:00:00');
+
+    useEffect(() => {
+        if (!activeTimer) return;
+
+        const interval = setInterval(() => {
+            const start = new Date(activeTimer.startTime).getTime();
+            const now = new Date().getTime();
+            const diff = now - start;
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            setElapsed(
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+            );
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [activeTimer]);
+
+    if (!activeTimer) return null;
+
+    const taskName = tasks.find(t => t.id === activeTimer.taskId)?.name || 'Unknown Task';
+
+    return (
+        <div className="active-timer-pill">
+            <div className="timer-dot"></div>
+            <span className="timer-time">{elapsed}</span>
+            <span className="timer-task">{taskName}</span>
+            <button className="timer-stop-btn" onClick={stopTimer}>
+                <div className="stop-icon"></div>
+            </button>
+        </div>
+    );
+};
+
 const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI, onOpenSettings }) => {
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState<'left' | 'right'>('right');
@@ -56,6 +98,7 @@ const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI, onOp
                 <button className="btn-ai" onClick={onOpenAI}>
                     <Sparkles size={16} /> AI
                 </button>
+                <ActiveTimerDisplay />
                 <button className="btn-primary" onClick={onOpenReport}>
                     <FileText size={16} /> Generate Report
                 </button>

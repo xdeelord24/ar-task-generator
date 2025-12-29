@@ -52,7 +52,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useAppStore } from '../store/useAppStore';
 import { format, isPast, isToday } from 'date-fns';
-import type { Task, ColumnSetting, Tag } from '../types';
+import type { Task, ColumnSetting, Tag, Status } from '../types';
 import TaskOptionsMenu from '../components/TaskOptionsMenu';
 import '../styles/ListView.css';
 import '../styles/TaskOptionsMenu.css';
@@ -145,6 +145,8 @@ interface SortableRowProps {
     onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
     activePopover: ActivePopover | null;
     setActivePopover: (popover: ActivePopover | null) => void;
+    onAddTag: (tag: Omit<Tag, 'id'>) => void;
+    onStartTimer: () => void;
 }
 
 const SortableRow: React.FC<SortableRowProps> = ({
@@ -163,7 +165,9 @@ const SortableRow: React.FC<SortableRowProps> = ({
     onConvertToDoc,
     onUpdateTask,
     activePopover,
-    setActivePopover
+    setActivePopover,
+    onAddTag,
+    onStartTimer
 }) => {
     const {
         attributes,
@@ -174,6 +178,9 @@ const SortableRow: React.FC<SortableRowProps> = ({
         isDragging
     } = useSortable({ id: task.id });
 
+    const [newTagName, setNewTagName] = React.useState('');
+    const [newTagColor, setNewTagColor] = React.useState('#3b82f6');
+
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
@@ -182,13 +189,20 @@ const SortableRow: React.FC<SortableRowProps> = ({
     };
 
     const priorities: Task['priority'][] = ['urgent', 'high', 'medium', 'low'];
+    const tagColors = ['#ef4444', '#f97316', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'];
+
+    const handleAddTag = () => {
+        if (!newTagName.trim()) return;
+        onAddTag({ name: newTagName, color: newTagColor });
+        setNewTagName('');
+    };
 
     const renderCell = (col: ColumnSetting) => {
         switch (col.id) {
             case 'name':
                 return (
-                    <div className="task-cell name-cell" style={{ width: col.width || 300 }}>
-                        <div className="task-cell-inner">
+                    <div className="task-cell name-cell" style={{ width: col.width || 300, overflow: 'visible' }}>
+                        <div className="task-cell-inner" style={{ overflow: 'visible' }}>
                             <input type="checkbox" readOnly checked={task.status === 'COMPLETED'} />
                             <span className="task-name">{task.name}</span>
                             <div className="task-tags">
@@ -233,6 +247,31 @@ const SortableRow: React.FC<SortableRowProps> = ({
                                                     </div>
                                                 );
                                             })}
+                                        </div>
+                                        <div className="popover-footer-create">
+                                            <div className="create-tag-input-row">
+                                                <input
+                                                    type="text"
+                                                    placeholder="New tag..."
+                                                    value={newTagName}
+                                                    onChange={e => setNewTagName(e.target.value)}
+                                                    onClick={e => e.stopPropagation()}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter') handleAddTag();
+                                                    }}
+                                                />
+                                                <button onClick={(e) => { e.stopPropagation(); handleAddTag(); }}>Add</button>
+                                            </div>
+                                            <div className="create-tag-colors">
+                                                {tagColors.map(color => (
+                                                    <div
+                                                        key={color}
+                                                        className={`color-swatch ${newTagColor === color ? 'selected' : ''}`}
+                                                        style={{ background: color }}
+                                                        onClick={(e) => { e.stopPropagation(); setNewTagColor(color); }}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -373,7 +412,7 @@ const SortableRow: React.FC<SortableRowProps> = ({
                             onArchive={() => onArchive(task.id)}
                             onDelete={() => onDelete(task.id)}
                             onConvertToDoc={() => onConvertToDoc(task)}
-                            onStartTimer={() => { alert('Timer started for task ' + task.id); onCloseMenu(); }}
+                            onStartTimer={onStartTimer}
                         />
                     </div>
                 )}
@@ -398,18 +437,26 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         setColumnSettings,
         tags,
         spaces,
-        lists
+        lists,
+        addTag,
+        startTimer,
+        addStatus
     } = useAppStore();
     const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
+    const [activePopover, setActivePopover] = React.useState<ActivePopover | null>(null);
 
     React.useEffect(() => {
-        const handleClickOutside = () => setOpenMenuTaskId(null);
-        if (openMenuTaskId) {
+        const handleClickOutside = () => {
+            setOpenMenuTaskId(null);
+            setActivePopover(null);
+        };
+        // Only attach if menu or popover is open
+        if (openMenuTaskId || activePopover) {
             window.addEventListener('click', handleClickOutside);
             return () => window.removeEventListener('click', handleClickOutside);
         }
-    }, [openMenuTaskId]);
+    }, [openMenuTaskId, activePopover]);
 
     const toggleGroup = (status: string) => {
         const newCollapsed = new Set(collapsedGroups);
@@ -461,15 +508,28 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         return matchesSpace && matchesList;
     });
 
-    const statuses: Task['status'][] = ['TO DO', 'IN PROGRESS', 'COMPLETED'];
+    const activeSpace = spaces.find(s => s.id === currentSpaceId);
 
-    const getStatusColor = (status: Task['status']) => {
-        switch (status) {
-            case 'TO DO': return '#3b82f6';
-            case 'IN PROGRESS': return '#f59e0b';
-            case 'COMPLETED': return '#10b981';
-            default: return '#64748b';
-        }
+    const activeList = lists.find(l => l.id === currentListId);
+
+    const activeStatuses: Status[] = activeList?.statuses || activeSpace?.statuses || [
+        { id: 'todo', name: 'TO DO', color: '#3b82f6', type: 'todo' },
+        { id: 'inprogress', name: 'IN PROGRESS', color: '#f59e0b', type: 'inprogress' },
+        { id: 'completed', name: 'COMPLETED', color: '#10b981', type: 'done' }
+    ];
+
+    const handleAddGroup = () => {
+        const name = prompt('Enter group name:');
+        if (!name) return;
+
+        const targetId = (currentListId || currentSpaceId);
+        const isSpace = !currentListId;
+
+        addStatus(targetId, isSpace, {
+            name: name.toUpperCase(),
+            color: '#64748b',
+            type: 'inprogress'
+        });
     };
 
     const getPriorityColor = (priority: Task['priority']) => {
@@ -503,7 +563,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         const overId = over.id as string;
 
         // Status group dropping
-        if (statuses.includes(overId as Task['status'])) {
+        if (activeStatuses.some(s => s.name === overId)) {
             updateTask(activeId, { status: overId as Task['status'] });
             return;
         }
@@ -528,7 +588,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         setColumnSettings(currentSpaceId || 'default', newColumns);
     };
 
-    const activeSpace = spaces.find(s => s.id === currentSpaceId);
+
 
     return (
         <div className="view-container list-view">
@@ -600,18 +660,18 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                     onDragEnd={handleTaskDragEnd}
                 >
                     <div className="list-body">
-                        {statuses.map(status => {
-                            const statusTasks = filteredTasks.filter(t => t.status === status);
+                        {activeStatuses.map(statusObj => {
+                            const statusTasks = filteredTasks.filter(t => t.status === statusObj.name);
                             return (
-                                <div key={status} className="status-group-container">
+                                <div key={statusObj.id} className="status-group-container">
                                     <DroppableStatusHeader
-                                        status={status}
-                                        color={getStatusColor(status)}
+                                        status={statusObj.name}
+                                        color={statusObj.color}
                                         count={statusTasks.length}
-                                        isCollapsed={collapsedGroups.has(status)}
-                                        onToggle={() => toggleGroup(status)}
+                                        isCollapsed={collapsedGroups.has(statusObj.name)}
+                                        onToggle={() => toggleGroup(statusObj.name)}
                                     />
-                                    {!collapsedGroups.has(status) && (
+                                    {!collapsedGroups.has(statusObj.name) && (
                                         <SortableContext
                                             items={statusTasks.map(t => t.id)}
                                             strategy={verticalListSortingStrategy}
@@ -633,6 +693,14 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                                         onArchive={archiveTask}
                                                         onDelete={deleteTask}
                                                         onConvertToDoc={handleConvertToDoc}
+                                                        onUpdateTask={updateTask}
+                                                        activePopover={activePopover}
+                                                        setActivePopover={setActivePopover}
+                                                        onAddTag={addTag}
+                                                        onStartTimer={() => {
+                                                            startTimer(task.id);
+                                                            setOpenMenuTaskId(null);
+                                                        }}
                                                     />
                                                 ))}
                                                 <button className="btn-inline-add" onClick={onAddTask}>
@@ -644,6 +712,14 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                 </div>
                             );
                         })}
+                        <div className="add-group-container">
+                            <button
+                                className="btn-add-group"
+                                onClick={handleAddGroup}
+                            >
+                                <Plus size={14} /> Add Group
+                            </button>
+                        </div>
                     </div>
                 </DndContext>
             </div>

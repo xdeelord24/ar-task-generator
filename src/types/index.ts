@@ -117,4 +117,5 @@ export interface AppState {
   columnSettings: Record<string, ColumnSetting[]>; // keyed by spaceId or listId
   theme: ThemeMode;
   accentColor: string;
+  activeTimer: { taskId: string; startTime: string } | null;
 }

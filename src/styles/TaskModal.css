@@ -13,7 +13,7 @@
 }
 
 .modal-content {
-    background: white;
+    background: var(--bg-surface);
     width: 100%;
     max-width: 600px;
     border-radius: 12px;
@@ -41,19 +41,19 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--border);
 }
 
 .modal-header h2 {
     font-size: 18px;
     font-weight: 700;
-    color: #111827;
+    color: var(--text-main);
 }
 
 .close-btn {
     background: transparent;
     border: none;
-    color: #9ca3af;
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
@@ -64,8 +64,8 @@
 }
 
 .close-btn:hover {
-    background-color: #f3f4f6;
-    color: #4b5563;
+    background-color: var(--bg-hover);
+    color: var(--text-main);
 }
 
 form {
@@ -82,11 +82,12 @@ form {
     font-weight: 700;
     border: none;
     outline: none;
-    color: #111827;
+    color: var(--text-main);
+    background: transparent;
 }
 
 .task-name-input::placeholder {
-    color: #d1d5db;
+    color: var(--text-disabled);
 }
 
 .task-desc-input {
@@ -96,12 +97,13 @@ form {
     outline: none;
     resize: none;
     font-size: 15px;
-    color: #4b5563;
+    color: var(--text-secondary);
     font-family: inherit;
+    background: transparent;
 }
 
 .task-desc-input::placeholder {
-    color: #9ca3af;
+    color: var(--text-disabled);
 }
 
 .task-options-grid {
@@ -110,7 +112,7 @@ form {
     gap: 16px;
     margin-top: 24px;
     padding-top: 24px;
-    border-top: 1px solid #f3f4f6;
+    border-top: 1px solid var(--border);
 }
 
 .option-item {
@@ -118,16 +120,17 @@ form {
     align-items: center;
     gap: 10px;
     padding: 8px 12px;
-    background-color: #f9fafb;
+    background-color: var(--bg-hover);
     border-radius: 8px;
-    color: #4b5563;
+    color: var(--text-secondary);
     font-size: 14px;
     cursor: pointer;
     transition: background 0.2s ease;
 }
 
 .option-item:hover {
-    background-color: #f3f4f6;
+    background-color: var(--bg-active);
+    color: var(--text-main);
 }
 
 .option-item input[type="date"],
@@ -136,10 +139,15 @@ form {
     border: none;
     outline: none;
     font-size: 14px;
-    color: #111827;
+    color: var(--text-main);
     font-weight: 500;
     cursor: pointer;
     width: 100%;
+}
+
+.option-item option {
+    background: var(--bg-surface);
+    color: var(--text-main);
 }
 
 .modal-footer {
@@ -151,18 +159,22 @@ form {
 
 .btn-cancel {
     padding: 8px 16px;
-    background: white;
-    border: 1px solid #d1d5db;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
     border-radius: 6px;
-    color: #4b5563;
+    color: var(--text-main);
     font-weight: 600;
     cursor: pointer;
     font-size: 14px;
 }
 
+.btn-cancel:hover {
+    background: var(--bg-hover);
+}
+
 .btn-submit {
     padding: 8px 24px;
-    background: #2563eb;
+    background: var(--primary);
     border: none;
     border-radius: 6px;
     color: white;
@@ -173,7 +185,7 @@ form {
 }
 
 .btn-submit:disabled {
-    background: #93c5fd;
+    opacity: 0.5;
     cursor: not-allowed;
     box-shadow: none;
 }

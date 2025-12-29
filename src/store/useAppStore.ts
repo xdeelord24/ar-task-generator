@@ -34,6 +34,8 @@ interface AppStore extends AppState {
     addStatus: (targetId: string, isSpace: boolean, status: Omit<Status, 'id'>) => void;
     setTheme: (theme: AppState['theme']) => void;
     setAccentColor: (color: string) => void;
+    startTimer: (taskId: string) => void;
+    stopTimer: () => void;
 }
 
 const DEFAULT_STATUSES: Status[] = [
@@ -44,7 +46,7 @@ const DEFAULT_STATUSES: Status[] = [
 
 export const useAppStore = create<AppStore>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             tasks: [
                 {
                     id: '1',
@@ -105,6 +107,7 @@ export const useAppStore = create<AppStore>()(
             },
             theme: 'system',
             accentColor: '#2563eb',
+            activeTimer: null,
 
             setTasks: (tasks) => set({ tasks }),
             addTask: (task) => set((state) => ({
@@ -244,6 +247,36 @@ export const useAppStore = create<AppStore>()(
             }),
             setTheme: (theme) => set({ theme }),
             setAccentColor: (accentColor) => set({ accentColor }),
+
+            startTimer: (taskId) => {
+                const state = get();
+                // If there's already a timer running, stop it first
+                if (state.activeTimer) {
+                    state.stopTimer();
+                }
+                set({ activeTimer: { taskId, startTime: new Date().toISOString() } });
+            },
+
+            stopTimer: () => {
+                const state = get();
+                const { activeTimer } = state;
+                if (!activeTimer) return;
+
+                const endTime = new Date();
+                const startTime = new Date(activeTimer.startTime);
+                const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+
+                // Always record at least 1 minute if it ran
+                const duration = durationMinutes < 1 ? 1 : durationMinutes;
+
+                state.addTimeEntry(activeTimer.taskId, {
+                    duration,
+                    date: endTime.toISOString(),
+                    userId: 'user-1'
+                });
+
+                set({ activeTimer: null });
+            }
         }),
         {
             name: 'ar-generator-app-storage',
