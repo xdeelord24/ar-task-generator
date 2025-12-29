@@ -127,6 +127,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set());
     const [isEnhancingTitle, setIsEnhancingTitle] = useState(false);
     const [suggestedTitle, setSuggestedTitle] = useState<string | null>(null);
+    const [isPriorityPickerOpen, setIsPriorityPickerOpen] = useState(false);
     const activityFeedRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll activity feed to bottom
@@ -748,8 +749,58 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                 <div className="meta-item">
                                     <span className="meta-label">Priority</span>
                                     <div className="meta-inline-val">
-                                        <AlertCircle size={14} style={{ color: task.priority === 'urgent' ? '#ef4444' : '#64748b' }} />
-                                        <span style={{ color: task.priority === 'urgent' ? '#ef4444' : '#64748b' }}>{task.priority || 'Empty'}</span>
+                                        <div style={{ position: 'relative' }}>
+                                            <button
+                                                className="priority-display-btn"
+                                                onClick={() => {
+                                                    setIsPriorityPickerOpen(!isPriorityPickerOpen);
+                                                }}
+                                                style={{
+                                                    color: task.priority === 'urgent' ? '#ef4444' :
+                                                        task.priority === 'high' ? '#f97316' :
+                                                            task.priority === 'medium' ? '#eab308' : '#64748b'
+                                                }}
+                                            >
+                                                <Flag size={14} />
+                                                <span>{task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : 'Empty'}</span>
+                                            </button>
+                                            {isPriorityPickerOpen && (
+                                                <>
+                                                    <div
+                                                        className="dropdown-overlay-transparent"
+                                                        onClick={() => setIsPriorityPickerOpen(false)}
+                                                        style={{
+                                                            position: 'fixed',
+                                                            top: 0,
+                                                            left: 0,
+                                                            right: 0,
+                                                            bottom: 0,
+                                                            zIndex: 2499,
+                                                            background: 'transparent'
+                                                        }}
+                                                    />
+                                                    <div className="priority-picker-dropdown">
+                                                        {(['low', 'medium', 'high', 'urgent'] as const).map((p) => (
+                                                            <div
+                                                                key={p}
+                                                                className={`priority-option ${task.priority === p ? 'active' : ''}`}
+                                                                onClick={() => {
+                                                                    handleUpdate({ priority: p });
+                                                                    setIsPriorityPickerOpen(false);
+                                                                }}
+                                                            >
+                                                                <Flag size={14} style={{
+                                                                    color: p === 'urgent' ? '#ef4444' :
+                                                                        p === 'high' ? '#f97316' :
+                                                                            p === 'medium' ? '#eab308' : '#64748b'
+                                                                }} />
+                                                                <span>{p.charAt(0).toUpperCase() + p.slice(1)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="meta-item">
