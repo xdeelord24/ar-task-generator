@@ -22,12 +22,13 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
     // Calculate initial dates based on currentPeriod
     const initialStart = initialPeriod === '1'
         ? format(startOfMonth(today), 'yyyy-MM-01')
-        : format(setDate(startOfMonth(today), 16), 'yyyy-MM-16');
+        : format(setDate(startOfMonth(today), 15), 'yyyy-MM-15');
     const initialEnd = initialPeriod === '1'
-        ? format(setDate(startOfMonth(today), 15), 'yyyy-MM-15')
+        ? format(setDate(startOfMonth(today), 14), 'yyyy-MM-14')
         : format(endOfMonth(today), 'yyyy-MM-dd');
 
     const [formData, setFormData] = useState({
+        template: 'general',
         name: 'Jundee',
         position: 'Software Engineer',
         office: 'Tech Office',
@@ -50,9 +51,9 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
 
         if (period === '1') {
             start = format(baseDate, 'yyyy-MM-01');
-            end = format(setDate(baseDate, 15), 'yyyy-MM-15');
+            end = format(setDate(baseDate, 14), 'yyyy-MM-14');
         } else {
-            start = format(setDate(baseDate, 16), 'yyyy-MM-16');
+            start = format(setDate(baseDate, 15), 'yyyy-MM-15');
             end = format(endOfMonth(baseDate), 'yyyy-MM-dd');
         }
 
@@ -210,6 +211,44 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
 
                 <div className="modal-body scrollable">
                     <div className="form-section">
+                        <h3>Report Template</h3>
+                        <div className="template-selector">
+                            <label className={`template-option ${formData.template === 'general' ? 'active' : ''}`}>
+                                <input
+                                    type="radio"
+                                    name="template"
+                                    value="general"
+                                    checked={formData.template === 'general'}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, template: e.target.value }))}
+                                />
+                                <div className="template-content">
+                                    <div className="template-icon">📄</div>
+                                    <div className="template-details">
+                                        <div className="template-title">General Template</div>
+                                        <div className="template-desc">Standard accomplishment report format</div>
+                                    </div>
+                                </div>
+                            </label>
+                            <label className={`template-option ${formData.template === 'custom' ? 'active' : ''}`}>
+                                <input
+                                    type="radio"
+                                    name="template"
+                                    value="custom"
+                                    checked={formData.template === 'custom'}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, template: e.target.value }))}
+                                />
+                                <div className="template-content">
+                                    <div className="template-icon">✨</div>
+                                    <div className="template-details">
+                                        <div className="template-title">Custom Template</div>
+                                        <div className="template-desc">Enhanced format with detailed sections</div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="form-section">
                         <h3>Personal Information</h3>
                         <div className="form-grid">
                             <div className="form-group">
@@ -245,8 +284,8 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
                             <div className="form-group">
                                 <label>Period</label>
                                 <select id="period" value={formData.period} onChange={handleInputChange}>
-                                    <option value="1">1st Half (1-15)</option>
-                                    <option value="2">2nd Half (16-31)</option>
+                                    <option value="1">1st Half (1-14)</option>
+                                    <option value="2">2nd Half (15-31)</option>
                                 </select>
                             </div>
                         </div>
