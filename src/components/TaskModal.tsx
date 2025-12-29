@@ -51,6 +51,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
     const [aiResponse, setAiResponse] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    // Title Suggestion State
+    const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]);
+    const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
+    const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
+    const suggestionTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
     const handleGenerateAI = async (overridePrompt?: string) => {
         const query = overridePrompt || aiInput;
         if (!query.trim()) return;
@@ -91,6 +97,55 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
             setAiResponse("Sorry, I couldn't generate a response. Please check your AI settings/connection.");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const fetchTitleSuggestions = async (taskName: string) => {
+        if (!taskName.trim() || taskName.length < 3) {
+            setTitleSuggestions([]);
+            setShowTitleSuggestions(false);
+            return;
+        }
+
+        setIsFetchingSuggestions(true);
+        try {
+            const prompt = `Given this task name: "${taskName}", suggest 3 improved, professional, and concise task titles. Return ONLY the 3 titles, one per line, without numbering or extra text.`;
+
+            if (aiConfig.provider === 'ollama') {
+                const response = await fetch(`${aiConfig.ollamaHost}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: aiConfig.ollamaModel,
+                        prompt,
+                        stream: false,
+                        system: "You are a helpful assistant that improves task titles. Return only the suggested titles, one per line."
+                    }),
+                });
+                if (!response.ok) throw new Error('Ollama Error');
+                const data = await response.json();
+                const suggestions = data.response.split('\n').filter((s: string) => s.trim()).slice(0, 3);
+                setTitleSuggestions(suggestions);
+                setShowTitleSuggestions(suggestions.length > 0);
+            } else {
+                const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+                if (!apiKey) {
+                    setTitleSuggestions([]);
+                    return;
+                }
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const result = await model.generateContent(prompt);
+                const text = result.response.text();
+                const suggestions = text.split('\n').filter(s => s.trim()).slice(0, 3);
+                setTitleSuggestions(suggestions);
+                setShowTitleSuggestions(suggestions.length > 0);
+            }
+        } catch (error) {
+            console.error('Error fetching title suggestions:', error);
+            setTitleSuggestions([]);
+        } finally {
+            setIsFetchingSuggestions(false);
         }
     };
 
@@ -197,6 +252,14 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
             }
         }
         setShowSlashMenu(false);
+
+        // Debounce title suggestions
+        if (suggestionTimeoutRef.current) {
+            clearTimeout(suggestionTimeoutRef.current);
+        }
+        suggestionTimeoutRef.current = setTimeout(() => {
+            fetchTitleSuggestions(val);
+        }, 800);
     };
 
     const handleSlashKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -312,6 +375,32 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
                                 })}
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {/* Title Suggestions */}
+                {showTitleSuggestions && titleSuggestions.length > 0 && (
+                    <div className="title-suggestions">
+                        <div className="suggestions-header">
+                            <Sparkles size={14} color="#8b5cf6" />
+                            <span>Suggested titles</span>
+                            {isFetchingSuggestions && <span className="suggestions-loading">...</span>}
+                        </div>
+                        <div className="suggestions-list">
+                            {titleSuggestions.map((suggestion, index) => (
+                                <div
+                                    key={index}
+                                    className="suggestion-item"
+                                    onClick={() => {
+                                        setName(suggestion);
+                                        setShowTitleSuggestions(false);
+                                    }}
+                                >
+                                    <span className="suggestion-text">{suggestion}</span>
+                                    <CornerDownLeft size={12} className="suggestion-icon" />
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 
