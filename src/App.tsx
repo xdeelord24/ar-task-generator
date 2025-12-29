@@ -87,7 +87,7 @@ function App() {
     >
       {renderView()}
       {isModalOpen && <TaskModal initialStatus={initialStatus} onClose={() => { setIsModalOpen(false); setInitialStatus(undefined); }} />}
-      {selectedTaskId && <TaskDetailModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />}
+      {selectedTaskId && <TaskDetailModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} onTaskClick={(id) => setSelectedTaskId(id)} />}
       {isReportOpen && <ReportModal onClose={() => setIsReportOpen(false)} />}
       {isAIOpen && <AIModal onClose={() => setIsAIOpen(false)} />}
       {settingsState.open && (

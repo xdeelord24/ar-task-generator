@@ -3,7 +3,6 @@ import {
     Link2,
     Copy,
     ExternalLink,
-    Columns,
     Edit2,
     Repeat,
     Box,
@@ -83,13 +82,6 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
             </div>
 
             <div className="menu-main-content">
-                <button className="menu-item">
-                    <Columns size={16} />
-                    <span>Add a column</span>
-                </button>
-
-                <div className="menu-divider-h"></div>
-
                 <button className="menu-item" onClick={onRename}>
                     <Edit2 size={16} />
                     <span>Rename</span>

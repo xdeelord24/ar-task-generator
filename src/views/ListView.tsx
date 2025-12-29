@@ -153,7 +153,106 @@ interface SortableRowProps {
     onStartTimer: () => void;
 }
 
-const SortableRow: React.FC<SortableRowProps> = ({
+// Helper component for Subtasks
+interface SubtaskRowItemProps {
+    task: any; // Using any for subtask to match structure locally
+    columns: ColumnSetting[];
+    onTaskClick: (taskId: string) => void;
+    getPriorityColor: (priority: any) => string;
+    getDateStatus: (dateStr?: string) => string | null;
+    tags: Tag[];
+    parentId: string;
+    onUpdateSubtask: (parentId: string, subtaskId: string, updates: any) => void;
+}
+
+const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
+    task,
+    columns,
+    onTaskClick,
+    getPriorityColor,
+    getDateStatus,
+    onUpdateSubtask,
+    parentId
+}) => {
+    const renderCell = (col: ColumnSetting) => {
+        switch (col.id) {
+            case 'name':
+                return (
+                    <div className="task-cell name-cell" style={{ width: col.width || 300, overflow: 'visible', paddingLeft: '40px' }}>
+                        <div className="task-cell-inner" style={{ overflow: 'visible' }}>
+                            <div className="subtask-indent-line"></div>
+                            <input
+                                type="checkbox"
+                                checked={task.status === 'COMPLETED'}
+                                onChange={(e) => {
+                                    e.stopPropagation();
+                                    onUpdateSubtask(parentId, task.id, { status: e.target.checked ? 'COMPLETED' : 'TO DO' });
+                                }}
+                            />
+                            <span className="task-name" style={{ color: task.status === 'COMPLETED' ? '#94a3b8' : 'inherit', textDecoration: task.status === 'COMPLETED' ? 'line-through' : 'none' }}>
+                                {task.name}
+                            </span>
+                        </div>
+                    </div>
+                );
+            case 'assignee':
+                return (
+                    <div className="task-cell assignee-cell" style={{ width: col.width || 150 }}>
+                        <div className="assignee-avatar">
+                            {task.assignee?.[0] || '?'}
+                        </div>
+                        <span>{task.assignee || 'Unassigned'}</span>
+                    </div>
+                );
+            case 'dueDate':
+                return (
+                    <div className="task-cell date-cell" style={{ width: col.width || 150 }}>
+                        <div className={`date-badge-interactive ${task.dueDate ? getDateStatus(task.dueDate) : 'empty'}`}>
+                            <CalendarIcon size={12} />
+                            {task.dueDate ? format(new Date(task.dueDate), 'MMM d') : '-'}
+                        </div>
+                    </div>
+                );
+            case 'priority':
+                return (
+                    <div className="task-cell priority-cell" style={{ width: col.width || 120 }}>
+                        <Flag size={12} style={{ color: getPriorityColor(task.priority), marginRight: 6 }} />
+                        <span style={{ color: getPriorityColor(task.priority), fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{task.priority || '-'}</span>
+                    </div>
+                );
+            case 'status':
+                return (
+                    <div className="task-cell status-cell" style={{ width: col.width || 120 }}>
+                        <span className="status-pill">{task.status}</span>
+                    </div>
+                );
+            default:
+                return <div className="task-cell" style={{ width: col.width || 100 }}></div>;
+        }
+    };
+
+    return (
+        <div className="task-item-row subtask-item-row" onClick={() => onTaskClick(task.id)}>
+            <div className="drag-handle-placeholder" style={{ width: 30 }}></div>
+            {columns.filter(c => c.visible).map(col => (
+                <React.Fragment key={col.id}>
+                    {renderCell(col)}
+                </React.Fragment>
+            ))}
+            <div className="task-cell actions-cell" style={{ width: 50 }}>
+                <button className="icon-btn-ghost">
+                    <MoreHorizontal size={16} />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+interface SortableRowPropsWithUpdateSubtask extends SortableRowProps {
+    onUpdateSubtask: (parentId: string, subtaskId: string, updates: any) => void;
+}
+
+const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
     task,
     columns,
     onTaskClick,
@@ -173,7 +272,8 @@ const SortableRow: React.FC<SortableRowProps> = ({
     onAddTag,
     onUpdateTag,
     onDeleteTag,
-    onStartTimer
+    onStartTimer,
+    onUpdateSubtask
 }) => {
     const {
         attributes,
@@ -184,6 +284,8 @@ const SortableRow: React.FC<SortableRowProps> = ({
         isDragging
     } = useSortable({ id: task.id });
 
+    const [isExpanded, setIsExpanded] = React.useState(false);
+
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
@@ -192,6 +294,7 @@ const SortableRow: React.FC<SortableRowProps> = ({
     };
 
     const priorities: Task['priority'][] = ['urgent', 'high', 'medium', 'low'];
+    const hasSubtasks = task.subtasks && task.subtasks.length > 0;
 
     const renderCell = (col: ColumnSetting) => {
         switch (col.id) {
@@ -199,6 +302,21 @@ const SortableRow: React.FC<SortableRowProps> = ({
                 return (
                     <div className="task-cell name-cell" style={{ width: col.width || 300, overflow: 'visible' }}>
                         <div className="task-cell-inner" style={{ overflow: 'visible' }}>
+                            <div
+                                style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: 4 }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsExpanded(!isExpanded);
+                                }}
+                                title={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
+                            >
+                                {hasSubtasks && (
+                                    <div className={`subtask-toggle-btn ${isExpanded ? 'expanded' : ''}`}>
+                                        <ChevronRight size={14} />
+                                    </div>
+                                )}
+                            </div>
+
                             <input type="checkbox" readOnly checked={task.status === 'COMPLETED'} />
                             <span className="task-name">{task.name}</span>
                             <div className="task-tags">
@@ -240,6 +358,14 @@ const SortableRow: React.FC<SortableRowProps> = ({
                                     </div>
                                 )}
                             </div>
+
+                            {hasSubtasks && (
+                                <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 2, marginLeft: 6 }}>
+                                    <div style={{ width: 1, height: 12, background: '#cbd5e1', transform: 'rotate(15deg)' }}></div>
+                                    {task.subtasks!.length}
+                                </div>
+                            )}
+
                         </div>
                     </div>
                 );
@@ -324,50 +450,68 @@ const SortableRow: React.FC<SortableRowProps> = ({
     };
 
     return (
-        <div
-            ref={setNodeRef}
-            style={style}
-            className="task-item-row"
-            onClick={() => onTaskClick(task.id)}
-        >
-            <div className="drag-handle" {...attributes} {...listeners}>
-                <GripVertical size={14} />
+        <div ref={setNodeRef} style={style} className="task-row-wrapper">
+            <div
+                className="task-item-row"
+                onClick={() => onTaskClick(task.id)}
+            >
+                <div className="drag-handle" {...attributes} {...listeners}>
+                    <GripVertical size={14} />
+                </div>
+                {columns.filter(c => c.visible).map(col => (
+                    <React.Fragment key={col.id}>
+                        {renderCell(col)}
+                    </React.Fragment>
+                ))}
+                <div className="task-cell actions-cell" style={{ width: 50, position: 'relative', overflow: 'visible' }}>
+                    <button
+                        className="icon-btn-ghost"
+                        style={{ zIndex: 10, position: 'relative' }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (isMenuOpen) {
+                                onCloseMenu();
+                            } else {
+                                onOpenMenu(task.id);
+                            }
+                        }}
+                    >
+                        <MoreHorizontal size={18} />
+                    </button>
+                    {isMenuOpen && (
+                        <div style={{ position: 'absolute', right: 0, top: '100%', zIndex: 5001 }}>
+                            <TaskOptionsMenu
+                                taskId={task.id}
+                                onClose={onCloseMenu}
+                                onRename={() => { onTaskClick(task.id); onCloseMenu(); }}
+                                onDuplicate={() => onDuplicate(task.id)}
+                                onArchive={() => onArchive(task.id)}
+                                onDelete={() => onDelete(task.id)}
+                                onConvertToDoc={() => onConvertToDoc(task)}
+                                onStartTimer={onStartTimer}
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
-            {columns.filter(c => c.visible).map(col => (
-                <React.Fragment key={col.id}>
-                    {renderCell(col)}
-                </React.Fragment>
-            ))}
-            <div className="task-cell actions-cell" style={{ width: 50, position: 'relative', overflow: 'visible' }}>
-                <button
-                    className="icon-btn-ghost"
-                    style={{ zIndex: 10, position: 'relative' }}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (isMenuOpen) {
-                            onCloseMenu();
-                        } else {
-                            onOpenMenu(task.id);
-                        }
-                    }}
-                >
-                    <MoreHorizontal size={18} />
-                </button>
-                {isMenuOpen && (
-                    <div style={{ position: 'absolute', right: 0, top: '100%', zIndex: 5001 }}>
-                        <TaskOptionsMenu
-                            taskId={task.id}
-                            onClose={onCloseMenu}
-                            onRename={() => { onTaskClick(task.id); onCloseMenu(); }}
-                            onDuplicate={() => onDuplicate(task.id)}
-                            onArchive={() => onArchive(task.id)}
-                            onDelete={() => onDelete(task.id)}
-                            onConvertToDoc={() => onConvertToDoc(task)}
-                            onStartTimer={onStartTimer}
+
+            {hasSubtasks && isExpanded && (
+                <div className="subtasks-container">
+                    {task.subtasks?.map(st => (
+                        <SubtaskRowItem
+                            key={st.id}
+                            task={st}
+                            columns={columns}
+                            onTaskClick={onTaskClick}
+                            getPriorityColor={getPriorityColor}
+                            getDateStatus={getDateStatus}
+                            tags={tags}
+                            onUpdateSubtask={onUpdateSubtask}
+                            parentId={task.id}
                         />
-                    </div>
-                )}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
@@ -393,6 +537,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         updateTag,
         deleteTag,
         startTimer,
+        updateSubtask,
         addStatus
     } = useAppStore();
     const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
@@ -660,6 +805,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                                             startTimer(task.id);
                                                             setOpenMenuTaskId(null);
                                                         }}
+                                                        onUpdateSubtask={updateSubtask}
                                                     />
                                                 ))}
                                                 <button className="btn-inline-add" onClick={onAddTask}>

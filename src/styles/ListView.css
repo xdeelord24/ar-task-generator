@@ -512,7 +512,48 @@
 }
 
 .btn-add-group:hover {
+
     background: var(--bg-hover);
     border-color: var(--primary);
     color: var(--text-secondary);
+}
+
+/* Subtasks in List View */
+.subtask-toggle-btn {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    color: #94a3b8;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.subtask-toggle-btn:hover {
+    background: #f1f5f9;
+    color: var(--text-main);
+}
+
+.subtask-toggle-btn.expanded {
+    transform: rotate(90deg);
+}
+
+.subtasks-container {
+    display: flex;
+    flex-direction: column;
+    /* background: #f8fafc; */
+}
+
+.subtask-item-row {
+    background: #fcfcfc;
+    /* Slightly different bg for subtasks */
+}
+
+.subtask-item-row:hover {
+    background: var(--bg-hover) !important;
+}
+
+.subtask-indent-line {
+    /* Optional visual guide lines if desired */
 }

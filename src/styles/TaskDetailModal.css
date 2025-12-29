@@ -802,3 +802,232 @@
     background: transparent;
     z-index: -1;
 }
+
+/* Subtasks New UI */
+.subtasks-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.subtasks-header-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+}
+
+.st-col-name,
+.st-col-assignee,
+.st-col-prio,
+.st-col-date,
+.st-col-actions {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.st-col-name {
+    flex: 1;
+}
+
+.st-col-assignee,
+.st-col-prio,
+.st-col-date {
+    width: 100px;
+    text-align: left;
+}
+
+.st-col-actions {
+    width: 40px;
+}
+
+.subtasks-list-new {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+/* Rows */
+.subtask-row-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border-bottom: 1px solid transparent;
+    transition: background 0.1s;
+    background: var(--bg-surface);
+}
+
+.subtask-row-item:hover {
+    background-color: var(--bg-hover);
+}
+
+.subtask-row-item:hover .icon-btn-ghost-st {
+    opacity: 1;
+}
+
+.st-cell-name {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.st-cell-assignee,
+.st-cell-prio,
+.st-cell-date {
+    width: 100px;
+    display: flex;
+    align-items: center;
+}
+
+.st-cell-actions {
+    width: 40px;
+    display: flex;
+    justify-content: center;
+}
+
+/* Custom Status Circle */
+.st-status-circle {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: transparent;
+}
+
+.st-status-circle:hover {
+    border-color: var(--primary);
+}
+
+.st-status-circle.completed {
+    background-color: #22c55e;
+    border-color: #22c55e;
+    color: white;
+}
+
+/* Inputs */
+.st-name-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--text-main);
+    font-family: inherit;
+    padding: 4px 0;
+}
+
+.st-name-input.completed {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+/* Icon Box Placeholders */
+.icon-box-st {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px dashed var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 10px;
+}
+
+.icon-box-st:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--bg-surface);
+}
+
+/* Actions Button */
+.icon-btn-ghost-st {
+    background: transparent;
+    border: none;
+    padding: 4px;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s;
+}
+
+.icon-btn-ghost-st:hover {
+    background: #e2e8f0;
+    color: var(--text-main);
+}
+
+/* Add Row */
+.subtask-add-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+    cursor: text;
+}
+
+.subtask-add-row:hover {
+    background: var(--bg-hover);
+}
+
+
+.st-name-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding-left: 8px;
+}
+
+.st-name-text {
+    font-size: 13px;
+    color: var(--text-main);
+    cursor: text;
+}
+
+.st-name-text.link {
+    color: var(--primary);
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.st-name-text.link:hover {
+    text-decoration: underline;
+}
+
+.st-name-text.completed {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+.st-hover-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 12px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.subtask-row-item:hover .st-hover-actions {
+    opacity: 1;
+}
+
+.st-checkbox-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+}

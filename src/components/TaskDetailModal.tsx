@@ -18,6 +18,11 @@ import {
     ChevronRight,
     ExternalLink,
     FileText as DocIcon,
+    Users,
+    Flag,
+    MoreHorizontal,
+    Tag,
+    Edit2
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { format, parseISO } from 'date-fns';
@@ -32,11 +37,12 @@ import '../styles/TaskDetailModal.css';
 interface TaskDetailModalProps {
     taskId: string;
     onClose: () => void;
+    onTaskClick?: (id: string) => void;
 }
 
 type SidebarTab = 'activity' | 'links' | 'more';
 
-const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose }) => {
+const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTaskClick }) => {
     const {
         tasks,
         spaces,
@@ -55,7 +61,38 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose }) =>
         duplicateTask,
         archiveTask
     } = useAppStore();
-    const task = tasks.find(t => t.id === taskId);
+
+    // Logic to find task or subtask
+    let task: Task | undefined = tasks.find(t => t.id === taskId);
+    let isSubtask = false;
+    let parentTask: Task | undefined = undefined;
+
+    if (!task) {
+        for (const t of tasks) {
+            if (t.subtasks) {
+                const sub = t.subtasks.find(s => s.id === taskId);
+                if (sub) {
+                    // Create a pseudo-Task object from the subtask
+                    task = {
+                        ...sub,
+                        description: '',
+                        spaceId: t.spaceId,
+                        listId: t.listId,
+                        tags: [],
+                        subtasks: [],
+                        comments: [],
+                        timeEntries: [],
+                        relationships: [],
+                        linkedDocId: undefined,
+                        startDate: undefined
+                    } as unknown as Task;
+                    isSubtask = true;
+                    parentTask = t;
+                    break;
+                }
+            }
+        }
+    }
 
     const [activeTab, setActiveTab] = useState<'details' | 'subtasks'>('details');
     const [sidebarTab, setSidebarTab] = useState<SidebarTab>('activity');
@@ -71,11 +108,30 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose }) =>
     if (!task) return null;
 
     const handleUpdate = (updates: Partial<Task>) => {
-        updateTask(taskId, updates);
+        if (isSubtask && parentTask) {
+            const validSubtaskKeys = ['name', 'status', 'priority', 'assignee', 'dueDate'];
+            const subtaskUpdates: any = {};
+
+            Object.keys(updates).forEach(key => {
+                if (validSubtaskKeys.includes(key)) {
+                    subtaskUpdates[key] = updates[key as keyof Task];
+                }
+            });
+
+            if (Object.keys(subtaskUpdates).length > 0) {
+                updateSubtask(parentTask.id, taskId, subtaskUpdates);
+            }
+        } else {
+            updateTask(taskId, updates);
+        }
     };
 
     const handleConvertToDoc = () => {
-        if (!task.description) {
+        if (isSubtask) {
+            alert('Cannot convert subtask to doc yet.');
+            return;
+        }
+        if (!task || !task.description) {
             alert('This task has no description to convert!');
             return;
         }
@@ -93,18 +149,27 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose }) =>
     };
 
     const handleOpenLinkedDoc = () => {
-        if (task.linkedDocId) {
+        if (task?.linkedDocId) {
             setCurrentView('docs');
             onClose();
         }
     };
 
     const handleDuplicate = () => {
+        if (isSubtask) {
+            alert('Cannot duplicate subtask yet.');
+            return;
+        }
         duplicateTask(taskId);
         setIsOptionsMenuOpen(false);
     };
 
     const handleArchive = () => {
+        if (isSubtask) {
+            // Treat as delete for now or update status
+            handleUpdate({ status: 'COMPLETED' });
+            return;
+        }
         archiveTask(taskId);
         setIsOptionsMenuOpen(false);
     };
@@ -117,13 +182,19 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose }) =>
 
     const handleDelete = () => {
         if (confirm('Are you sure you want to delete this task?')) {
-            deleteTask(taskId);
+            if (isSubtask && parentTask) {
+                const newSubtasks = parentTask.subtasks?.filter(st => st.id !== taskId) || [];
+                updateTask(parentTask.id, { subtasks: newSubtasks });
+            } else {
+                deleteTask(taskId);
+            }
             onClose();
         }
     };
 
     const handleAddSubtask = (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubtask) return; // Prevent adding subtasks to subtasks
         if (!newSubtaskName.trim()) return;
         addSubtask(taskId, {
             name: newSubtaskName,
@@ -133,6 +204,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose }) =>
     };
 
     const handleAddComment = () => {
+        if (isSubtask) {
+            alert('Comments on subtasks not supported locally yet.');
+            return;
+        }
         if (!commentText.trim()) return;
         addComment(taskId, {
             userId: 'user-1',
@@ -415,12 +490,14 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose }) =>
                             >
                                 Details
                             </button>
-                            <button
-                                className={`tab ${activeTab === 'subtasks' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('subtasks')}
-                            >
-                                Subtasks ({task.subtasks?.length || 0})
-                            </button>
+                            {!isSubtask && (
+                                <button
+                                    className={`tab ${activeTab === 'subtasks' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('subtasks')}
+                                >
+                                    Subtasks ({task.subtasks?.length || 0})
+                                </button>
+                            )}
                         </div>
 
                         <div className="tab-content">
@@ -429,7 +506,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose }) =>
                                     <div className="description-doc-header">
                                         <DocIcon size={14} className="doc-icon" />
                                         <span>Description</span>
-                                        {!task.linkedDocId && task.description && (
+                                        {!isSubtask && !task.linkedDocId && task.description && (
                                             <button className="btn-convert-doc" onClick={handleConvertToDoc}>
                                                 <Plus size={12} /> Convert to Doc
                                             </button>
@@ -438,7 +515,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose }) =>
                                     <RichTextEditor
                                         value={task.description || ''}
                                         onChange={(val) => handleUpdate({ description: val })}
-                                        placeholder="Type your description here like a document..."
+                                        placeholder={isSubtask ? "No description for subtasks" : "Type your description here like a document..."}
+                                        readOnly={isSubtask}
                                     />
                                     {task.linkedDocId && (
                                         <div className="linked-doc-pill" onClick={handleOpenLinkedDoc}>
@@ -449,30 +527,85 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose }) =>
                                     )}
                                 </div>
                             )}
-                            {activeTab === 'subtasks' && (
-                                <div className="subtasks-list">
-                                    {task.subtasks?.map((st: Subtask) => (
-                                        <div key={st.id} className="subtask-item">
-                                            <input
-                                                type="checkbox"
-                                                checked={st.status === 'COMPLETED'}
-                                                onChange={(e) => updateSubtask(taskId, st.id, { status: e.target.checked ? 'COMPLETED' : 'TO DO' })}
-                                            />
-                                            <input
-                                                className={`subtask-name ${st.status === 'COMPLETED' ? 'completed' : ''}`}
-                                                value={st.name}
-                                                onChange={(e) => updateSubtask(taskId, st.id, { name: e.target.value })}
-                                            />
-                                        </div>
-                                    ))}
-                                    <form onSubmit={handleAddSubtask} className="add-subtask-form">
-                                        <Plus size={14} />
-                                        <input
-                                            placeholder="Add subtask..."
-                                            value={newSubtaskName}
-                                            onChange={(e) => setNewSubtaskName(e.target.value)}
-                                        />
-                                    </form>
+                            {activeTab === 'subtasks' && !isSubtask && (
+                                <div className="subtasks-wrapper">
+                                    <div className="subtasks-header-row">
+                                        <div className="st-col-name">Name</div>
+                                        <div className="st-col-assignee">Assignee</div>
+                                        <div className="st-col-prio">Priority</div>
+                                        <div className="st-col-date">Due date</div>
+                                        <div className="st-col-actions"></div>
+                                    </div>
+                                    <div className="subtasks-list-new">
+                                        {task.subtasks?.map((st: Subtask) => (
+                                            <div key={st.id} className="subtask-row-item">
+                                                <div className="st-cell-name">
+                                                    <div className="st-checkbox-area">
+                                                        <div
+                                                            className={`st-status-circle ${st.status === 'COMPLETED' ? 'completed' : ''}`}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                updateSubtask(taskId, st.id, { status: st.status === 'COMPLETED' ? 'TO DO' : 'COMPLETED' });
+                                                            }}
+                                                        >
+                                                            {st.status === 'COMPLETED' && <Check size={10} strokeWidth={4} />}
+                                                        </div>
+                                                    </div>
+                                                    <div className="st-name-group">
+                                                        {st.status === 'COMPLETED' ? (
+                                                            <span className="st-name-text completed">{st.name}</span>
+                                                        ) : (
+                                                            <span
+                                                                className="st-name-text link"
+                                                                onClick={() => onTaskClick && onTaskClick(st.id)}
+                                                            >
+                                                                {st.name}
+                                                            </span>
+                                                        )}
+                                                        <div className="st-hover-actions">
+                                                            <button className="icon-btn-ghost-st" title="Add tags">
+                                                                <Tag size={12} />
+                                                            </button>
+                                                            <button className="icon-btn-ghost-st" title="Rename" onClick={() => {/* Toggle rename */ }}>
+                                                                <Edit2 size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="st-cell-assignee">
+                                                    <div className="icon-box-st">
+                                                        <Users size={14} />
+                                                    </div>
+                                                </div>
+                                                <div className="st-cell-prio">
+                                                    <div className="icon-box-st">
+                                                        <Flag size={14} />
+                                                    </div>
+                                                </div>
+                                                <div className="st-cell-date">
+                                                    <div className="icon-box-st">
+                                                        <Calendar size={14} />
+                                                    </div>
+                                                </div>
+                                                <div className="st-cell-actions">
+                                                    <button className="icon-btn-ghost-st">
+                                                        <MoreHorizontal size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        <form onSubmit={handleAddSubtask} className="subtask-add-row">
+                                            <div className="st-cell-name">
+                                                <Plus size={14} className="plus-icon-st" />
+                                                <input
+                                                    placeholder="Add Task"
+                                                    value={newSubtaskName}
+                                                    onChange={(e) => setNewSubtaskName(e.target.value)}
+                                                />
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
                             )}
                         </div>

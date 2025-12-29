@@ -263,7 +263,10 @@ const SortableCard: React.FC<SortableCardProps> = ({
                         {isExpanded && (
                             <div className="subtasks-list">
                                 {task.subtasks.map(subtask => (
-                                    <div key={subtask.id} className="subtask-card" onClick={(e) => e.stopPropagation()}>
+                                    <div key={subtask.id} className="subtask-card" onClick={(e) => {
+                                        e.stopPropagation();
+                                        onTaskClick(subtask.id);
+                                    }}>
                                         <div className="subtask-header">
                                             <span className="subtask-title">{subtask.name}</span>
                                         </div>
