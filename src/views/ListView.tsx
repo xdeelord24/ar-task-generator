@@ -294,15 +294,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                         </span>
                                     );
                                 })}
-                                <button
-                                    className="add-tag-btn-inline"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActivePopover({ taskId: task.id, field: 'tags', element: e.currentTarget });
-                                    }}
-                                >
-                                    <Plus size={10} />
-                                </button>
+
                                 {activePopover?.taskId === task.id && activePopover?.field === 'tags' && (
                                     <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100 }}>
                                         <TagMenu
