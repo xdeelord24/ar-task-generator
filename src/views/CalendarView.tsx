@@ -41,7 +41,7 @@ import '../styles/CalendarView.css';
 import '../styles/ListView.css';
 
 interface CalendarViewProps {
-    onAddTask: () => void;
+    onAddTask: (date?: Date) => void;
     onTaskClick: (taskId: string) => void;
 }
 
@@ -67,7 +67,10 @@ const DraggableCalendarTask: React.FC<DraggableTaskProps> = ({ task, onTaskClick
             {...listeners}
             {...attributes}
             className={`calendar-task-tag ${task.status.toLowerCase().replace(' ', '-')} ${isDragging ? 'dragging' : ''}`}
-            onClick={() => onTaskClick(task.id)}
+            onClick={(e) => {
+                e.stopPropagation();
+                onTaskClick(task.id);
+            }}
         >
             {task.name}
         </div>
@@ -78,9 +81,10 @@ interface DroppableDayProps {
     day: Date;
     monthStart: Date;
     children: React.ReactNode;
+    onClick?: () => void;
 }
 
-const DroppableCalendarDay: React.FC<DroppableDayProps> = ({ day, monthStart, children }) => {
+const DroppableCalendarDay: React.FC<DroppableDayProps> = ({ day, monthStart, children, onClick }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: day.toISOString(),
     });
@@ -88,7 +92,7 @@ const DroppableCalendarDay: React.FC<DroppableDayProps> = ({ day, monthStart, ch
     const className = `calendar-day ${!isSameMonth(day, monthStart) ? 'other-month' : ''} ${isToday(day) ? 'today' : ''} ${isOver ? 'drag-over' : ''}`;
 
     return (
-        <div ref={setNodeRef} className={className}>
+        <div ref={setNodeRef} className={className} onClick={onClick}>
             <span className="day-number">{format(day, 'd')}</span>
             <div className="day-tasks">
                 {children}
@@ -102,8 +106,9 @@ type CalendarMode = 'day' | '4day' | 'week' | 'month';
 const TimeGrid: React.FC<{
     days: Date[],
     tasks: Task[],
-    onTaskClick: (taskId: string) => void
-}> = ({ days, tasks, onTaskClick }) => {
+    onTaskClick: (taskId: string) => void;
+    onAddTask: (date?: Date) => void;
+}> = ({ days, tasks, onTaskClick, onAddTask }) => {
     const hours = Array.from({ length: 24 }, (_, i) => i);
     const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -129,7 +134,7 @@ const TimeGrid: React.FC<{
                     <span className="all-day-label">all-day</span>
                 </div>
                 {days.map(day => (
-                    <div key={day.toISOString()} className="all-day-column">
+                    <div key={day.toISOString()} className="all-day-column" onClick={() => onAddTask(day)}>
                         {tasks.filter(t => {
                             if (!t.dueDate) return false;
                             // All day if NO 'T' in dueDate AND NO 'T' in startDate
@@ -161,6 +166,7 @@ const TimeGrid: React.FC<{
                             currentTime={currentTime}
                             tasks={tasks}
                             onTaskClick={onTaskClick}
+                            onAddTask={onAddTask}
                         />
                     ))}
                 </div>
@@ -173,13 +179,14 @@ const DroppableTimeSlot: React.FC<{
     day: Date;
     hour: number;
     children?: React.ReactNode;
-}> = ({ day, hour, children }) => {
+    onClick?: () => void;
+}> = ({ day, hour, children, onClick }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: `time-slot|${day.toISOString()}|${hour}`,
     });
 
     return (
-        <div ref={setNodeRef} className={`time-slot ${isOver ? 'drag-over' : ''}`}>
+        <div ref={setNodeRef} className={`time-slot ${isOver ? 'drag-over' : ''}`} onClick={onClick}>
             {children}
         </div>
     );
@@ -190,7 +197,8 @@ const DroppableTimeColumn: React.FC<{
     currentTime: Date;
     tasks: Task[];
     onTaskClick: (taskId: string) => void;
-}> = ({ day, currentTime, tasks, onTaskClick }) => {
+    onAddTask: (date?: Date) => void;
+}> = ({ day, currentTime, tasks, onTaskClick, onAddTask }) => {
     const hours = Array.from({ length: 24 }, (_, i) => i);
     const { updateTask } = useAppStore();
     const { setNodeRef } = useDroppable({
@@ -249,7 +257,16 @@ const DroppableTimeColumn: React.FC<{
     return (
         <div ref={setNodeRef} className="time-column">
             {hours.map(hour => (
-                <DroppableTimeSlot key={hour} day={day} hour={hour} />
+                <DroppableTimeSlot
+                    key={hour}
+                    day={day}
+                    hour={hour}
+                    onClick={() => {
+                        const d = new Date(day);
+                        d.setHours(hour);
+                        onAddTask(d);
+                    }}
+                />
             ))}
 
             {isToday(day) && (
@@ -452,7 +469,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
                         <Search size={14} />
                         <input type="text" placeholder="Search tasks..." readOnly />
                     </div>
-                    <button className="btn-primary" onClick={onAddTask} style={{ padding: '8px 16px' }}>
+                    <button className="btn-primary" onClick={() => onAddTask()} style={{ padding: '8px 16px' }}>
                         <Plus size={16} /> Add Task
                     </button>
                 </div>
@@ -475,7 +492,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
                                 });
 
                                 return (
-                                    <DroppableCalendarDay key={day.toISOString()} day={day} monthStart={monthStart}>
+                                    <DroppableCalendarDay key={day.toISOString()} day={day} monthStart={monthStart} onClick={() => onAddTask(day)}>
                                         {dayTasks.map(task => (
                                             <DraggableCalendarTask key={task.id} task={task} onTaskClick={onTaskClick} />
                                         ))}
@@ -485,7 +502,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
                         </div>
                     </div>
                 ) : (
-                    <TimeGrid days={days} tasks={filteredTasks} onTaskClick={onTaskClick} />
+                    <TimeGrid days={days} tasks={filteredTasks} onTaskClick={onTaskClick} onAddTask={onAddTask} />
                 )}
             </DndContext>
 

@@ -13,14 +13,16 @@ import { useAppStore } from '../store/useAppStore';
 import type { Priority, Task } from '../types';
 import RichTextEditor from './RichTextEditor';
 import { markdownToHtml } from '../utils/markdownConverter';
+import { format } from 'date-fns';
 import '../styles/TaskModal.css';
 
 interface TaskModalProps {
     onClose: () => void;
     initialStatus?: string;
+    initialDate?: Date;
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDate }) => {
     const { addTask, currentSpaceId, currentListId, spaces, lists, aiConfig } = useAppStore();
 
     const activeList = lists.find(l => l.id === currentListId);
@@ -39,7 +41,21 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
     const [description, setDescription] = useState('');
     const [status, setStatus] = useState<Task['status']>(initialStatus || activeStatuses[0]?.name || 'TO DO');
     const [priority, setPriority] = useState<Priority>('medium');
-    const [dueDate, setDueDate] = useState('');
+
+    // Format initialDate to YYYY-MM-DD and HH:mm
+    const initialDateStr = initialDate ? format(initialDate, 'yyyy-MM-dd') : '';
+    // Only set time if it's not midnight (00:00) OR if we specifically want to capture time. 
+    // Since request says "automatically input the time", we should capture it if present.
+    // However, clicking "Month View" day passes 00:00. We don't want to force 00:00 time on Month View clicks unless necessary.
+    // But since "Time Grid" also can be 00:00 (first slot), it's ambiguous.
+    // I'll default to setting time if initialDate is provided. The user can clear it.
+    // Actually, Month View "Day" click usually implies All Day (no time).
+    // I can check if initialDate hours/mins are 0.
+    const hasTime = initialDate && (initialDate.getHours() !== 0 || initialDate.getMinutes() !== 0);
+    const initialTimeStr = hasTime ? format(initialDate, 'HH:mm') : '';
+
+    const [dueDate, setDueDate] = useState(initialDateStr);
+    const [dueTime, setDueTime] = useState(initialTimeStr);
     const [activeTab, setActiveTab] = useState('task');
     const [isMaximized, setIsMaximized] = useState(false);
     const [isPrivate, setIsPrivate] = useState(false);
@@ -171,7 +187,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
             listId: currentListId || undefined,
             status,
             priority,
-            dueDate: dueDate || undefined,
+            dueDate: dueDate ? (dueTime ? new Date(`${dueDate}T${dueTime}`).toISOString() : dueDate) : undefined,
         });
         onClose();
     };
@@ -563,6 +579,14 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
                             onChange={e => setDueDate(e.target.value)}
                             style={{ background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer', width: dueDate ? 'auto' : '65px' }}
                         />
+                        {dueDate && (
+                            <input
+                                type="time"
+                                value={dueTime}
+                                onChange={e => setDueTime(e.target.value)}
+                                style={{ background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer', marginLeft: '4px' }}
+                            />
+                        )}
                     </div>
 
                     <div className="prop-btn">
