@@ -1,73 +1,68 @@
-# React + TypeScript + Vite
+# AR Generator / Task Management App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, high-performance task management application built with React, TypeScript, and Vite. This application features a beautiful, responsive UI with light and dark mode support, Kanban boards, list views, and a robust settings system.
 
-Currently, two official plugins are available:
+## 🚀 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+*   **Task Management**: Create, edit, reorganize, and track tasks with ease.
+*   **Multiple Views**:
+    *   **List View**: A detailed spreadsheet-like view for managing tasks.
+    *   **Kanban Board**: Drag-and-drop board for visualized workflow management.
+    *   **Calendar**: View tasks by due date.
+*   **Theme System**:
+    *   Fully integrated Dark Mode.
+    *   Customizable accent colors.
+    *   System theme synchronization.
+*   **Modern UI/UX**:
+    *   Responsive Sidebar navigation.
+    *   Interactive Task Modals.
+    *   Polished animations and transitions.
+*   **Productivity Tools**:
+    *   Rich text descriptions.
+    *   Subtasks and checklists.
+    *   Time tracking.
 
-## React Compiler
+## 📸 Screenshots
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Dark Mode & Settings
+The application features a comprehensive settings modal where you can customize your experience, including switching between Light and Dark themes.
 
-## Expanding the ESLint configuration
+![Dark Mode Settings](/screenshots/settings-dark.png)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+*(More screenshots coming soon)*
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🛠️ Technology Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+*   **Frontend Framework**: React 18
+*   **Build Tool**: Vite
+*   **Language**: TypeScript
+*   **Styling**: Vanilla CSS with CSS Variables (Theming)
+*   **State Management**: Zustand
+*   **Icons**: Lucide React
+*   **Drag & Drop**: @dnd-kit/core
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 🏃‍♂️ Getting Started
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/yourusername/ar-generator-react.git
+    ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+2.  **Install dependencies**
+    ```bash
+    npm install
+    ```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+3.  **Run the development server**
+    ```bash
+    npm run dev
+    ```
+
+4.  **Build for production**
+    ```bash
+    npm run build
+    ```
+
+## 📝 License
+
+This project is licensed under the MIT License.
