@@ -125,6 +125,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false);
     const [suggestedSubtasks, setSuggestedSubtasks] = useState<string[]>([]);
     const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set());
+    const [isEnhancingTitle, setIsEnhancingTitle] = useState(false);
+    const [suggestedTitle, setSuggestedTitle] = useState<string | null>(null);
     const activityFeedRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll activity feed to bottom
@@ -183,6 +185,57 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             alert("Failed to generate subtasks. Check AI settings.");
         } finally {
             setIsGeneratingSubtasks(false);
+        }
+    };
+
+    const handleEnhanceTitle = async () => {
+        if (!task) return;
+        setIsEnhancingTitle(true);
+        setSuggestedTitle(null);
+
+        const prompt = `Enhance the task title: "${task.name}".
+        Description: ${task.description || 'No description'}.
+        Make it more professional, concise, and action-oriented.
+        Return ONLY the enhanced title string. 
+        IMPORTANT: Do NOT use markdown (no asterisks), do NOT use quotes, and do NOT use commas.`;
+
+        try {
+            let responseText = '';
+            if (aiConfig.provider === 'ollama') {
+                const response = await fetch(`${aiConfig.ollamaHost}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: aiConfig.ollamaModel,
+                        prompt: prompt,
+                        stream: false
+                    }),
+                });
+                if (!response.ok) throw new Error('Ollama Error');
+                const data = await response.json();
+                responseText = data.response;
+            } else {
+                const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+                if (!apiKey) throw new Error('Please configure Gemini API Key');
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const result = await model.generateContent(prompt);
+                responseText = result.response.text();
+            }
+
+            const cleaned = responseText.trim()
+                .replace(/\*/g, '') // Remove asterisks
+                .replace(/^"(.*)"$/, '$1') // Remove leading/trailing quotes
+                .replace(/^'(.*)'$/, '$1') // Remove leading/trailing single quotes
+                .replace(/,/g, '') // Remove commas as requested
+                .trim();
+
+            setSuggestedTitle(cleaned);
+        } catch (error) {
+            console.error("AI Enhance Title Error:", error);
+            alert("Failed to enhance title. Check AI settings.");
+        } finally {
+            setIsEnhancingTitle(false);
         }
     };
 
@@ -533,12 +586,49 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
 
                 <div className="detail-body">
                     <div className="detail-main">
-                        <input
-                            className="detail-title-input"
-                            value={task.name}
-                            onChange={(e) => handleUpdate({ name: e.target.value })}
-                            placeholder="Task name"
-                        />
+                        <div className="title-container">
+                            <input
+                                className="detail-title-input"
+                                value={task.name}
+                                onChange={(e) => handleUpdate({ name: e.target.value })}
+                                placeholder="Task name"
+                            />
+                            {!isSubtask && (
+                                <button
+                                    className="btn-enhance-title"
+                                    onClick={handleEnhanceTitle}
+                                    disabled={isEnhancingTitle}
+                                    title="Enhance Title with AI"
+                                >
+                                    <Sparkles size={16} className={isEnhancingTitle ? "animate-spin" : ""} />
+                                    {isEnhancingTitle ? 'Enhancing...' : 'Enhance title'}
+                                </button>
+                            )}
+
+                            {suggestedTitle && (
+                                <div className="title-suggestion-popover">
+                                    <span className="suggestion-label">AI Suggestion</span>
+                                    <div className="suggested-title-text">{suggestedTitle}</div>
+                                    <div className="suggestion-actions">
+                                        <button
+                                            className="btn-accept-suggestion"
+                                            onClick={() => {
+                                                handleUpdate({ name: suggestedTitle });
+                                                setSuggestedTitle(null);
+                                            }}
+                                        >
+                                            Accept
+                                        </button>
+                                        <button
+                                            className="btn-decline-suggestion"
+                                            onClick={() => setSuggestedTitle(null)}
+                                        >
+                                            Decline
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         <div className="detail-meta-grid">
                             <div className="meta-left-col">
