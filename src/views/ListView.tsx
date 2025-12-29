@@ -8,28 +8,7 @@ import {
     Calendar as CalendarIcon,
     MoreHorizontal,
     GripVertical,
-    Layout,
-    Users,
-    Lock,
-    Star as StarIcon,
-    Briefcase,
-    Code,
-    GraduationCap,
-    Music,
-    Heart,
-    Camera,
-    Globe,
-    Zap,
-    Cloud,
-    Moon,
-    Book,
-    Flag,
-    Target,
-    Coffee,
-    List as ListIcon,
-    CheckSquare,
-    Calendar,
-    Hash
+    Flag
 } from 'lucide-react';
 import {
     DndContext,
@@ -61,31 +40,6 @@ import StatusEditorModal from '../components/StatusEditorModal';
 import { Settings2 } from 'lucide-react';
 import '../styles/ListView.css';
 import '../styles/TaskOptionsMenu.css';
-
-const IconMap: Record<string, any> = {
-    'users': Users,
-    'layout': Layout,
-    'lock': Lock,
-    'star': StarIcon,
-    'briefcase': Briefcase,
-    'code': Code,
-    'graduation': GraduationCap,
-    'book': Book,
-    'globe': Globe,
-    'zap': Zap,
-    'cloud': Cloud,
-    'moon': Moon,
-    'flag': Flag,
-    'target': Target,
-    'coffee': Coffee,
-    'heart': Heart,
-    'music': Music,
-    'camera': Camera,
-    'list': ListIcon,
-    'check-square': CheckSquare,
-    'calendar': Calendar,
-    'hash': Hash
-};
 
 interface ListViewProps {
     onAddTask: () => void;
@@ -547,7 +501,6 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         deleteTask,
         duplicateTask,
         archiveTask,
-        setCurrentView,
         updateSpace,
         updateList,
     } = useAppStore();

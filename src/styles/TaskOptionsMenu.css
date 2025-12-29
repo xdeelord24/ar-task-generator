@@ -1,22 +1,21 @@
 .task-options-menu {
     width: 280px;
-    background: var(--bg-surface);
-    border-radius: 12px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px var(--border);
-    border: 1px solid var(--border);
+    background: #1e293b;
+    /* Darker navy as in image */
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    border: 1px solid #334155;
     position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 8px;
     z-index: 5000;
-    color: var(--text-main);
+    color: white;
     font-family: inherit;
+    overflow: hidden;
 }
 
 .menu-header-row {
     display: flex;
-    background: var(--bg-hover);
-    border-bottom: 1px solid var(--border);
+    background: #334155;
+    border-bottom: 1px solid #475569;
 }
 
 .menu-header-row button {
@@ -24,86 +23,81 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 12px 4px;
+    gap: 8px;
+    padding: 10px 4px;
     background: transparent;
     border: none;
-    color: var(--text-secondary);
+    color: #cbd5e1;
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .menu-header-row button:hover {
-    color: var(--text-main);
-    background: var(--bg-active);
+    color: white;
+    background: #475569;
 }
 
 .menu-divider-v {
     width: 1px;
-    background: var(--border);
+    background: #475569;
 }
 
 .menu-main-content {
-    padding: 8px 0;
-    overflow: visible;
+    padding: 4px 0;
 }
 
 .menu-item {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 16px;
+    padding: 10px 16px;
     background: transparent;
     border: none;
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 500;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
-    text-align: left;
-    transition: all 0.2s;
-    position: relative;
+    transition: background 0.2s;
 }
 
-.menu-item:hover,
-.menu-item.active {
-    background: var(--bg-hover);
-    color: var(--primary);
+.menu-item:hover {
+    background: #334155;
+}
+
+.menu-item .menu-icon {
+    color: #94a3b8;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.menu-item .menu-label {
+    flex: 1;
+}
+
+/* Layout for items WITHOUT chevron: label on the right */
+.menu-item:not(.has-chevron) .menu-label {
+    text-align: right;
 }
 
 .menu-item .chevron-right {
-    margin-left: auto;
-    color: var(--text-tertiary);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-left: 8px;
+    color: #64748b;
 }
 
-.menu-item.active .chevron-right,
-.menu-item .chevron-right.rotated {
-    transform: rotate(90deg);
-    color: var(--primary);
-}
-
-.menu-item.danger {
+.menu-item.danger .menu-label {
     color: #ef4444;
-}
-
-.menu-item.danger:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #dc2626;
 }
 
 .menu-divider-h {
     height: 1px;
-    background: var(--border);
-    margin: 8px 0;
+    background: #334155;
+    margin: 4px 0;
 }
 
 .menu-footer {
-    padding: 12px 16px;
-    background: var(--bg-hover);
-    border-top: 1px solid var(--border);
+    padding: 12px;
 }
 
 .btn-sharing {
@@ -111,32 +105,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    background: var(--primary);
+    gap: 12px;
+    background: #2563eb;
     color: white;
     border: none;
-    padding: 10px;
+    padding: 12px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s;
 }
 
 .btn-sharing:hover {
-    filter: brightness(1.1);
-}
-
-/* Scrollbar styling */
-.menu-main-content::-webkit-scrollbar {
-    width: 4px;
-}
-
-.menu-main-content::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.menu-main-content::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 2px;
+    background: #1d4ed8;
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     FileText,
     Plus,
@@ -10,23 +10,47 @@ import {
 import { useAppStore } from '../store/useAppStore';
 import { format } from 'date-fns';
 import DocEditor from '../components/DocEditor';
+import ViewHeader from '../components/ViewHeader';
 import '../styles/DocsView.css';
 import '../styles/ListView.css';
 
 const DocsView: React.FC = () => {
-    const { docs, addDoc, updateDoc } = useAppStore();
+    const {
+        docs,
+        addDoc,
+        updateDoc,
+        currentSpaceId,
+        currentListId
+    } = useAppStore();
     const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
 
-    const activeDoc = docs.find(d => d.id === selectedDocId);
+    const filteredDocs = useMemo(() => {
+        return docs.filter(doc => {
+            const matchesSpace = !currentSpaceId || currentSpaceId === 'everything' || doc.spaceId === currentSpaceId;
+            const matchesList = !currentListId || doc.listId === currentListId;
+            return matchesSpace && matchesList;
+        });
+    }, [docs, currentSpaceId, currentListId]);
+
+    const activeDoc = useMemo(() =>
+        docs.find(d => d.id === selectedDocId),
+        [docs, selectedDocId]);
+
+    const handleCreateDoc = () => {
+        const newId = addDoc({
+            name: 'Untitled Doc',
+            content: '',
+            userId: 'user-1',
+            userName: 'Jundee',
+            spaceId: currentSpaceId === 'everything' ? undefined : currentSpaceId,
+            listId: currentListId || undefined
+        });
+        setSelectedDocId(newId);
+    };
 
     return (
         <div className="view-container docs-view">
-            <div className="view-header">
-                <div className="breadcrumb">
-                    <span className="space-name">Documents</span>
-                    <span className="task-count">{docs.length}</span>
-                </div>
-            </div>
+            <ViewHeader />
 
             <div className="toolbar">
                 <div className="toolbar-left">
@@ -41,12 +65,7 @@ const DocsView: React.FC = () => {
                     <button
                         className="btn-primary"
                         style={{ padding: '8px 16px' }}
-                        onClick={() => addDoc({
-                            name: 'Untitled Doc',
-                            content: '',
-                            userId: 'user-1',
-                            userName: 'Jundee'
-                        })}
+                        onClick={handleCreateDoc}
                     >
                         <Plus size={16} /> New Doc
                     </button>
@@ -54,7 +73,7 @@ const DocsView: React.FC = () => {
             </div>
 
             <div className="docs-grid">
-                {docs.map(doc => (
+                {filteredDocs.map(doc => (
                     <div
                         key={doc.id}
                         className="doc-card"
@@ -86,15 +105,7 @@ const DocsView: React.FC = () => {
                 ))}
                 <div
                     className="doc-card add-new-doc"
-                    onClick={() => {
-                        const newId = addDoc({
-                            name: 'Untitled Doc',
-                            content: '',
-                            userId: 'user-1',
-                            userName: 'Jundee'
-                        });
-                        setSelectedDocId(newId);
-                    }}
+                    onClick={handleCreateDoc}
                 >
                     <div className="add-content">
                         <Plus size={32} />

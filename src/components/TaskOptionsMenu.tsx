@@ -155,75 +155,75 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
 
             <div className="menu-main-content">
                 <button className="menu-item" onClick={onRename}>
-                    <Edit2 size={16} />
-                    <span>Rename</span>
+                    <Edit2 className="menu-icon" size={18} />
+                    <span className="menu-label">Rename</span>
                 </button>
 
-                <button className="menu-item" onClick={onConvertToDoc}>
-                    <Repeat size={16} />
-                    <span>Convert to Doc</span>
+                <button className="menu-item has-chevron" onClick={onConvertToDoc}>
+                    <Repeat className="menu-icon" size={18} />
+                    <span className="menu-label">Convert to Doc</span>
                     <ChevronRight size={14} className="chevron-right" />
                 </button>
 
-                <button className="menu-item">
-                    <Box size={16} />
-                    <span>Task Type</span>
+                <button className="menu-item has-chevron">
+                    <Box className="menu-icon" size={18} />
+                    <span className="menu-label">Task Type</span>
                     <ChevronRight size={14} className="chevron-right" />
                 </button>
 
                 <button className="menu-item" onClick={onDuplicate}>
-                    <DuplicateIcon size={16} />
-                    <span>Duplicate</span>
+                    <DuplicateIcon className="menu-icon" size={18} />
+                    <span className="menu-label">Duplicate</span>
                 </button>
 
                 <button className="menu-item">
-                    <Clock size={16} />
-                    <span>Remind me</span>
+                    <Clock className="menu-icon" size={18} />
+                    <span className="menu-label">Remind me</span>
                 </button>
 
                 <button className="menu-item">
-                    <BellOff size={16} />
-                    <span>Unfollow task</span>
+                    <BellOff className="menu-icon" size={18} />
+                    <span className="menu-label">Unfollow task</span>
                 </button>
 
                 <button className="menu-item">
-                    <Mail size={16} />
-                    <span>Send email to task</span>
+                    <Mail className="menu-icon" size={18} />
+                    <span className="menu-label">Send email to task</span>
                 </button>
 
-                <button className="menu-item">
-                    <Plus size={16} />
-                    <span>Add To</span>
+                <button className="menu-item has-chevron">
+                    <Plus className="menu-icon" size={18} />
+                    <span className="menu-label">Add To</span>
                     <ChevronRight size={14} className="chevron-right" />
                 </button>
 
                 <button className="menu-item">
-                    <GitMerge size={16} />
-                    <span>Merge</span>
+                    <GitMerge className="menu-icon" size={18} />
+                    <span className="menu-label">Merge</span>
                 </button>
 
                 <button className="menu-item" onClick={onMove}>
-                    <ArrowRight size={16} />
-                    <span>Move</span>
+                    <ArrowRight className="menu-icon" size={18} />
+                    <span className="menu-label">Move</span>
                 </button>
 
                 <button className="menu-item" onClick={onStartTimer}>
-                    <Play size={16} />
-                    <span>Start timer</span>
+                    <Play className="menu-icon" size={18} />
+                    <span className="menu-label">Start timer</span>
                 </button>
 
                 <div className="menu-divider-h"></div>
 
                 <div className="menu-item-group" style={{ position: 'relative' }}>
                     <button
-                        className={`menu-item ${isRelationshipMenuOpen ? 'active' : ''}`}
+                        className={`menu-item has-chevron ${isRelationshipMenuOpen ? 'active' : ''}`}
                         onClick={(e) => {
                             e.stopPropagation();
                             setIsRelationshipMenuOpen(!isRelationshipMenuOpen);
                         }}
                     >
-                        <LinkIcon size={16} />
-                        <span>Dependencies</span>
+                        <LinkIcon className="menu-icon" size={18} />
+                        <span className="menu-label">Dependencies</span>
                         <ChevronRight size={14} className={`chevron-right ${isRelationshipMenuOpen ? 'rotated' : ''}`} />
                     </button>
                     {isRelationshipMenuOpen && (
@@ -237,19 +237,19 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
                 </div>
 
                 <button className="menu-item" onClick={onArchive}>
-                    <Archive size={16} />
-                    <span>Archive</span>
+                    <Archive className="menu-icon" size={18} />
+                    <span className="menu-label">Archive</span>
                 </button>
 
                 <button className="menu-item danger" onClick={onDelete}>
-                    <Trash2 size={16} />
-                    <span>Delete</span>
+                    <Trash2 className="menu-icon" size={18} />
+                    <span className="menu-label">Delete</span>
                 </button>
             </div>
 
             <div className="menu-footer">
                 <button className="btn-sharing">
-                    <Shield size={16} />
+                    <Shield size={20} />
                     <span>Sharing & Permissions</span>
                 </button>
             </div>

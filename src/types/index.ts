@@ -51,6 +51,7 @@ export interface Doc {
   name: string;
   content: string;
   spaceId?: string;
+  listId?: string;
   userId: string;
   userName: string;
   updatedAt: string;

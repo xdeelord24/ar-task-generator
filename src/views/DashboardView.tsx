@@ -35,6 +35,8 @@ import '../styles/DashboardView.css';
 
 const DashboardView: React.FC = () => {
     const {
+        currentSpaceId,
+        currentListId,
         tasks,
         dashboards,
         currentDashboardId,
@@ -189,13 +191,16 @@ const DashboardView: React.FC = () => {
                         <section className="hub-card-section">
                             <h3>Recent</h3>
                             <div className="compact-list">
-                                {dashboards.slice(0, 3).map(dash => (
-                                    <div key={dash.id} className="compact-item" onClick={() => setCurrentDashboardId(dash.id)}>
-                                        <BarChart3 size={14} />
-                                        <span className="name">{dash.name}</span>
-                                        <span className="location">• {getLocationName(dash.spaceId, dash.listId)}</span>
-                                    </div>
-                                ))}
+                                {dashboards
+                                    .filter(d => (!currentSpaceId || currentSpaceId === 'everything' || d.spaceId === currentSpaceId) && (!currentListId || d.listId === currentListId))
+                                    .slice(0, 3)
+                                    .map(dash => (
+                                        <div key={dash.id} className="compact-item" onClick={() => setCurrentDashboardId(dash.id)}>
+                                            <BarChart3 size={14} />
+                                            <span className="name">{dash.name}</span>
+                                            <span className="location">• {getLocationName(dash.spaceId, dash.listId)}</span>
+                                        </div>
+                                    ))}
                             </div>
                         </section>
                         <section className="hub-card-section">
@@ -208,13 +213,17 @@ const DashboardView: React.FC = () => {
                         <section className="hub-card-section">
                             <h3>Created by Me</h3>
                             <div className="compact-list">
-                                {dashboards.filter(d => d.ownerId === 'user-1').slice(0, 3).map(dash => (
-                                    <div key={dash.id} className="compact-item" onClick={() => setCurrentDashboardId(dash.id)}>
-                                        <BarChart3 size={14} />
-                                        <span className="name">{dash.name}</span>
-                                        <span className="location">• {getLocationName(dash.spaceId, dash.listId)}</span>
-                                    </div>
-                                ))}
+                                {dashboards
+                                    .filter(d => d.ownerId === 'user-1')
+                                    .filter(d => (!currentSpaceId || currentSpaceId === 'everything' || d.spaceId === currentSpaceId) && (!currentListId || d.listId === currentListId))
+                                    .slice(0, 3)
+                                    .map(dash => (
+                                        <div key={dash.id} className="compact-item" onClick={() => setCurrentDashboardId(dash.id)}>
+                                            <BarChart3 size={14} />
+                                            <span className="name">{dash.name}</span>
+                                            <span className="location">• {getLocationName(dash.spaceId, dash.listId)}</span>
+                                        </div>
+                                    ))}
                             </div>
                         </section>
                     </div>

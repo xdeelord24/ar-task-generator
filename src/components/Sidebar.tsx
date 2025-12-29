@@ -182,8 +182,6 @@ const Sidebar: React.FC = () => {
                             onClick={(e) => {
                                 e.preventDefault();
                                 setCurrentView(item.id as any);
-                                setCurrentSpaceId('everything');
-                                setCurrentListId(null);
                                 if (item.id === 'dashboards') {
                                     setCurrentDashboardId(null);
                                 }

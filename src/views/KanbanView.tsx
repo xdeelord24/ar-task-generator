@@ -10,59 +10,15 @@ import {
     Search,
     Filter,
     ArrowUpDown,
-    Layout,
-    Users,
-    Lock,
-    Star as StarIcon,
-    Briefcase,
-    Code,
-    GraduationCap,
-    Music,
-    Heart,
-    Camera,
-    Globe,
-    Zap,
-    Cloud,
-    Moon,
-    Book,
-    Flag,
-    Target,
-    Coffee,
-    List as ListIcon,
-    Hash,
     ChevronRight,
     Calendar as CalendarIcon,
     X,
     Check,
     ChevronDown,
     User,
-    CircleDashed
+    CircleDashed,
+    Flag
 } from 'lucide-react';
-
-const IconMap: Record<string, any> = {
-    'users': Users,
-    'layout': Layout,
-    'lock': Lock,
-    'star': StarIcon,
-    'briefcase': Briefcase,
-    'code': Code,
-    'graduation': GraduationCap,
-    'book': Book,
-    'globe': Globe,
-    'zap': Zap,
-    'cloud': Cloud,
-    'moon': Moon,
-    'flag': Flag,
-    'target': Target,
-    'coffee': Coffee,
-    'heart': Heart,
-    'music': Music,
-    'camera': Camera,
-    'list': ListIcon,
-    'check-square': CheckSquare,
-    'calendar': CalendarIcon,
-    'hash': Hash
-};
 import {
     DndContext,
     DragOverlay,
@@ -401,8 +357,6 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         tasks,
         currentSpaceId,
         currentListId,
-        currentView,
-        setCurrentView,
         updateTask,
         deleteTask,
         duplicateTask,
@@ -458,11 +412,6 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
 
     const activeList = lists.find(l => l.id === currentListId);
     const activeSpace = spaces.find(s => s.id === currentSpaceId);
-
-    const renderIcon = (iconName: string, size = 16, color?: string) => {
-        const IconComponent = IconMap[iconName] || StarIcon;
-        return <IconComponent size={size} color={color} />;
-    };
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
