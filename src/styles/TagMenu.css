@@ -96,8 +96,8 @@
 }
 
 .edit-tag-btn:hover {
-    background: #e2e8f0;
-    color: #334155;
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
 
 /* Edit Mode Rows */
@@ -136,7 +136,7 @@
     border-radius: 4px;
     border: 1px solid transparent;
     cursor: pointer;
-    background: white;
+    background: var(--bg-surface);
     transition: all 0.2s;
 }
 
@@ -147,24 +147,23 @@
 }
 
 .action-btn.save {
-    color: #10b981;
-    border-color: #10b981;
+    color: var(--success);
+    border-color: var(--success);
 }
 
 .action-btn.delete {
-    color: #ef4444;
-    /* Red */
-    border-color: #ef4444;
+    color: var(--error);
+    border-color: var(--error);
 }
 
 .action-btn.cancel {
-    color: #64748b;
-    border-color: #cbd5e1;
+    color: var(--text-secondary);
+    border-color: var(--border-strong);
 }
 
 .action-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-sm);
 }
 
 /* Footer & Creation */
@@ -180,7 +179,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
-    border: 1px dashed #cbd5e1;
+    border: 1px dashed var(--border-strong);
     border-radius: 4px;
     background: transparent;
     color: var(--text-secondary, #64748b);
@@ -189,7 +188,7 @@
 }
 
 .create-new-btn:hover {
-    background: white;
+    background: var(--bg-surface);
     border-color: var(--primary, #3b82f6);
     color: var(--primary, #3b82f6);
 }

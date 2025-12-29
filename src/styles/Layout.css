@@ -180,6 +180,18 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+.view-mode-btn.add-view-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.view-mode-btn.add-view-btn:hover {
+  background: var(--primary-light);
+}
+
 .toolbar {
   display: flex;
   align-items: center;

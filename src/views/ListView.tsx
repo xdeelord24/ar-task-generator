@@ -56,6 +56,7 @@ import type { Task, ColumnSetting, Tag, Status } from '../types';
 import TaskOptionsMenu from '../components/TaskOptionsMenu';
 import DatePicker from '../components/DatePicker';
 import TagMenu from '../components/TagMenu';
+import ViewSelectorModal from '../components/ViewSelectorModal';
 import '../styles/ListView.css';
 import '../styles/TaskOptionsMenu.css';
 
@@ -544,6 +545,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
     const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
     const [activePopover, setActivePopover] = React.useState<ActivePopover | null>(null);
+    const [showViewSelector, setShowViewSelector] = React.useState(false);
 
     React.useEffect(() => {
         const handleClickOutside = () => {
@@ -713,6 +715,9 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                     <button className={`view-mode-btn ${currentView === 'kanban' ? 'active' : ''}`} onClick={() => setCurrentView('kanban')}>Board</button>
                     <button className={`view-mode-btn ${currentView === 'calendar' ? 'active' : ''}`} onClick={() => setCurrentView('calendar')}>Calendar</button>
                     <button className={`view-mode-btn ${currentView === 'gantt' ? 'active' : ''}`} onClick={() => setCurrentView('gantt')}>Gantt</button>
+                    <button className="view-mode-btn add-view-btn" onClick={() => setShowViewSelector(true)}>
+                        <Plus size={14} /> View
+                    </button>
                 </div>
             </div>
 
@@ -829,6 +834,15 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                     </div>
                 </DndContext>
             </div>
+
+            {showViewSelector && (
+                <ViewSelectorModal
+                    onClose={() => setShowViewSelector(false)}
+                    onSelectView={(viewType) => {
+                        setCurrentView(viewType);
+                    }}
+                />
+            )}
         </div>
     );
 };

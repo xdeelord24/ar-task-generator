@@ -12,10 +12,10 @@
 }
 
 .stat-card {
-    background: white;
+    background: var(--bg-surface);
     padding: 24px;
     border-radius: 12px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     gap: 16px;
@@ -32,23 +32,23 @@
 }
 
 .stat-icon.blue {
-    background: #eff6ff;
-    color: #2563eb;
+    background: var(--primary-light);
+    color: var(--primary);
 }
 
 .stat-icon.green {
-    background: #f0fdf4;
-    color: #16a34a;
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
 }
 
 .stat-icon.orange {
-    background: #fff7ed;
-    color: #ea580c;
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
 }
 
 .stat-icon.red {
-    background: #fef2f2;
-    color: #dc2626;
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
 }
 
 .stat-info {
@@ -58,14 +58,14 @@
 
 .stat-label {
     font-size: 14px;
-    color: #6b7280;
+    color: var(--text-secondary);
     margin-bottom: 4px;
 }
 
 .stat-value {
     font-size: 24px;
     font-weight: 700;
-    color: #111827;
+    color: var(--text-main);
 }
 
 .stat-trend {
@@ -80,7 +80,7 @@
 }
 
 .stat-trend.positive {
-    color: #16a34a;
+    color: var(--success);
 }
 
 .stat-progress {
@@ -90,7 +90,7 @@
 
 .progress-bar {
     height: 6px;
-    background: #f3f4f6;
+    background: var(--bg-hover);
     border-radius: 3px;
     overflow: hidden;
     margin-bottom: 4px;
@@ -101,13 +101,13 @@
 }
 
 .progress-fill.green {
-    background: #16a34a;
+    background: var(--success);
 }
 
 .progress-text {
     font-size: 12px;
     font-weight: 600;
-    color: #6b7280;
+    color: var(--text-secondary);
 }
 
 .charts-container {
@@ -117,16 +117,16 @@
 }
 
 .chart-card {
-    background: white;
+    background: var(--bg-surface);
     padding: 24px;
     border-radius: 12px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border);
 }
 
 .chart-card h3 {
     font-size: 16px;
     font-weight: 700;
-    color: #374151;
+    color: var(--text-main);
     margin-bottom: 24px;
 }
 
@@ -136,7 +136,7 @@
     align-items: flex-end;
     height: 200px;
     padding-bottom: 24px;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .bar-item {
@@ -150,7 +150,7 @@
 .bar-wrapper {
     width: 32px;
     height: 150px;
-    background: #f3f4f6;
+    background: var(--bg-hover);
     border-radius: 16px;
     display: flex;
     align-items: flex-end;
@@ -164,27 +164,27 @@
 }
 
 .bar-fill.blue {
-    background: #3b82f6;
+    background: var(--primary);
 }
 
 .bar-fill.orange {
-    background: #f97316;
+    background: var(--warning);
 }
 
 .bar-fill.green {
-    background: #22c55e;
+    background: var(--success);
 }
 
 .bar-label {
     font-size: 12px;
-    color: #6b7280;
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
 .bar-count {
     font-size: 14px;
     font-weight: 700;
-    color: #111827;
+    color: var(--text-main);
 }
 
 .priority-list {
@@ -198,7 +198,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px;
-    background: #f9fafb;
+    background: var(--bg-hover);
     border-radius: 8px;
 }
 
@@ -215,11 +215,11 @@
 }
 
 .priority-dot.urgent {
-    background: #ef4444;
+    background: var(--error);
 }
 
 .priority-dot.high {
-    background: #f97316;
+    background: var(--warning);
 }
 
 .priority-dot.medium {
@@ -227,18 +227,18 @@
 }
 
 .priority-dot.low {
-    background: #10b981;
+    background: var(--success);
 }
 
 .priority-name {
     font-size: 14px;
     font-weight: 600;
-    color: #374151;
+    color: var(--text-main);
     text-transform: capitalize;
 }
 
 .priority-count {
     font-size: 14px;
     font-weight: 700;
-    color: #111827;
+    color: var(--text-main);
 }

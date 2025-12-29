@@ -2,8 +2,8 @@
     padding: 16px 12px;
     overflow-y: auto;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: #334155;
-    background-color: #fff;
+    color: var(--text-main);
+    background-color: var(--bg-sidebar);
     height: 100%;
 }
 
@@ -21,7 +21,7 @@
 }
 
 .workspace-selector:hover {
-    background: #f1f5f9;
+    background: var(--bg-hover);
 }
 
 .workspace-info {
@@ -33,7 +33,7 @@
 .workspace-avatar {
     width: 24px;
     height: 24px;
-    background: #2563eb;
+    background: var(--primary);
     color: white;
     border-radius: 6px;
     display: flex;
@@ -47,7 +47,7 @@
 .workspace-selector span {
     font-size: 14px;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--text-main);
 }
 
 /* Main Nav */
@@ -65,7 +65,7 @@
     padding: 6px 12px;
     border-radius: 6px;
     text-decoration: none;
-    color: #64748b;
+    color: var(--text-secondary);
     font-size: 14px;
     transition: all 0.2s;
     font-weight: 400;
@@ -75,15 +75,13 @@
 }
 
 .nav-item:hover {
-    background: #f1f5f9;
-    color: #334155;
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
 
 .nav-item.active {
-    background: #eff6ff;
-    /* blue-50 */
-    color: #2563eb;
-    /* blue-600 */
+    background: var(--bg-active);
+    color: var(--primary);
     font-weight: 500;
 }
 
@@ -104,7 +102,7 @@
     margin-bottom: 8px;
     font-size: 11px;
     font-weight: 700;
-    color: #94a3b8;
+    color: var(--text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     user-select: none;
@@ -115,13 +113,13 @@
 }
 
 .section-header.clickable:hover {
-    color: #64748b;
+    color: var(--text-secondary);
 }
 
 .add-btn {
     background: transparent;
     border: none;
-    color: #94a3b8;
+    color: var(--text-tertiary);
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
@@ -131,8 +129,8 @@
 }
 
 .add-btn:hover {
-    background: #f1f5f9;
-    color: #334155;
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
 
 /* Spaces List Hierarchy */
@@ -159,15 +157,15 @@
     justify-content: center;
     border-radius: 4px;
     cursor: pointer;
-    color: #cbd5e1;
+    color: var(--border-strong);
     margin-left: -6px;
     /* slightly pull back to align */
     transition: background 0.2s;
 }
 
 .expand-icon-wrapper:hover {
-    background: #e2e8f0;
-    color: #94a3b8;
+    background: var(--bg-hover);
+    color: var(--text-secondary);
 }
 
 .expand-icon-wrapper.invisible {
@@ -193,10 +191,8 @@
 }
 
 .star-icon {
-    background: #dbeafe;
-    /* blue-100 */
-    color: #3b82f6;
-    /* blue-500 */
+    background: var(--primary-light);
+    color: var(--primary);
 }
 
 /* Hierarchy Children (Indent + Line) */
@@ -205,7 +201,7 @@
     flex-direction: column;
     margin-left: 21px;
     /* Center of space icon (approx) */
-    border-left: 1px solid #e2e8f0;
+    border-left: 1px solid var(--border);
     /* The hierarchy line */
     padding-left: 12px;
     /* Gap from line to items */
@@ -225,7 +221,7 @@
 }
 
 .folder-icon {
-    color: #94a3b8;
+    color: var(--text-secondary);
 }
 
 .folder-children {
@@ -233,7 +229,7 @@
     flex-direction: column;
     margin-left: 15px;
     /* Indent from folder */
-    border-left: 1px solid #e2e8f0;
+    border-left: 1px solid var(--border);
     padding-left: 12px;
 }
 
@@ -257,12 +253,12 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background-color: #cbd5e1;
+    background-color: var(--border-strong);
 }
 
 .create-space-btn {
     margin-top: 8px;
-    color: #64748b;
+    color: var(--text-secondary);
     gap: 10px;
 }
 
@@ -272,17 +268,17 @@
     display: flex;
     gap: 16px;
     padding: 16px 12px 0 12px;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--border-light);
 }
 
 .sidebar-footer a {
     font-size: 13px;
-    color: #94a3b8;
+    color: var(--text-secondary);
     text-decoration: none;
 }
 
 .sidebar-footer a:hover {
-    color: #64748b;
+    color: var(--text-main);
     text-decoration: underline;
 }
 
@@ -301,7 +297,7 @@
 }
 
 .sidebar:hover::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1;
+    background-color: var(--border-strong);
 }
 
 /* Collapsed Sidebar Styles */
@@ -368,7 +364,7 @@
 .sidebar-toggle-btn {
     background: transparent;
     border: none;
-    color: #94a3b8;
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
@@ -379,8 +375,8 @@
 }
 
 .sidebar-toggle-btn:hover {
-    background: #f1f5f9;
-    color: #334155;
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
 
 .sidebar.collapsed .workspace-info {
