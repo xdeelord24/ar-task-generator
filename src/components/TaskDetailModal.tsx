@@ -33,6 +33,7 @@ import { useAppStore } from '../store/useAppStore';
 import { format, parseISO } from 'date-fns';
 import type { Task, Subtask } from '../types';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import PremiumDatePicker from './PremiumDatePicker';
 import TimePicker from './TimePicker';
 import RichTextEditor from './RichTextEditor';
@@ -304,6 +305,58 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         setNewSubtaskName('');
     };
 
+    const [isGeneratingAIComment, setIsGeneratingAIComment] = useState(false);
+
+    const handleAIResponse = async (query: string) => {
+        setIsGeneratingAIComment(true);
+        // Add a temporary "Thinking..." comment or just show loading state.
+        // For now, let's just make the API call and append the comment.
+        try {
+            let responseText = '';
+            let prompt = `You are a helpful project management assistant. A user asked: "${query}".
+            Context: Task "${task.name}", Description: "${task.description}".
+            Reply as "AI Assistant".`;
+
+            if (aiConfig.provider === 'ollama') {
+                const response = await fetch(`${aiConfig.ollamaHost}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: aiConfig.ollamaModel,
+                        prompt: prompt,
+                        stream: false
+                    }),
+                });
+                if (!response.ok) throw new Error('Ollama Error');
+                const data = await response.json();
+                responseText = data.response;
+            } else {
+                const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+                if (!apiKey) throw new Error('Please configure Gemini API Key for AI responses.');
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const result = await model.generateContent(prompt);
+                responseText = result.response.text();
+            }
+
+            addComment(taskId, {
+                userId: 'ai-bot',
+                userName: 'AI Assistant',
+                text: responseText
+            });
+
+        } catch (error) {
+            console.error("AI Response Error:", error);
+            addComment(taskId, {
+                userId: 'ai-bot',
+                userName: 'AI Assistant',
+                text: "Sorry, I encountered an error while processing your request."
+            });
+        } finally {
+            setIsGeneratingAIComment(false);
+        }
+    };
+
     const handleAddComment = () => {
         if (isSubtask) {
             alert('Comments on subtasks not supported locally yet.');
@@ -326,6 +379,13 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             userName: 'Jundee',
             text: formattedText
         });
+
+        // AI Logic
+        if (commentText.includes('@AI')) {
+            const query = commentText.replace(/@AI/g, '').trim();
+            handleAIResponse(query);
+        }
+
         setCommentText('');
         setPastedImages([]);
     };
@@ -851,6 +911,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                     <div className="activity-msg-header"><strong>{comment.userName}</strong></div>
                                                     <div className="activity-msg">
                                                         <ReactMarkdown
+                                                            remarkPlugins={[remarkGfm]}
                                                             urlTransform={(url) => url}
                                                             components={{
                                                                 img: ({ node, ...props }) => (
@@ -870,6 +931,22 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                 </div>
                                             </div>
                                         ))}
+                                        {isGeneratingAIComment && (
+                                            <div className="activity-row" style={{ marginBottom: '16px' }}>
+                                                <div className="activity-avatar" style={{ backgroundColor: '#a855f7', color: 'white' }}>
+                                                    <Sparkles size={12} fill="currentColor" />
+                                                </div>
+                                                <div className="activity-info">
+                                                    <div className="activity-msg-header">
+                                                        <span style={{ fontWeight: 700 }}>AI Assistant</span>
+                                                    </div>
+                                                    <div className="activity-msg" style={{ fontStyle: 'italic', color: '#64748b' }}>
+                                                        <Sparkles size={12} className="animate-spin" style={{ marginRight: '6px', display: 'inline-block' }} />
+                                                        Thinking...
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="activity-row">
                                             <div className="activity-avatar">J</div>
                                             <div className="activity-info">
@@ -895,7 +972,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                             </div>
                                         )}
                                         <textarea
-                                            placeholder="Write a comment..."
+                                            placeholder="Write a comment... use @AI to ask AI"
                                             value={commentText}
                                             onChange={(e) => setCommentText(e.target.value)}
                                             onKeyDown={(e) => {
@@ -916,6 +993,14 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                         <div className="composer-actions">
                                             <button className="icon-btn-sm" title="Paste Image (Experimental)">
                                                 <ImageIcon size={14} />
+                                            </button>
+                                            <button
+                                                className="icon-btn-sm"
+                                                title="Ask AI"
+                                                onClick={() => setCommentText(prev => prev.includes('@AI') ? prev : prev + '@AI ')}
+                                                style={{ color: '#a855f7' }}
+                                            >
+                                                <Sparkles size={14} />
                                             </button>
                                             <button className="icon-btn-sm" onClick={handleAddComment} disabled={!commentText.trim() && pastedImages.length === 0}>
                                                 <Send size={14} />

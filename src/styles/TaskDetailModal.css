@@ -1301,4 +1301,30 @@
     to {
         opacity: 1;
     }
+
+}
+
+/* Markdown Tables in Activity */
+.activity-msg table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+    font-size: 13px;
+}
+
+.activity-msg th,
+.activity-msg td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    text-align: left;
+}
+
+.activity-msg th {
+    background-color: var(--bg-hover);
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.activity-msg tr:nth-child(even) {
+    background-color: var(--bg-surface);
 }
