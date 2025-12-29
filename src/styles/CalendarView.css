@@ -16,7 +16,7 @@
 
 .weekdays-header {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     border-bottom: 1px solid var(--border);
     background: var(--bg-surface);
     border-radius: 8px 8px 0 0;
@@ -34,7 +34,7 @@
 
 .days-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     grid-auto-rows: 1fr;
     flex: 1;
     border-left: 1px solid var(--border);
@@ -247,6 +247,7 @@
 
 .all-day-column {
     flex: 1;
+    min-width: 0;
     min-height: 48px;
     padding: 6px;
     border-right: 1px solid var(--border-light);
@@ -274,6 +275,7 @@
 
 .time-column-header {
     flex: 1;
+    min-width: 0;
     padding: 12px;
     display: flex;
     flex-direction: column;
@@ -341,6 +343,7 @@
 
 .time-column {
     flex: 1;
+    min-width: 0;
     height: 1440px;
     /* 24 * 60px */
     border-right: 1px solid var(--border);
