@@ -24,8 +24,11 @@ import {
     MinusCircle,
     Search,
     Circle,
-    Image as ImageIcon
+    Image as ImageIcon,
+    Sparkles,
+    ArrowUpDown
 } from 'lucide-react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore } from '../store/useAppStore';
 import { format, parseISO } from 'date-fns';
 import type { Task, Subtask } from '../types';
@@ -65,7 +68,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         archiveTask,
         addTag,
         updateTag,
-        deleteTag
+        deleteTag,
+        aiConfig
     } = useAppStore();
 
     // Logic to find task or subtask
@@ -117,6 +121,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
     const [pastedImages, setPastedImages] = useState<string[]>([]);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false); // New state
     const activityFeedRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll activity feed to bottom
@@ -127,6 +132,55 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     }, [task?.comments, sidebarTab]);
 
     if (!task) return null;
+
+    const handleSuggestSubtasks = async () => {
+        if (!task) return;
+        setIsGeneratingSubtasks(true);
+
+        const prompt = `Suggest 3-5 subtasks for the task "${task.name}".
+        Description: ${task.description || 'No description'}.
+        Return ONLY a JSON array of strings, e.g. ["Subtask 1", "Subtask 2"]. No markdown, no code blocks, just raw JSON.`;
+
+        try {
+            let responseText = '';
+            if (aiConfig.provider === 'ollama') {
+                const response = await fetch(`${aiConfig.ollamaHost}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: aiConfig.ollamaModel,
+                        prompt: prompt,
+                        stream: false
+                    }),
+                });
+                if (!response.ok) throw new Error('Ollama Error');
+                const data = await response.json();
+                responseText = data.response;
+            } else {
+                const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+                if (!apiKey) throw new Error('Please configure Gemini API Key');
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const result = await model.generateContent(prompt);
+                responseText = result.response.text();
+            }
+
+            // Cleanup potential markdown code blocks
+            const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const suggestions = JSON.parse(cleanJson);
+
+            if (Array.isArray(suggestions)) {
+                suggestions.forEach((name: string) => {
+                    addSubtask(taskId, { name, status: 'TO DO' });
+                });
+            }
+        } catch (error) {
+            console.error("AI Subtask Error:", error);
+            alert("Failed to generate subtasks. Check AI settings.");
+        } finally {
+            setIsGeneratingSubtasks(false);
+        }
+    };
 
     const handleUpdate = (updates: Partial<Task>) => {
         if (isSubtask && parentTask) {
@@ -608,6 +662,35 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                             )}
                             {activeTab === 'subtasks' && !isSubtask && (
                                 <div className="subtasks-wrapper">
+                                    <div className="subtasks-header-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Subtasks</h3>
+                                            <div style={{ width: '60px', height: '4px', background: '#e2e8f0', borderRadius: '2px' }}>
+                                                <div style={{ width: `${(task.subtasks?.filter(s => s.status === 'COMPLETED').length || 0) / (task.subtasks?.length || 1) * 100}%`, height: '100%', background: '#3b82f6', borderRadius: '2px' }}></div>
+                                            </div>
+                                            <span style={{ fontSize: '12px', color: '#64748b' }}>
+                                                {task.subtasks?.filter(s => s.status === 'COMPLETED').length || 0}/{task.subtasks?.length || 0}
+                                                <span style={{ marginLeft: '8px', padding: '2px 6px', background: '#e0f2fe', color: '#0284c7', borderRadius: '4px', fontSize: '11px', fontWeight: 500 }}>
+                                                    {task.subtasks?.filter(s => s.assignee === 'user-1').length} Assigned to me
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                            <button className="icon-btn-ghost-st" style={{ fontSize: '13px', gap: '4px', width: 'auto', color: '#64748b' }}>
+                                                <ArrowUpDown size={14} /> Sort
+                                            </button>
+                                            <button
+                                                className="icon-btn-ghost-st"
+                                                style={{ fontSize: '13px', gap: '4px', width: 'auto', color: '#334155' }}
+                                                onClick={handleSuggestSubtasks}
+                                                disabled={isGeneratingSubtasks}
+                                            >
+                                                <Sparkles size={14} className={isGeneratingSubtasks ? "animate-spin" : ""} fill="url(#sparkle-gradient)" style={{ color: '#a855f7' }} />
+                                                {isGeneratingSubtasks ? 'Generating...' : 'Suggest subtasks'}
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     <div className="subtasks-header-row">
                                         <div className="st-col-name">Name</div>
                                         <div className="st-col-assignee">Assignee</div>

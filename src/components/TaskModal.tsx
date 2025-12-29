@@ -10,6 +10,8 @@ import {
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore } from '../store/useAppStore';
 import type { Priority, Task } from '../types';
+import RichTextEditor from './RichTextEditor';
+import { markdownToHtml } from '../utils/markdownConverter';
 import '../styles/TaskModal.css';
 
 interface TaskModalProps {
@@ -93,7 +95,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
 
     const handleInsert = () => {
         if (!aiResponse) return;
-        setDescription(prev => prev ? prev + '\n\n' + aiResponse : aiResponse);
+        const htmlResponse = markdownToHtml(aiResponse);
+        setDescription(prev => prev ? prev + '<br/>' + htmlResponse : htmlResponse);
         setShowAI(false);
         setAiState('initial');
         setAiResponse('');
@@ -182,19 +185,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
                 />
 
                 <div className="description-section">
-                    {!description && (
-                        <div className="description-placeholder" onClick={() => document.getElementById('desc-input')?.focus()}>
-                            <FileText size={16} />
-                            Add description
-                        </div>
-                    )}
-                    <textarea
-                        id="desc-input"
-                        className="task-desc-input"
-                        placeholder=""
-                        value={description}
-                        onChange={e => setDescription(e.target.value)}
-                    />
+                    <div className="rich-text-wrapper">
+                        <RichTextEditor
+                            value={description}
+                            onChange={setDescription}
+                            placeholder="Add description..."
+                        />
+                    </div>
                     <button className="ai-btn" onClick={() => setShowAI(!showAI)}>
                         <Sparkles size={14} color="#8b5cf6" />
                         Write with AI
