@@ -1,0 +1,132 @@
+.task-options-menu {
+    width: 280px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    z-index: 5000;
+    overflow: hidden;
+    color: #1e293b;
+    font-family: inherit;
+}
+
+.menu-header-row {
+    display: flex;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.menu-header-row button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 4px;
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.menu-header-row button:hover {
+    color: #1e293b;
+    background: #f1f5f9;
+}
+
+.menu-divider-v {
+    width: 1px;
+    background: #e2e8f0;
+}
+
+.menu-main-content {
+    padding: 8px 0;
+    max-height: 450px;
+    overflow-y: auto;
+}
+
+.menu-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.menu-item:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.menu-item .chevron-right {
+    margin-left: auto;
+    color: #94a3b8;
+}
+
+.menu-item.danger {
+    color: #ef4444;
+}
+
+.menu-item.danger:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.menu-divider-h {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 8px 0;
+}
+
+.menu-footer {
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+}
+
+.btn-sharing {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-sharing:hover {
+    background: #2563eb;
+}
+
+/* Scrollbar styling */
+.menu-main-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.menu-main-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.menu-main-content::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 2px;
+}

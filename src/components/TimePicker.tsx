@@ -1,0 +1,74 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { CornerDownLeft } from 'lucide-react';
+import '../styles/TimePicker.css';
+
+interface TimePickerProps {
+    onSelect: (time: string) => void;
+    onClose: () => void;
+}
+
+const TimePicker: React.FC<TimePickerProps> = ({ onSelect, onClose }) => {
+    const [search, setSearch] = useState('');
+    const listRef = useRef<HTMLDivElement>(null);
+
+    const generateTimes = () => {
+        const times = [];
+        for (let h = 0; h < 24; h++) {
+            for (let m = 0; m < 60; m += 15) {
+                const hour = h % 12 || 12;
+                const ampm = h < 12 ? 'am' : 'pm';
+                const minute = m.toString().padStart(2, '0');
+                times.push(`${hour}:${minute} ${ampm}`);
+            }
+        }
+        return times;
+    };
+
+    const allTimes = generateTimes();
+    const filteredTimes = allTimes.filter(t => t.toLowerCase().includes(search.toLowerCase()));
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (listRef.current && !listRef.current.contains(event.target as Node)) {
+                onClose();
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [onClose]);
+
+    return (
+        <div className="time-picker-popover" ref={listRef}>
+            <div className="time-picker-search">
+                <input
+                    autoFocus
+                    placeholder="Search time..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && filteredTimes.length > 0) {
+                            onSelect(filteredTimes[0]);
+                        }
+                    }}
+                />
+                <div className="enter-indicator">
+                    <span>Enter</span>
+                    <CornerDownLeft size={12} />
+                </div>
+            </div>
+            <div className="time-picker-list">
+                {filteredTimes.map((time, idx) => (
+                    <div
+                        key={idx}
+                        className="time-item"
+                        onClick={() => onSelect(time)}
+                    >
+                        {time}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+export default TimePicker;

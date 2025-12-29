@@ -1,0 +1,120 @@
+.timesheet-container {
+    flex: 1;
+    overflow: auto;
+    padding: 24px;
+}
+
+.timesheet-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+.timesheet-table th,
+.timesheet-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    border-right: 1px solid #f3f4f6;
+    text-align: center;
+}
+
+.timesheet-table th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #4b5563;
+}
+
+.timesheet-table th.today {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.day-name {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #9ca3af;
+}
+
+.timesheet-table th.today .day-name {
+    color: #3b82f6;
+}
+
+.day-date {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.col-task-info {
+    text-align: left !important;
+    width: 300px;
+    border-right: 2px solid #e5e7eb !important;
+}
+
+.task-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.task-project {
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+.time-cell input {
+    width: 60px;
+    text-align: center;
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 6px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #4b5563;
+}
+
+.time-cell input:focus {
+    background: white;
+    border-color: #2563eb;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.time-cell input:hover {
+    background: #f9fafb;
+}
+
+.col-total {
+    font-weight: 700;
+    color: #111827;
+    background: #f9fafb;
+    width: 80px;
+}
+
+.total-cell {
+    font-weight: 700;
+    color: #111827;
+    background: #f9fafb;
+}
+
+tfoot td {
+    background: #f9fafb !important;
+    font-weight: 700 !important;
+    border-top: 2px solid #e5e7eb;
+}
+
+.current-range {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    min-width: 250px;
+    text-align: center;
+}
+
+.empty-row {
+    padding: 40px !important;
+    color: #9ca3af;
+    font-style: italic;
+}

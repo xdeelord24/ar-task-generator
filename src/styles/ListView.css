@@ -1,0 +1,259 @@
+.list-view {
+    display: flex;
+    flex-direction: column;
+}
+
+.list-table-container {
+    flex: 1;
+    overflow: auto;
+    padding: 24px;
+    background: #f8fafc;
+}
+
+/* Header Styles */
+.list-table-header {
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px 8px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.column-header-cell {
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #64748b;
+    border-right: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: grab;
+    background: white;
+}
+
+.column-header-cell:hover {
+    background: #f1f5f9;
+}
+
+.sort-icon {
+    color: #cbd5e1;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.column-header-cell:hover .sort-icon {
+    opacity: 1;
+}
+
+.drag-handle-placeholder {
+    width: 30px;
+}
+
+/* Body Styles */
+.list-body {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e2e8f0;
+    border-top: none;
+    background: white;
+    border-radius: 0 0 8px 8px;
+}
+
+.status-group-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.status-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.status-header:hover {
+    background: #e2e8f0;
+}
+
+.status-header .expand-icon {
+    transition: transform 0.2s;
+    color: #64748b;
+}
+
+.status-header .expand-icon.expanded {
+    transform: rotate(90deg);
+}
+
+.status-header.collapsed {
+    border-bottom: none;
+}
+
+.status-header.drag-over {
+    background: #e0f2fe;
+    border-left: 4px solid #3b82f6;
+}
+
+/* Row Styles */
+.task-item-row {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.2s;
+}
+
+.task-item-row:hover {
+    background: #f8fafc;
+}
+
+.drag-handle {
+    width: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #cbd5e1;
+    cursor: grab;
+    opacity: 0;
+}
+
+.task-item-row:hover .drag-handle {
+    opacity: 1;
+}
+
+.task-cell {
+    padding: 8px 16px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    border-right: 1px solid #f1f5f9;
+}
+
+.task-cell-inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.name-cell .task-name {
+    font-weight: 500;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.assignee-cell {
+    gap: 8px;
+}
+
+.status-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 999px;
+    text-transform: uppercase;
+}
+
+.btn-inline-add {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 46px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: color 0.2s;
+}
+
+.btn-inline-add:hover {
+    color: #3b82f6;
+    background: #f8fafc;
+}
+
+/* Badges */
+.tag-pill {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.date-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.date-badge.overdue {
+    color: #ef4444;
+}
+
+.date-badge.today {
+    color: #f59e0b;
+}
+
+.date-badge.upcoming {
+    color: #64748b;
+}
+
+.priority-badge {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.actions-cell {
+    color: #94a3b8;
+    cursor: pointer;
+    border-right: none;
+    overflow: visible !important;
+}
+
+.actions-cell:hover {
+    color: #1e293b;
+}
+
+.icon-btn-ghost {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.icon-btn-ghost:hover {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #1e293b;
+}
+
+.icon-btn-ghost:active {
+    background: #e2e8f0;
+}
