@@ -58,11 +58,12 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
 
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
-        const menuWidth = 280;
-        const menuHeight = menuRef.current.scrollHeight;
 
         if (triggerElement) {
             const rect = triggerElement.getBoundingClientRect();
+            const menuWidth = menuRef.current.offsetWidth;
+            const menuHeight = menuRef.current.offsetHeight;
+
             const newStyle: React.CSSProperties = {
                 position: 'fixed',
                 zIndex: 10000,
@@ -72,19 +73,38 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
 
             // Horizontal positioning: align right edge with trigger's right edge
             let left = rect.right - menuWidth;
+            // If that pushes it off-screen to the left (unlikely for small menus), clamp it
             if (left < 10) left = 10;
+
+            // If aligned left, check overflow right
             if (left + menuWidth > viewportWidth - 10) left = viewportWidth - menuWidth - 10;
 
             newStyle.left = `${left}px`;
 
             // Vertical positioning
-            if (rect.bottom + menuHeight + 10 > viewportHeight && rect.top > menuHeight + 10) {
-                // Open upwards
+            const spaceBelow = viewportHeight - rect.bottom;
+            const spaceAbove = rect.top;
+
+            if (spaceBelow >= menuHeight + 10) {
+                // Fits below
+                newStyle.top = `${rect.bottom + 8}px`;
+            } else if (spaceAbove >= menuHeight + 10) {
+                // Fits above
                 newStyle.bottom = `${viewportHeight - rect.top + 8}px`;
                 newStyle.top = 'auto';
             } else {
-                // Open downwards
-                newStyle.top = `${rect.bottom + 8}px`;
+                // Fits nowhere? Clamp to largest space or bottom edge
+                if (spaceBelow > spaceAbove) {
+                    newStyle.top = `${rect.bottom + 8}px`;
+                    // Could set max-height here: newStyle.maxHeight = spaceBelow - 20
+                    newStyle.maxHeight = `${spaceBelow - 20}px`;
+                    newStyle.overflowY = 'auto';
+                } else {
+                    newStyle.bottom = `${viewportHeight - rect.top + 8}px`;
+                    newStyle.top = 'auto';
+                    newStyle.maxHeight = `${spaceAbove - 20}px`;
+                    newStyle.overflowY = 'auto';
+                }
             }
 
             setStyle(newStyle);

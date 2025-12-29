@@ -524,19 +524,17 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                         <MoreHorizontal size={18} />
                     </button>
                     {isMenuOpen && (
-                        <div style={{ position: 'absolute', right: 0, top: '100%', zIndex: 5001 }}>
-                            <TaskOptionsMenu
-                                taskId={task.id}
-                                onClose={onCloseMenu}
-                                onRename={() => { onTaskClick(task.id); onCloseMenu(); }}
-                                onDuplicate={() => onDuplicate(task.id)}
-                                onArchive={() => onArchive(task.id)}
-                                onDelete={() => onDelete(task.id)}
-                                onConvertToDoc={() => onConvertToDoc(task)}
-                                onStartTimer={onStartTimer}
-                                triggerElement={menuTrigger}
-                            />
-                        </div>
+                        <TaskOptionsMenu
+                            taskId={task.id}
+                            onClose={onCloseMenu}
+                            onRename={() => { onTaskClick(task.id); onCloseMenu(); }}
+                            onDuplicate={() => onDuplicate(task.id)}
+                            onArchive={() => onArchive(task.id)}
+                            onDelete={() => onDelete(task.id)}
+                            onConvertToDoc={() => onConvertToDoc(task)}
+                            onStartTimer={onStartTimer}
+                            triggerElement={menuTrigger}
+                        />
                     )}
                 </div>
             </div>
