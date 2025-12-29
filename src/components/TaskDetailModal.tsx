@@ -315,7 +315,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             let responseText = '';
             let prompt = `You are a helpful project management assistant. A user asked: "${query}".
             Context: Task "${task.name}", Description: "${task.description}".
-            Reply as "AI Assistant".`;
+            Provide a direct answer without using a name prefix like 'AI Assistant:'.`;
 
             if (aiConfig.provider === 'ollama') {
                 const response = await fetch(`${aiConfig.ollamaHost}/api/generate`, {
@@ -338,6 +338,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                 const result = await model.generateContent(prompt);
                 responseText = result.response.text();
             }
+
+            // Cleanup prefix if present
+            responseText = responseText.replace(/^AI Assistant:\s*/i, '').replace(/^\*\*AI Assistant\*\*:\s*/i, '');
 
             addComment(taskId, {
                 userId: 'ai-bot',
@@ -899,6 +902,66 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                     </div>
 
                     <div className="sidebar-container-new">
+                        {/* Horizontal Tabs at Top */}
+                        <div className="sidebar-tabs-horizontal">
+                            <button
+                                className={`horizontal-tab ${sidebarTab === 'activity' ? 'active' : ''}`}
+                                onClick={() => setSidebarTab('activity')}
+                            >
+                                <div className="tab-icon-wrapper">
+                                    <MessageSquare size={14} />
+                                    <span className="tab-count-dot">1</span>
+                                </div>
+                                <span className="tab-label">Activity</span>
+                            </button>
+                            <button
+                                className={`horizontal-tab ${sidebarTab === 'blocking' ? 'active' : ''}`}
+                                onClick={() => setSidebarTab('blocking')}
+                            >
+                                <div className="tab-icon-wrapper">
+                                    <MinusCircle size={14} />
+                                    {task?.relationships?.filter(r => r.type === 'blocking').length ? (
+                                        <span className="tab-count-dot">{task.relationships.filter(r => r.type === 'blocking').length}</span>
+                                    ) : null}
+                                </div>
+                                <span className="tab-label">Blocking</span>
+                            </button>
+                            <button
+                                className={`horizontal-tab ${sidebarTab === 'waiting' ? 'active' : ''}`}
+                                onClick={() => setSidebarTab('waiting')}
+                            >
+                                <div className="tab-icon-wrapper">
+                                    <AlertCircle size={14} />
+                                    {task?.relationships?.filter(r => r.type === 'waiting').length ? (
+                                        <span className="tab-count-dot">{task.relationships.filter(r => r.type === 'waiting').length}</span>
+                                    ) : null}
+                                </div>
+                                <span className="tab-label">Waiting on</span>
+                            </button>
+                            <button
+                                className={`horizontal-tab ${sidebarTab === 'links' ? 'active' : ''}`}
+                                onClick={() => setSidebarTab('links')}
+                            >
+                                <div className="tab-icon-wrapper">
+                                    <Link2 size={14} />
+                                    {task?.relationships?.filter(r => r.type === 'linked').length ? (
+                                        <span className="tab-count-dot">{task.relationships.filter(r => r.type === 'linked').length}</span>
+                                    ) : null}
+                                </div>
+                                <span className="tab-label">Task Links</span>
+                            </button>
+                            <button
+                                className={`horizontal-tab ${sidebarTab === 'more' ? 'active' : ''}`}
+                                onClick={() => setSidebarTab('more')}
+                            >
+                                <div className="tab-icon-wrapper">
+                                    <Plus size={14} />
+                                </div>
+                                <span className="tab-label">More</span>
+                            </button>
+                        </div>
+
+                        {/* Content Area */}
                         <div className="sidebar-content-area">
                             {sidebarTab === 'activity' && (
                                 <div className="activity-panel">
@@ -1094,62 +1157,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                     </div>
                                 </div>
                             )}
-                        </div>
-
-                        <div className="sidebar-tabs-vertical">
-                            <button
-                                className={`vertical-tab ${sidebarTab === 'activity' ? 'active' : ''}`}
-                                onClick={() => setSidebarTab('activity')}
-                            >
-                                <div className="tab-icon-wrapper">
-                                    <MessageSquare size={18} />
-                                    <span className="tab-count-dot">1</span>
-                                </div>
-                                <span className="tab-label">Activity</span>
-                            </button>
-                            <button
-                                className={`vertical-tab ${sidebarTab === 'blocking' ? 'active' : ''}`}
-                                onClick={() => setSidebarTab('blocking')}
-                            >
-                                <div className="tab-icon-wrapper">
-                                    <MinusCircle size={18} />
-                                    {task?.relationships?.filter(r => r.type === 'blocking').length ? (
-                                        <span className="tab-count-dot">{task.relationships.filter(r => r.type === 'blocking').length}</span>
-                                    ) : null}
-                                </div>
-                                <span className="tab-label">Blocking</span>
-                            </button>
-                            <button
-                                className={`vertical-tab ${sidebarTab === 'waiting' ? 'active' : ''}`}
-                                onClick={() => setSidebarTab('waiting')}
-                            >
-                                <div className="tab-icon-wrapper">
-                                    <AlertCircle size={18} />
-                                    {task?.relationships?.filter(r => r.type === 'waiting').length ? (
-                                        <span className="tab-count-dot">{task.relationships.filter(r => r.type === 'waiting').length}</span>
-                                    ) : null}
-                                </div>
-                                <span className="tab-label">Waiting on</span>
-                            </button>
-                            <button
-                                className={`vertical-tab ${sidebarTab === 'links' ? 'active' : ''}`}
-                                onClick={() => setSidebarTab('links')}
-                            >
-                                <div className="tab-icon-wrapper">
-                                    <Link2 size={18} />
-                                    {task?.relationships?.filter(r => r.type === 'linked').length ? (
-                                        <span className="tab-count-dot">{task.relationships.filter(r => r.type === 'linked').length}</span>
-                                    ) : null}
-                                </div>
-                                <span className="tab-label">Task Links</span>
-                            </button>
-                            <button
-                                className={`vertical-tab ${sidebarTab === 'more' ? 'active' : ''}`}
-                                onClick={() => setSidebarTab('more')}
-                            >
-                                <Plus size={18} />
-                                <span className="tab-label">More</span>
-                            </button>
                         </div>
                     </div>
                 </div>
