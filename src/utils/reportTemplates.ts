@@ -25,7 +25,7 @@ export const generateReportDocument = (reportTasks: Task[], formData: ReportData
     const createSignatureBlock = (label: string, name: string, details: string[]) => {
         const paragraphs = [
             new Paragraph({
-                children: [new TextRun({ text: label, bold: true, size: 18 })], // 9pt
+                children: [new TextRun({ text: label, bold: true, size: 22 })], // 11px approx 11pt/22 size
                 spacing: { after: 400 },
             })
         ];
@@ -33,14 +33,14 @@ export const generateReportDocument = (reportTasks: Task[], formData: ReportData
         if (name) {
             paragraphs.push(
                 new Paragraph({
-                    children: [new TextRun({ text: name.toUpperCase(), bold: true, size: 20 })], // 10pt
+                    children: [new TextRun({ text: name.toUpperCase(), bold: true, size: 22 })], // 11px
                 })
             );
             details.forEach(detail => {
                 if (detail) {
                     paragraphs.push(
                         new Paragraph({
-                            children: [new TextRun({ text: detail, size: 16 })], // 8pt
+                            children: [new TextRun({ text: detail, size: 22 })], // 11px
                         })
                     );
                 }
@@ -149,11 +149,11 @@ export const generateReportDocument = (reportTasks: Task[], formData: ReportData
             new TableRow({
                 children: [
                     new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: "PERIOD/ WEEK", bold: true })] })],
+                        children: [new Paragraph({ children: [new TextRun({ text: "PERIOD/ WEEK", bold: true, size: 22 })] })],
                         width: { size: 1.5, type: WidthType.DXA }, // Narrower (matched to 1.5 inches roughly)
                     }),
                     new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: "ACCOMPLISHMENT / OUTPUT", bold: true })] })],
+                        children: [new Paragraph({ children: [new TextRun({ text: "ACCOMPLISHMENT / OUTPUT", bold: true, size: 22 })] })],
                         width: { size: 5.5, type: WidthType.DXA }, // Wider (matched to 5.5 inches roughly)
                     }),
                 ],
@@ -173,10 +173,10 @@ export const generateReportDocument = (reportTasks: Task[], formData: ReportData
 
                 tableRows.push(new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ text: label, spacing: { before: 100 } })] }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: label, size: 22 })], spacing: { before: 100 } })] }),
                         new TableCell({
                             children: wTasks.map(t => new Paragraph({
-                                text: t.name,
+                                children: [new TextRun({ text: t.name, size: 22 })],
                                 bullet: { level: 0 },
                                 spacing: { before: 50, after: 50 }
                             })),
@@ -231,15 +231,14 @@ export const generateReportDocument = (reportTasks: Task[], formData: ReportData
 
         documentChildren = [
             new Paragraph({
-                text: "INDIVIDUAL ACCOMPLISHMENT REPORT",
-                heading: HeadingLevel.TITLE,
+                children: [new TextRun({ text: "INDIVIDUAL ACCOMPLISHMENT REPORT", bold: true, size: 28 })],
                 alignment: AlignmentType.CENTER,
                 spacing: { after: 400 },
             }),
-            new Paragraph({ children: [new TextRun({ text: "NAME: ", bold: true }), new TextRun({ text: formData.name, bold: true })] }),
-            new Paragraph({ children: [new TextRun({ text: "POSITION: ", bold: true }), new TextRun(formData.position)] }),
-            new Paragraph({ children: [new TextRun({ text: "OFFICE: ", bold: true }), new TextRun(formData.office)] }),
-            new Paragraph({ children: [new TextRun({ text: "DATE: ", bold: true }), new TextRun(format(start, 'MMMM dd') + "-" + format(end, 'dd, yyyy'))], spacing: { after: 400 } }),
+            new Paragraph({ children: [new TextRun({ text: "NAME: ", bold: true, size: 22 }), new TextRun({ text: formData.name, bold: true, size: 22 })] }),
+            new Paragraph({ children: [new TextRun({ text: "POSITION: ", bold: true, size: 22 }), new TextRun({ text: formData.position, size: 22 })] }),
+            new Paragraph({ children: [new TextRun({ text: "OFFICE: ", bold: true, size: 22 }), new TextRun({ text: formData.office, size: 22 })] }),
+            new Paragraph({ children: [new TextRun({ text: "DATE: ", bold: true, size: 22 }), new TextRun({ text: format(start, 'MMMM dd') + "-" + format(end, 'dd, yyyy'), size: 22 })], spacing: { after: 400 } }),
             accomplishmentTable,
             new Paragraph({ text: "", spacing: { after: 400 } }),
             sigTable
