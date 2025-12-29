@@ -137,6 +137,14 @@ export interface Message {
   content: string;
 }
 
+export interface DashboardItem {
+  id: string;
+  type: 'stat' | 'bar' | 'pie' | 'priority' | 'time' | 'activity';
+  title: string;
+  size: 'small' | 'medium' | 'large' | 'full'; // small=1 col, medium=2 col, large=3 col, full=all
+  config?: any;
+}
+
 export interface AppState {
   tasks: Task[];
   spaces: Space[];
@@ -155,6 +163,7 @@ export interface AppState {
   aiConfig: AIConfig;
   aiMessages: Message[];
   aiSessions: ChatSession[];
+  dashboardItems: DashboardItem[];
 }
 
 export interface ChatSession {

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message } from '../types';
+import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, DashboardItem } from '../types';
 
 interface AppStore extends AppState {
     setTasks: (tasks: Task[]) => void;
@@ -52,6 +52,10 @@ interface AppStore extends AppState {
     startNewChat: () => void;
     loadSession: (sessionId: string) => void;
     deleteSession: (sessionId: string) => void;
+    setDashboardItems: (items: DashboardItem[]) => void;
+    addDashboardItem: (item: Omit<DashboardItem, 'id'>) => void;
+    updateDashboardItem: (id: string, updates: Partial<DashboardItem>) => void;
+    deleteDashboardItem: (id: string) => void;
 }
 
 const DEFAULT_STATUSES: Status[] = [
@@ -138,6 +142,14 @@ export const useAppStore = create<AppStore>()(
             },
             aiMessages: [],
             aiSessions: [],
+            dashboardItems: [
+                { id: '1', type: 'stat', title: 'Total Tasks', size: 'small', config: { metric: 'total' } },
+                { id: '2', type: 'stat', title: 'Completed', size: 'small', config: { metric: 'completed' } },
+                { id: '3', type: 'stat', title: 'In Progress', size: 'small', config: { metric: 'inprogress' } },
+                { id: '4', type: 'stat', title: 'Urgent', size: 'small', config: { metric: 'urgent' } },
+                { id: '5', type: 'bar', title: 'Task Distribution', size: 'large' },
+                { id: '6', type: 'priority', title: 'Priority Breakdown', size: 'medium' }
+            ],
             sidebarCollapsed: false,
 
             setTasks: (tasks) => set({ tasks }),
@@ -382,6 +394,16 @@ export const useAppStore = create<AppStore>()(
             }),
             deleteSession: (sessionId) => set((state) => ({
                 aiSessions: state.aiSessions.filter(s => s.id !== sessionId)
+            })),
+            setDashboardItems: (items) => set({ dashboardItems: items }),
+            addDashboardItem: (item) => set((state) => ({
+                dashboardItems: [...state.dashboardItems, { ...item, id: crypto.randomUUID() } as DashboardItem]
+            })),
+            updateDashboardItem: (id, updates) => set((state) => ({
+                dashboardItems: state.dashboardItems.map(item => item.id === id ? { ...item, ...updates } : item)
+            })),
+            deleteDashboardItem: (id) => set((state) => ({
+                dashboardItems: state.dashboardItems.filter(item => item.id !== id)
             })),
         }),
         {

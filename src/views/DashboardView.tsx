@@ -1,34 +1,90 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-    TrendingUp,
-    CheckCircle2,
-    AlertCircle,
-    Clock,
-    Layout
+    Plus,
+    Layout as LayoutIcon,
+    BarChart3,
+    PieChart,
+    Activity,
+    ArrowLeft
 } from 'lucide-react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
+
 import { useAppStore } from '../store/useAppStore';
+import DashboardCard from '../components/DashboardCard';
 import '../styles/DashboardView.css';
 
 const DashboardView: React.FC = () => {
-    const { tasks } = useAppStore();
+    const {
+        tasks,
+        dashboardItems,
+        setDashboardItems,
+        addDashboardItem,
+        updateDashboardItem,
+        deleteDashboardItem
+    } = useAppStore();
 
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(t => t.status === 'COMPLETED').length;
-    const inProgressTasks = tasks.filter(t => t.status === 'IN PROGRESS').length;
-    const todoTasks = tasks.filter(t => t.status === 'TO DO').length;
+    const [isAddingChart, setIsAddingChart] = useState(false);
 
-    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
-    const priorityData = {
-        urgent: tasks.filter(t => t.priority === 'urgent').length,
-        high: tasks.filter(t => t.priority === 'high').length,
-        medium: tasks.filter(t => t.priority === 'medium').length,
-        low: tasks.filter(t => t.priority === 'low').length,
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            const oldIndex = dashboardItems.findIndex((item) => item.id === active.id);
+            const newIndex = dashboardItems.findIndex((item) => item.id === over.id);
+            setDashboardItems(arrayMove(dashboardItems, oldIndex, newIndex));
+        }
+    };
+
+    const handleResize = (id: string) => {
+        const item = dashboardItems.find(i => i.id === id);
+        if (!item) return;
+
+        const sizes: ('small' | 'medium' | 'large' | 'full')[] = ['small', 'medium', 'large', 'full'];
+        const currentIndex = sizes.indexOf(item.size);
+        const nextSize = sizes[(currentIndex + 1) % sizes.length];
+
+        updateDashboardItem(id, { size: nextSize });
+    };
+
+    const addNewChart = (type: any, title: string) => {
+        addDashboardItem({
+            type,
+            title,
+            size: 'medium',
+            config: type === 'stat' ? { metric: 'total' } : {}
+        });
+        setIsAddingChart(false);
     };
 
     return (
         <div className="view-container">
-            <div className="view-header">
+            <div className="view-header dash-header">
                 <div className="breadcrumb">
                     <span className="space-name">Dashboards</span>
                     <span className="task-count">Project Overview</span>
@@ -37,103 +93,65 @@ const DashboardView: React.FC = () => {
                     <button className="view-mode-btn active">Overview</button>
                     <button className="view-mode-btn">Analytics</button>
                     <button className="view-mode-btn">Workload</button>
+                    <div className="h-divider"></div>
+                    <button className="btn-primary" onClick={() => setIsAddingChart(!isAddingChart)}>
+                        <Plus size={16} /> Add Chart
+                    </button>
                 </div>
             </div>
 
             <div className="dashboard-content">
-                <div className="stats-grid">
-                    <div className="stat-card">
-                        <div className="stat-icon blue">
-                            <Layout size={20} />
+                {isAddingChart && (
+                    <div className="add-chart-bar">
+                        <div className="bar-header">
+                            <h4>Select Chart Type</h4>
+                            <button className="icon-btn" onClick={() => setIsAddingChart(false)}>
+                                <ArrowLeft size={16} /> Back
+                            </button>
                         </div>
-                        <div className="stat-info">
-                            <span className="stat-label">Total Tasks</span>
-                            <span className="stat-value">{totalTasks}</span>
-                        </div>
-                        <div className="stat-trend positive">
-                            <TrendingUp size={14} /> 12%
-                        </div>
-                    </div>
-
-                    <div className="stat-card">
-                        <div className="stat-icon green">
-                            <CheckCircle2 size={20} />
-                        </div>
-                        <div className="stat-info">
-                            <span className="stat-label">Completed</span>
-                            <span className="stat-value">{completedTasks}</span>
-                        </div>
-                        <div className="stat-progress">
-                            <div className="progress-bar">
-                                <div className="progress-fill green" style={{ width: `${completionRate}%` }}></div>
-                            </div>
-                            <span className="progress-text">{completionRate}%</span>
+                        <div className="chart-options">
+                            <button className="chart-opt-btn" onClick={() => addNewChart('stat', 'New Metric')}>
+                                <LayoutIcon size={20} />
+                                <span>Stat Card</span>
+                            </button>
+                            <button className="chart-opt-btn" onClick={() => addNewChart('bar', 'Task Distribution')}>
+                                <BarChart3 size={20} />
+                                <span>Bar Chart</span>
+                            </button>
+                            <button className="chart-opt-btn" onClick={() => addNewChart('pie', 'Progress Wheel')}>
+                                <PieChart size={20} />
+                                <span>Pie Chart</span>
+                            </button>
+                            <button className="chart-opt-btn" onClick={() => addNewChart('priority', 'Priority Level')}>
+                                <Activity size={20} />
+                                <span>Priority Map</span>
+                            </button>
                         </div>
                     </div>
+                )}
 
-                    <div className="stat-card">
-                        <div className="stat-icon orange">
-                            <Clock size={20} />
-                        </div>
-                        <div className="stat-info">
-                            <span className="stat-label">In Progress</span>
-                            <span className="stat-value">{inProgressTasks}</span>
-                        </div>
-                    </div>
-
-                    <div className="stat-card">
-                        <div className="stat-icon red">
-                            <AlertCircle size={20} />
-                        </div>
-                        <div className="stat-info">
-                            <span className="stat-label">Urgent</span>
-                            <span className="stat-value">{priorityData.urgent}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="charts-container">
-                    <div className="chart-card">
-                        <h3>Task Distribution</h3>
-                        <div className="bar-chart">
-                            <div className="bar-item">
-                                <div className="bar-label">To Do</div>
-                                <div className="bar-wrapper">
-                                    <div className="bar-fill blue" style={{ height: `${(todoTasks / totalTasks) * 100}%` }}></div>
-                                </div>
-                                <div className="bar-count">{todoTasks}</div>
-                            </div>
-                            <div className="bar-item">
-                                <div className="bar-label">In Progress</div>
-                                <div className="bar-wrapper">
-                                    <div className="bar-fill orange" style={{ height: `${(inProgressTasks / totalTasks) * 100}%` }}></div>
-                                </div>
-                                <div className="bar-count">{inProgressTasks}</div>
-                            </div>
-                            <div className="bar-item">
-                                <div className="bar-label">Completed</div>
-                                <div className="bar-wrapper">
-                                    <div className="bar-fill green" style={{ height: `${(completedTasks / totalTasks) * 100}%` }}></div>
-                                </div>
-                                <div className="bar-count">{completedTasks}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="chart-card">
-                        <h3>Priority Breakdown</h3>
-                        <div className="priority-list">
-                            {Object.entries(priorityData).map(([priority, count]) => (
-                                <div key={priority} className="priority-item">
-                                    <div className="priority-info">
-                                        <span className={`priority-dot ${priority}`}></span>
-                                        <span className="priority-name">{priority}</span>
-                                    </div>
-                                    <span className="priority-count">{count}</span>
-                                </div>
+                <div className="dashboard-grid">
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                        modifiers={[restrictToFirstScrollableAncestor]}
+                    >
+                        <SortableContext
+                            items={dashboardItems.map(i => i.id)}
+                            strategy={rectSortingStrategy}
+                        >
+                            {dashboardItems.map((item) => (
+                                <DashboardCard
+                                    key={item.id}
+                                    item={item}
+                                    tasks={tasks}
+                                    onDelete={deleteDashboardItem}
+                                    onResize={handleResize}
+                                />
                             ))}
-                        </div>
-                    </div>
+                        </SortableContext>
+                    </DndContext>
                 </div>
             </div>
         </div>
