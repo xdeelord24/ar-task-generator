@@ -1,4 +1,4 @@
-import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
+import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, VerticalAlign } from 'docx';
 import { format, parseISO } from 'date-fns';
 import type { Task } from '../types';
 
@@ -15,10 +15,43 @@ interface ReportData {
     reviewedBy: string;
     verifiedBy: string;
     approvedBy: string;
+    acceptedBy?: string;
 }
 
 export const generateReportDocument = (reportTasks: Task[], formData: ReportData): Document => {
     let documentChildren;
+
+    // Helper to create signature block
+    const createSignatureBlock = (label: string, name: string, details: string[]) => {
+        const paragraphs = [
+            new Paragraph({
+                children: [new TextRun({ text: label, bold: true, size: 18 })], // 9pt
+                spacing: { after: 400 },
+            })
+        ];
+
+        if (name) {
+            paragraphs.push(
+                new Paragraph({
+                    children: [new TextRun({ text: name.toUpperCase(), bold: true, size: 20 })], // 10pt
+                })
+            );
+            details.forEach(detail => {
+                if (detail) {
+                    paragraphs.push(
+                        new Paragraph({
+                            children: [new TextRun({ text: detail, size: 16 })], // 8pt
+                        })
+                    );
+                }
+            });
+        } else {
+            // Spacing for empty signature
+            for (let i = 0; i < 4; i++) paragraphs.push(new Paragraph(""));
+        }
+
+        return paragraphs;
+    };
 
     if (formData.template === 'general') {
         // General Template - Standard Format
@@ -72,148 +105,128 @@ export const generateReportDocument = (reportTasks: Task[], formData: ReportData
                     indent: { left: 720 },
                 })] : [])
             ]),
-            new Paragraph({
-                text: "",
-                spacing: { after: 400 },
-            }),
+            new Paragraph({ text: "", spacing: { after: 400 } }),
             new Paragraph({
                 text: "SIGNATURES:",
                 heading: HeadingLevel.HEADING_2,
                 spacing: { after: 200 },
             }),
-            ...(formData.reviewedBy ? [new Paragraph({
-                children: [
-                    new TextRun({ text: "Reviewed by: ", bold: true }),
-                    new TextRun(formData.reviewedBy),
-                ],
-                spacing: { before: 200 }
-            })] : []),
-            ...(formData.verifiedBy ? [new Paragraph({
-                children: [
-                    new TextRun({ text: "Verified by: ", bold: true }),
-                    new TextRun(formData.verifiedBy),
-                ],
-                spacing: { before: 200 }
-            })] : []),
-            ...(formData.approvedBy ? [new Paragraph({
-                children: [
-                    new TextRun({ text: "Approved by: ", bold: true }),
-                    new TextRun(formData.approvedBy),
-                ],
-                spacing: { before: 200 }
-            })] : [])
+            ...(formData.reviewedBy ? createSignatureBlock("Reviewed by:", formData.reviewedBy, []) : []),
+            ...(formData.verifiedBy ? createSignatureBlock("Verified by:", formData.verifiedBy, []) : []),
+            ...(formData.approvedBy ? createSignatureBlock("Approved by:", formData.approvedBy, []) : [])
         ];
     } else {
-        // Custom Template - Table Format matching accomplishment_generator.py
+        // Custom Template - Accurate layout matching shared Image & Python script
         const start = parseISO(formData.dateFrom);
         const end = parseISO(formData.dateTo);
 
-        // Calculate weekly periods (Monday-Friday, working days only)
+        // Calculate weeks
         const weeks: Array<{ start: Date; end: Date }> = [];
         let currentStart = new Date(start);
-
         while (currentStart <= end) {
-            // Skip weekends at start
             while (currentStart <= end && (currentStart.getDay() === 0 || currentStart.getDay() === 6)) {
                 currentStart.setDate(currentStart.getDate() + 1);
             }
-
             if (currentStart > end) break;
 
             let weekEnd = new Date(currentStart);
-            let workingDays = 0;
-
-            // Count up to 5 working days
-            while (workingDays < 5 && weekEnd <= end) {
-                if (weekEnd.getDay() !== 0 && weekEnd.getDay() !== 6) {
-                    workingDays++;
-                }
-                if (workingDays < 5) {
-                    weekEnd.setDate(weekEnd.getDate() + 1);
-                }
+            let d = 0;
+            while (d < 4 && weekEnd < end) {
+                weekEnd.setDate(weekEnd.getDate() + 1);
+                if (weekEnd.getDay() !== 0 && weekEnd.getDay() !== 6) d++;
             }
-
-            // Make sure weekEnd doesn't go beyond period end
             if (weekEnd > end) weekEnd = new Date(end);
 
             weeks.push({ start: new Date(currentStart), end: new Date(weekEnd) });
-
             currentStart = new Date(weekEnd);
             currentStart.setDate(currentStart.getDate() + 1);
         }
 
-        // Distribute tasks evenly across weeks
         const tasksPerWeek = Math.floor(reportTasks.length / weeks.length);
         const remainder = reportTasks.length % weeks.length;
 
-        // Create table rows
-        const tableRows: TableRow[] = [];
+        const tableRows: TableRow[] = [
+            new TableRow({
+                children: [
+                    new TableCell({
+                        children: [new Paragraph({ children: [new TextRun({ text: "PERIOD/ WEEK", bold: true })] })],
+                        width: { size: 1.5, type: WidthType.DXA }, // Narrower (matched to 1.5 inches roughly)
+                    }),
+                    new TableCell({
+                        children: [new Paragraph({ children: [new TextRun({ text: "ACCOMPLISHMENT / OUTPUT", bold: true })] })],
+                        width: { size: 5.5, type: WidthType.DXA }, // Wider (matched to 5.5 inches roughly)
+                    }),
+                ],
+            })
+        ];
 
-        // Header row
-        tableRows.push(new TableRow({
-            children: [
-                new TableCell({
-                    children: [new Paragraph({
-                        children: [new TextRun({ text: "PERIOD/ WEEK", bold: true })],
-                    })],
-                    width: { size: 20, type: WidthType.PERCENTAGE },
-                }),
-                new TableCell({
-                    children: [new Paragraph({
-                        children: [new TextRun({ text: "ACCOMPLISHMENT / OUTPUT", bold: true })],
-                    })],
-                    width: { size: 80, type: WidthType.PERCENTAGE },
-                }),
-            ],
-        }));
+        let taskIdx = 0;
+        weeks.forEach((week, i) => {
+            const count = tasksPerWeek + (i < remainder ? 1 : 0);
+            const wTasks = reportTasks.slice(taskIdx, taskIdx + count);
+            taskIdx += count;
 
-        // Add week rows
-        let taskIndex = 0;
-        for (let i = 0; i < weeks.length; i++) {
-            const week = weeks[i];
-            const numTasks = tasksPerWeek + (i < remainder ? 1 : 0);
-            const weekTasks = reportTasks.slice(taskIndex, taskIndex + numTasks);
-            taskIndex += numTasks;
-
-            if (weekTasks.length > 0) {
-                const weekStart = week.start;
-                const weekEnd = week.end;
-                const weekLabel = weekStart.getMonth() === weekEnd.getMonth()
-                    ? `${format(weekStart, 'MMMM dd')}-${format(weekEnd, 'dd, yyyy')}`
-                    : `${format(weekStart, 'MMMM dd')}-${format(weekEnd, 'MMMM dd, yyyy')}`;
+            if (wTasks.length > 0) {
+                const label = week.start.getTime() === week.end.getTime()
+                    ? format(week.start, 'MMMM dd, yyyy')
+                    : format(week.start, 'MMMM dd') + "-" + format(week.end, 'dd, yyyy');
 
                 tableRows.push(new TableRow({
                     children: [
+                        new TableCell({ children: [new Paragraph({ text: label, spacing: { before: 100 } })] }),
                         new TableCell({
-                            children: [new Paragraph(weekLabel)],
-                            width: { size: 20, type: WidthType.PERCENTAGE },
-                        }),
-                        new TableCell({
-                            children: weekTasks.map(task =>
-                                new Paragraph({
-                                    text: task.name,
-                                    bullet: { level: 0 },
-                                })
-                            ),
-                            width: { size: 80, type: WidthType.PERCENTAGE },
+                            children: wTasks.map(t => new Paragraph({
+                                text: t.name,
+                                bullet: { level: 0 },
+                                spacing: { before: 50, after: 50 }
+                            })),
                         }),
                     ],
                 }));
             }
-        }
+        });
 
-        // Create the table with black borders
         const accomplishmentTable = new Table({
             rows: tableRows,
             width: { size: 100, type: WidthType.PERCENTAGE },
             borders: {
-                top: { style: BorderStyle.SINGLE, size: 12, color: "000000" },
-                bottom: { style: BorderStyle.SINGLE, size: 12, color: "000000" },
-                left: { style: BorderStyle.SINGLE, size: 12, color: "000000" },
-                right: { style: BorderStyle.SINGLE, size: 12, color: "000000" },
-                insideHorizontal: { style: BorderStyle.SINGLE, size: 12, color: "000000" },
-                insideVertical: { style: BorderStyle.SINGLE, size: 12, color: "000000" },
+                top: { style: BorderStyle.SINGLE, size: 12 },
+                bottom: { style: BorderStyle.SINGLE, size: 12 },
+                left: { style: BorderStyle.SINGLE, size: 12 },
+                right: { style: BorderStyle.SINGLE, size: 12 },
+                insideHorizontal: { style: BorderStyle.SINGLE, size: 12 },
+                insideVertical: { style: BorderStyle.SINGLE, size: 12 },
             },
+        });
+
+        // 2-Column Signature Layout
+        const sigTable = new Table({
+            rows: [
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            children: [
+                                ...createSignatureBlock("Prepared by:", formData.name, [formData.position, formData.office]),
+                                ...createSignatureBlock("Verified by:", formData.verifiedBy, []),
+                                ...createSignatureBlock("Accepted by:", formData.acceptedBy || "", []),
+                            ],
+                            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+                        }),
+                        new TableCell({
+                            children: [
+                                ...createSignatureBlock("Reviewed by:", formData.reviewedBy, []),
+                                ...createSignatureBlock("Approved by:", formData.approvedBy, []),
+                            ],
+                            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+                        }),
+                    ],
+                }),
+            ],
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: {
+                top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
+                insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE }
+            }
         });
 
         documentChildren = [
@@ -221,123 +234,25 @@ export const generateReportDocument = (reportTasks: Task[], formData: ReportData
                 text: "INDIVIDUAL ACCOMPLISHMENT REPORT",
                 heading: HeadingLevel.TITLE,
                 alignment: AlignmentType.CENTER,
-                spacing: { after: 200 },
+                spacing: { after: 400 },
             }),
-            new Paragraph({ text: "", spacing: { after: 200 } }),
-            new Paragraph({
-                children: [
-                    new TextRun({ text: "NAME: ", bold: true }),
-                    new TextRun(formData.name),
-                ],
-            }),
-            new Paragraph({
-                children: [
-                    new TextRun({ text: "POSITION: ", bold: true }),
-                    new TextRun(formData.position),
-                ],
-            }),
-            new Paragraph({
-                children: [
-                    new TextRun({ text: "OFFICE: ", bold: true }),
-                    new TextRun(formData.office),
-                ],
-            }),
-            new Paragraph({
-                children: [
-                    new TextRun({ text: "DATE: ", bold: true }),
-                    new TextRun(start.getMonth() === end.getMonth()
-                        ? `${format(start, 'MMMM dd')}-${format(end, 'dd, yyyy')}`
-                        : `${format(start, 'MMMM dd')}-${format(end, 'MMMM dd, yyyy')}`),
-                ],
-                spacing: { after: 200 },
-            }),
-            new Paragraph({ text: "", spacing: { after: 200 } }),
+            new Paragraph({ children: [new TextRun({ text: "NAME: ", bold: true }), new TextRun({ text: formData.name, bold: true })] }),
+            new Paragraph({ children: [new TextRun({ text: "POSITION: ", bold: true }), new TextRun(formData.position)] }),
+            new Paragraph({ children: [new TextRun({ text: "OFFICE: ", bold: true }), new TextRun(formData.office)] }),
+            new Paragraph({ children: [new TextRun({ text: "DATE: ", bold: true }), new TextRun(format(start, 'MMMM dd') + "-" + format(end, 'dd, yyyy'))], spacing: { after: 400 } }),
             accomplishmentTable,
             new Paragraph({ text: "", spacing: { after: 400 } }),
-            new Paragraph({ text: "", spacing: { after: 200 } }),
-            new Paragraph({
-                children: [
-                    new TextRun({ text: "Prepared by:", bold: true, size: 18 }),
-                ],
-            }),
-            new Paragraph({ text: "", spacing: { after: 100 } }),
-            new Paragraph({ text: "", spacing: { after: 100 } }),
-            new Paragraph({
-                children: [
-                    new TextRun({ text: formData.name, bold: true, size: 20 }),
-                ],
-            }),
-            new Paragraph({
-                children: [
-                    new TextRun({ text: formData.position, size: 16 }),
-                ],
-            }),
-            new Paragraph({
-                children: [
-                    new TextRun({ text: formData.office, size: 16 }),
-                ],
-                spacing: { after: 400 },
-            })
+            sigTable
         ];
-
-        if (formData.verifiedBy) {
-            documentChildren.push(
-                new Paragraph({
-                    children: [
-                        new TextRun({ text: "Verified by:", bold: true, size: 18 }),
-                    ],
-                }),
-                new Paragraph({ text: "", spacing: { after: 100 } }),
-                new Paragraph({ text: "", spacing: { after: 100 } }),
-                new Paragraph({
-                    children: [
-                        new TextRun({ text: formData.verifiedBy, bold: true, size: 20 }),
-                    ],
-                    spacing: { after: 400 },
-                })
-            );
-        }
-
-        if (formData.reviewedBy) {
-            documentChildren.push(
-                new Paragraph({
-                    children: [
-                        new TextRun({ text: "Reviewed by:", bold: true, size: 18 }),
-                    ],
-                }),
-                new Paragraph({ text: "", spacing: { after: 100 } }),
-                new Paragraph({ text: "", spacing: { after: 100 } }),
-                new Paragraph({
-                    children: [
-                        new TextRun({ text: formData.reviewedBy, bold: true, size: 20 }),
-                    ],
-                    spacing: { after: 400 },
-                })
-            );
-        }
-
-        if (formData.approvedBy) {
-            documentChildren.push(
-                new Paragraph({
-                    children: [
-                        new TextRun({ text: "Approved by:", bold: true, size: 18 }),
-                    ],
-                }),
-                new Paragraph({ text: "", spacing: { after: 100 } }),
-                new Paragraph({ text: "", spacing: { after: 100 } }),
-                new Paragraph({
-                    children: [
-                        new TextRun({ text: formData.approvedBy, bold: true, size: 20 }),
-                    ],
-                    spacing: { after: 200 },
-                })
-            );
-        }
     }
 
     return new Document({
         sections: [{
-            properties: {},
+            properties: {
+                page: {
+                    margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } // 1 inch
+                }
+            },
             children: documentChildren,
         }],
     });
