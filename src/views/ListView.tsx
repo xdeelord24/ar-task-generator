@@ -59,6 +59,9 @@ import TagMenu from '../components/TagMenu';
 import ViewSelectorModal from '../components/ViewSelectorModal';
 import ViewContextMenu from '../components/ViewContextMenu';
 import '../styles/ListView.css';
+import StatusEditorModal from '../components/StatusEditorModal';
+import { Settings2 } from 'lucide-react';
+import '../styles/ListView.css';
 import '../styles/TaskOptionsMenu.css';
 
 const IconMap: Record<string, any> = {
@@ -548,7 +551,9 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         startTimer,
         updateSubtask,
         addStatus,
-        savedViews
+        savedViews,
+        updateSpace,
+        updateList
     } = useAppStore();
     const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
@@ -556,6 +561,9 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
     const [activePopover, setActivePopover] = React.useState<ActivePopover | null>(null);
     const [showViewSelector, setShowViewSelector] = React.useState(false);
     const [contextMenu, setContextMenu] = React.useState<{ view: any; position: { x: number; y: number } } | null>(null);
+    const [isAddingGroup, setIsAddingGroup] = React.useState(false);
+    const [newGroupName, setNewGroupName] = React.useState('');
+    const [isStatusEditorOpen, setIsStatusEditorOpen] = React.useState(false);
 
     React.useEffect(() => {
         const handleClickOutside = () => {
@@ -630,18 +638,23 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         { id: 'completed', name: 'COMPLETED', color: '#10b981', type: 'done' }
     ];
 
-    const handleAddGroup = () => {
-        const name = prompt('Enter group name:');
-        if (!name) return;
+    const handleConfirmAddGroup = () => {
+        if (!newGroupName.trim()) {
+            setIsAddingGroup(false);
+            return;
+        }
 
         const targetId = (currentListId || currentSpaceId);
         const isSpace = !currentListId;
 
         addStatus(targetId, isSpace, {
-            name: name.toUpperCase(),
+            name: newGroupName.trim().toUpperCase(),
             color: '#64748b',
             type: 'inprogress'
         });
+
+        setNewGroupName('');
+        setIsAddingGroup(false);
     };
 
     const getPriorityColor = (priority: Task['priority']) => {
@@ -701,6 +714,17 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
     };
 
 
+
+    const handleSaveStatuses = (newStatuses: Status[]) => {
+        const targetId = currentListId || currentSpaceId;
+        const isSpace = !currentListId;
+
+        if (isSpace) {
+            updateSpace(targetId, { statuses: newStatuses });
+        } else {
+            updateList(targetId, { statuses: newStatuses });
+        }
+    };
 
     return (
         <div className="view-container list-view">
@@ -803,8 +827,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                 t.status === statusObj.id
                             );
 
-                            // Hide group if no tasks
-                            if (statusTasks.length === 0) return null;
+
 
                             return (
                                 <div key={statusObj.id} className="status-group-container">
@@ -934,16 +957,62 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                         })()}
 
                         <div className="add-group-container">
-                            <button
-                                className="btn-add-group"
-                                onClick={handleAddGroup}
-                            >
-                                <Plus size={14} /> Add Group
-                            </button>
+                            {isAddingGroup ? (
+                                <div className="add-group-input-wrapper" style={{ display: 'flex', gap: '8px' }}>
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        className="form-input"
+                                        style={{ height: '36px', fontSize: '13px' }}
+                                        placeholder="Group name..."
+                                        value={newGroupName}
+                                        onChange={(e) => setNewGroupName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleConfirmAddGroup();
+                                            if (e.key === 'Escape') setIsAddingGroup(false);
+                                        }}
+                                        onBlur={() => {
+                                            // Delay slightly to allow click on confirm button
+                                            setTimeout(() => {
+                                                // Optional: auto-save on blur or cancel
+                                                // setIsAddingGroup(false);
+                                            }, 200);
+                                        }}
+                                    />
+                                    <button className="btn-primary" onClick={handleConfirmAddGroup}>Add</button>
+                                    <button className="icon-btn-ghost" onClick={() => setIsAddingGroup(false)}><Plus size={16} style={{ transform: 'rotate(45deg)' }} /></button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                                    <button
+                                        className="btn-add-group"
+                                        onClick={() => setIsAddingGroup(true)}
+                                    >
+                                        <Plus size={14} /> Add Group
+                                    </button>
+                                    <button
+                                        className="btn-add-group"
+                                        style={{ width: 'auto', padding: '10px' }}
+                                        onClick={() => setIsStatusEditorOpen(true)}
+                                        title="Manage Statuses"
+                                    >
+                                        <Settings2 size={16} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </DndContext>
             </div>
+
+            {isStatusEditorOpen && (
+                <StatusEditorModal
+                    isOpen={isStatusEditorOpen}
+                    onClose={() => setIsStatusEditorOpen(false)}
+                    currentStatuses={activeStatuses}
+                    onSave={handleSaveStatuses}
+                />
+            )}
 
             {showViewSelector && (
                 <ViewSelectorModal

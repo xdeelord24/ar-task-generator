@@ -282,11 +282,24 @@ export const useAppStore = create<AppStore>()(
             addStatus: (targetId, isSpace, status) => set((state) => {
                 const id = crypto.randomUUID();
                 const newStatus: Status = { ...status, id };
+
+                const getUpdatedStatuses = (currentStatuses: Status[] | undefined) => {
+                    // If no statuses exist (e.g. from old persisted state), use defaults + new one
+                    const base = (currentStatuses && currentStatuses.length > 0)
+                        ? currentStatuses
+                        : DEFAULT_STATUSES;
+                    return [...base, newStatus];
+                };
+
                 if (isSpace) {
-                    const newSpaces = state.spaces.map(s => s.id === targetId ? { ...s, statuses: [...(s.statuses || []), newStatus] } : s);
+                    const newSpaces = state.spaces.map(s =>
+                        s.id === targetId ? { ...s, statuses: getUpdatedStatuses(s.statuses) } : s
+                    );
                     return { spaces: newSpaces };
                 } else {
-                    const newLists = state.lists.map(l => l.id === targetId ? { ...l, statuses: [...(l.statuses || []), newStatus] } : l);
+                    const newLists = state.lists.map(l =>
+                        l.id === targetId ? { ...l, statuses: getUpdatedStatuses(l.statuses) } : l
+                    );
                     return { lists: newLists };
                 }
             }),
