@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calendar, Flag, User, Clock, Users } from 'lucide-react';
+import { X, Calendar, Flag, Clock, Users } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import type { Priority, Task } from '../types';
 import '../styles/TaskModal.css';
@@ -9,10 +9,23 @@ interface TaskModalProps {
 }
 
 const TaskModal: React.FC<TaskModalProps> = ({ onClose }) => {
-    const { addTask, currentSpaceId } = useAppStore();
+    const { addTask, currentSpaceId, currentListId, spaces, lists } = useAppStore();
+
+    const activeList = lists.find(l => l.id === currentListId);
+    const activeSpace = spaces.find(s => s.id === currentSpaceId);
+
+    // Default statuses fallback
+    const defaultStatuses = [
+        { id: 'todo', name: 'TO DO' },
+        { id: 'inprogress', name: 'IN PROGRESS' },
+        { id: 'completed', name: 'COMPLETED' }
+    ];
+
+    const activeStatuses = activeList?.statuses || activeSpace?.statuses || defaultStatuses;
+
     const [name, setName] = React.useState('');
     const [description, setDescription] = React.useState('');
-    const [status, setStatus] = React.useState<Task['status']>('TO DO');
+    const [status, setStatus] = React.useState<Task['status']>(activeStatuses[0]?.name || 'TO DO');
     const [priority, setPriority] = React.useState<Priority>('medium');
     const [dueDate, setDueDate] = React.useState('');
 
@@ -24,6 +37,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose }) => {
             name,
             description,
             spaceId: currentSpaceId === 'everything' ? 'team-space' : currentSpaceId,
+            listId: currentListId || undefined,
             status,
             priority,
             dueDate: dueDate || undefined,
@@ -84,9 +98,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose }) => {
                             <Clock size={16} />
                             <span>Status</span>
                             <select value={status} onChange={e => setStatus(e.target.value as Task['status'])}>
-                                <option value="TO DO">To Do</option>
-                                <option value="IN PROGRESS">In Progress</option>
-                                <option value="COMPLETED">Completed</option>
+                                {activeStatuses.map(s => (
+                                    <option key={s.id} value={s.name}>{s.name}</option>
+                                ))}
                             </select>
                         </div>
 

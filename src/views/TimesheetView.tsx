@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     ChevronLeft,
     ChevronRight,
@@ -29,6 +29,7 @@ const TimesheetView: React.FC = () => {
     // Add task dropdown state
     const [showAddTask, setShowAddTask] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showSettings, setShowSettings] = useState(false);
 
     const weekDays = useMemo(() =>
         Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i))
@@ -116,7 +117,7 @@ const TimesheetView: React.FC = () => {
                         <button className="ts-tab">Approvals</button>
                     </div>
                 </div>
-                <button className="btn-configure">
+                <button className={`btn-configure ${showSettings ? 'active' : ''}`} onClick={() => setShowSettings(!showSettings)}>
                     <Settings size={14} /> Configure
                 </button>
             </div>
@@ -291,6 +292,48 @@ const TimesheetView: React.FC = () => {
                     <Plus size={18} /> Add task
                 </button>
             </div>
+
+            {/* Settings Overlay */}
+            {showSettings && (
+                <>
+                    <div className="settings-overlay" onClick={() => setShowSettings(false)} />
+                    <div className="settings-panel">
+                        <div className="settings-header">
+                            <div className="flex items-center gap-2">
+                                <Settings size={18} />
+                                <span className="settings-title">Settings</span>
+                            </div>
+                            <button className="icon-btn-ghost" onClick={() => setShowSettings(false)}>
+                                <div className="settings-close-icon"></div>
+                            </button>
+                        </div>
+                        <div className="settings-content">
+                            <div className="settings-group">
+                                <label>My Capacity</label>
+                                <div className="settings-select-wrapper">
+                                    <select className="settings-select" defaultValue="weekly">
+                                        <option value="weekly">Weekly</option>
+                                        <option value="daily">Daily</option>
+                                    </select>
+                                    <ChevronRight size={14} className="select-arrow" style={{ transform: 'rotate(90deg)' }} />
+                                </div>
+                            </div>
+                            <div className="settings-group">
+                                <label>Weekly Hours <span className="info-icon">i</span></label>
+                                <div className="settings-input-wrapper">
+                                    <input type="text" className="settings-input" defaultValue="40h" />
+                                    <button className="input-clear-btn">
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            </div>
+                            <button className="btn-primary full-width" onClick={() => setShowSettings(false)}>
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 };

@@ -12,12 +12,13 @@ import '../styles/CreateListModal.css';
 
 interface CreateListModalProps {
     spaceId: string;
+    folderId?: string;
     onClose: () => void;
     editingList?: { id: string; name: string; icon?: string; color?: string };
     onUpdate?: (id: string, updates: any) => void;
 }
 
-const CreateListModal: React.FC<CreateListModalProps> = ({ spaceId, onClose, editingList, onUpdate }) => {
+const CreateListModal: React.FC<CreateListModalProps> = ({ spaceId, folderId, onClose, editingList, onUpdate }) => {
     const { addList, spaces } = useAppStore();
     const [name, setName] = useState(editingList?.name || '');
     const [icon, setIcon] = useState(editingList?.icon || 'list');
@@ -64,6 +65,7 @@ const CreateListModal: React.FC<CreateListModalProps> = ({ spaceId, onClose, edi
                 addList({
                     name: name.trim(),
                     spaceId: spaceId,
+                    folderId: folderId,
                     icon,
                     color
                 });

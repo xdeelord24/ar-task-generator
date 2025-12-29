@@ -81,7 +81,8 @@
     cursor: pointer;
 }
 
-.btn-configure:hover {
+.btn-configure:hover,
+.btn-configure.active {
     background: var(--border);
 }
 
@@ -548,4 +549,196 @@
     text-align: center;
     color: var(--text-secondary);
     font-size: 13px;
+}
+
+/* Settings Overlay & Panel */
+.settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 900;
+}
+
+.settings-panel {
+    position: fixed;
+    top: 50px;
+    /* Below the main header/nav bar usually, but let's just do top 0 if we want full height, or offset */
+    right: 0;
+    width: 400px;
+    height: calc(100vh - 50px);
+    background: var(--bg-main);
+    border-left: 1px solid var(--border);
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.05);
+    z-index: 950;
+    display: flex;
+    flex-direction: column;
+    animation: slideInRight 0.2s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.settings-header {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.settings-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.settings-close-icon {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--text-secondary);
+    border-radius: 4px;
+    position: relative;
+}
+
+.settings-close-icon::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    border-left: 1px solid var(--text-secondary);
+    background: var(--text-secondary);
+    opacity: 0.3;
+}
+
+.settings-content {
+    padding: 32px 24px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.settings-group {
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.settings-group label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid var(--text-secondary);
+    font-size: 10px;
+    color: var(--text-secondary);
+    cursor: help;
+}
+
+.settings-select-wrapper,
+.settings-input-wrapper {
+    position: relative;
+    width: 140px;
+}
+
+.settings-select {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--bg-main);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 32px 8px 12px;
+    font-size: 14px;
+    color: var(--text-main);
+    cursor: pointer;
+    text-align: left;
+}
+
+.settings-select:hover {
+    border-color: var(--text-secondary);
+}
+
+.select-arrow {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    /* Adjust rotation if needed */
+    pointer-events: none;
+    color: var(--text-secondary);
+}
+
+.settings-input {
+    width: 100%;
+    background: var(--bg-main);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 32px 8px 12px;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.settings-input:hover,
+.settings-input:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+.input-clear-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    display: flex;
+}
+
+.input-clear-btn:hover {
+    color: var(--text-main);
+}
+
+.btn-primary.full-width {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+    margin-top: 16px;
+    background: #0085FF;
+    /* As per screenshot blue */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-primary.full-width:hover {
+    background: #0073e6;
 }

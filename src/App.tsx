@@ -8,6 +8,7 @@ import GanttView from './views/GanttView';
 import TimesheetView from './views/TimesheetView';
 import DashboardView from './views/DashboardView';
 import DocsView from './views/DocsView';
+import SpaceOverview from './views/SpaceOverview';
 import TaskModal from './components/TaskModal';
 import TaskDetailModal from './components/TaskDetailModal';
 import ReportModal from './components/ReportModal';
@@ -56,6 +57,8 @@ function App() {
         return <DashboardView />;
       case 'docs':
         return <DocsView />;
+      case 'space_overview':
+        return <SpaceOverview />;
       case 'kanban':
         return <KanbanView onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
       case 'calendar':

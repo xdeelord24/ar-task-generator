@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Task, Space, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status } from '../types';
+import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status } from '../types';
 
 interface AppStore extends AppState {
     setTasks: (tasks: Task[]) => void;
@@ -13,6 +13,10 @@ interface AppStore extends AppState {
     updateSubtask: (taskId: string, subtaskId: string, updates: Partial<Subtask>) => void;
     setSpaces: (spaces: Space[]) => void;
     addSpace: (space: Omit<Space, 'id' | 'taskCount' | 'isDefault'>) => void;
+    setFolders: (folders: Folder[]) => void;
+    addFolder: (folder: Omit<Folder, 'id'>) => void;
+    updateFolder: (folderId: string, updates: Partial<Folder>) => void;
+    deleteFolder: (folderId: string) => void;
     setLists: (lists: List[]) => void;
     addList: (list: Omit<List, 'id' | 'taskCount'>) => void;
     updateList: (listId: string, updates: Partial<List>) => void;
@@ -82,6 +86,7 @@ export const useAppStore = create<AppStore>()(
                 { id: 'team-space', name: 'Team Space', icon: 'users', color: '#10b981', isDefault: true, taskCount: 0, statuses: DEFAULT_STATUSES },
                 { id: 'pmnp', name: 'PMNP', icon: 'lock', color: '#f59e0b', isDefault: true, taskCount: 0, statuses: DEFAULT_STATUSES }
             ],
+            folders: [],
             lists: [
                 { id: 'list-1', name: 'Project 1', spaceId: 'team-space', taskCount: 0, icon: 'list', color: '#64748b', statuses: DEFAULT_STATUSES }
             ],
@@ -171,6 +176,17 @@ export const useAppStore = create<AppStore>()(
             addSpace: (space) => set((state) => ({
                 spaces: [...state.spaces, { ...space, id: crypto.randomUUID(), taskCount: 0, isDefault: false, statuses: DEFAULT_STATUSES }]
             })),
+            setFolders: (folders) => set({ folders }),
+            addFolder: (folder) => set((state) => ({
+                folders: [...state.folders, { ...folder, id: crypto.randomUUID() }]
+            })),
+            updateFolder: (folderId, updates) => set((state) => ({
+                folders: state.folders.map(f => f.id === folderId ? { ...f, ...updates } : f)
+            })),
+            deleteFolder: (folderId) => set((state) => ({
+                folders: state.folders.filter(f => f.id !== folderId),
+                lists: state.lists.map(l => l.folderId === folderId ? { ...l, folderId: undefined } : l) // Move lists to root of space
+            })),
             setLists: (lists) => set({ lists }),
             addList: (list) => set((state) => ({
                 lists: [...state.lists, { ...list, id: crypto.randomUUID(), taskCount: 0, statuses: DEFAULT_STATUSES }]
@@ -188,6 +204,7 @@ export const useAppStore = create<AppStore>()(
             deleteSpace: (spaceId) => set((state) => ({
                 spaces: state.spaces.filter(s => s.id !== spaceId),
                 tasks: state.tasks.filter(t => t.spaceId !== spaceId),
+                folders: state.folders.filter(f => f.spaceId !== spaceId),
                 lists: state.lists.filter(l => l.spaceId !== spaceId)
             })),
             setCurrentSpaceId: (spaceId) => set({ currentSpaceId: spaceId }),

@@ -84,17 +84,24 @@ export interface Space {
   statuses?: Status[];
 }
 
+export interface Folder {
+  id: string;
+  name: string;
+  spaceId: string;
+}
+
 export interface List {
   id: string;
   name: string;
   spaceId: string;
+  folderId?: string;
   taskCount: number;
   icon?: string;
   color?: string;
   statuses?: Status[];
 }
 
-export type ViewType = 'home' | 'list' | 'kanban' | 'calendar' | 'gantt' | 'timesheet' | 'dashboards' | 'docs' | 'pulse' | 'forms' | 'inbox' | 'teams' | 'whiteboards' | 'clips' | 'goals';
+export type ViewType = 'home' | 'list' | 'kanban' | 'calendar' | 'gantt' | 'timesheet' | 'dashboards' | 'docs' | 'pulse' | 'forms' | 'inbox' | 'teams' | 'whiteboards' | 'clips' | 'goals' | 'space_overview';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -108,6 +115,7 @@ export interface ColumnSetting {
 export interface AppState {
   tasks: Task[];
   spaces: Space[];
+  folders: Folder[];
   lists: List[];
   tags: Tag[];
   docs: Doc[];

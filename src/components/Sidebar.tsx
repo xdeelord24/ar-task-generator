@@ -32,12 +32,14 @@ import {
     List as ListIcon,
     CheckSquare,
     Calendar,
-    Hash
+    Hash,
+    Folder
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import ContextMenu, { useContextMenu } from './ContextMenu';
 import CreateSpaceModal from './CreateSpaceModal';
 import CreateListModal from './CreateListModal';
+import CreateFolderModal from './CreateFolderModal';
 import '../styles/Sidebar.css';
 
 const IconMap: Record<string, any> = {
@@ -75,6 +77,7 @@ const Sidebar: React.FC = () => {
         currentView,
         setCurrentView,
         spaces,
+        folders,
         lists,
         currentSpaceId,
         setCurrentSpaceId,
@@ -82,14 +85,20 @@ const Sidebar: React.FC = () => {
         currentListId,
         deleteSpace,
         updateSpace,
+        deleteFolder,
+        updateFolder,
         deleteList,
         updateList
     } = useAppStore();
     const [isCreateSpaceOpen, setIsCreateSpaceOpen] = React.useState(false);
     const [editingSpace, setEditingSpace] = React.useState<any>(null);
+    const [editingFolder, setEditingFolder] = React.useState<any>(null);
     const [editingList, setEditingList] = React.useState<any>(null);
     const [createListSpaceId, setCreateListSpaceId] = React.useState<string | null>(null);
+    const [createListFolderId, setCreateListFolderId] = React.useState<string | null>(null);
+    const [createFolderSpaceId, setCreateFolderSpaceId] = React.useState<string | null>(null);
     const [expandedSpaceIds, setExpandedSpaceIds] = React.useState<Set<string>>(new Set([currentSpaceId]));
+    const [expandedFolderIds, setExpandedFolderIds] = React.useState<Set<string>>(new Set());
     const { showContextMenu, contextMenuProps, hideContextMenu } = useContextMenu();
 
     const toggleSpace = (e: React.MouseEvent, spaceId: string) => {
@@ -103,15 +112,24 @@ const Sidebar: React.FC = () => {
         });
     };
 
+    const toggleFolder = (e: React.MouseEvent, folderId: string) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setExpandedFolderIds(prev => {
+            const next = new Set(prev);
+            if (next.has(folderId)) next.delete(folderId);
+            else next.add(folderId);
+            return next;
+        });
+    };
+
     const handleSpaceClick = (spaceId: string) => {
         setCurrentSpaceId(spaceId);
         setCurrentListId(null);
         setExpandedSpaceIds(prev => new Set(prev).add(spaceId));
 
-        const taskViews = ['list', 'kanban', 'calendar', 'gantt'];
-        if (!taskViews.includes(currentView)) {
-            setCurrentView('list');
-        }
+        // Always go to Space Overview when clicking a space
+        setCurrentView('space_overview');
     };
 
     const navItems = [
@@ -188,6 +206,8 @@ const Sidebar: React.FC = () => {
                                         handleSpaceClick(space.id);
                                     }}
                                     onContextMenu={(e) => showContextMenu(e, [
+                                        { label: 'Create List', icon: <Plus size={14} />, onClick: () => setCreateListSpaceId(space.id) },
+                                        { label: 'Create Folder', icon: <Folder size={14} />, onClick: () => setCreateFolderSpaceId(space.id) },
                                         { label: 'Space Settings', icon: <Settings size={14} />, onClick: () => setEditingSpace(space) },
                                         { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingSpace(space) },
                                         { label: 'Duplicate', icon: <StarIcon size={14} />, onClick: () => console.log('Duplicate', space.name) },
@@ -213,7 +233,65 @@ const Sidebar: React.FC = () => {
                                 </a>
                                 {isExpanded && (
                                     <div className="space-lists">
-                                        {lists.filter(l => l.spaceId === space.id).map(list => (
+                                        {/* Render Folders */}
+                                        {folders.filter(f => f.spaceId === space.id).map(folder => {
+                                            const isFolderExpanded = expandedFolderIds.has(folder.id);
+                                            return (
+                                                <div key={folder.id} className="folder-item-container">
+                                                    <a
+                                                        href="#"
+                                                        className="nav-item folder-item"
+                                                        style={{ paddingLeft: '24px' }}
+                                                        onClick={(e) => toggleFolder(e, folder.id)}
+                                                        onContextMenu={(e) => showContextMenu(e, [
+                                                            { label: 'Create List', icon: <Plus size={14} />, onClick: () => { setCreateListSpaceId(space.id); setCreateListFolderId(folder.id); } },
+                                                            { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingFolder(folder) },
+                                                            { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteFolder(folder.id), danger: true },
+                                                        ])}
+                                                    >
+                                                        <div className="expand-icon-wrapper" style={{ marginRight: '4px' }}>
+                                                            <ChevronRight size={14} className={`expand-icon ${isFolderExpanded ? 'expanded' : ''}`} />
+                                                        </div>
+                                                        <Folder size={14} style={{ marginRight: '8px', color: '#64748b' }} />
+                                                        <span>{folder.name}</span>
+                                                    </a>
+                                                    {isFolderExpanded && (
+                                                        <div className="folder-lists">
+                                                            {lists.filter(l => l.folderId === folder.id).map(list => (
+                                                                <a
+                                                                    key={list.id}
+                                                                    href="#"
+                                                                    className={`nav-item list-item ${currentListId === list.id ? 'active' : ''}`}
+                                                                    style={{ paddingLeft: '48px' }}
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        setCurrentListId(list.id);
+                                                                        const taskViews = ['list', 'kanban', 'calendar', 'gantt'];
+                                                                        if (!taskViews.includes(currentView)) {
+                                                                            setCurrentView('list');
+                                                                        }
+                                                                    }}
+                                                                    onContextMenu={(e) => showContextMenu(e, [
+                                                                        { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingList({ ...list, id: list.id, spaceId: space.id }) },
+                                                                        { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteList(list.id), danger: true },
+                                                                    ])}
+                                                                >
+                                                                    <div style={{ marginRight: '8px', display: 'flex', alignItems: 'center' }}>
+                                                                        {list.icon ? renderIcon(list.icon, 14, list.color || space.color || '#64748b') : (
+                                                                            <div className="list-dot" style={{ backgroundColor: list.color || space.color || '#64748b' }}></div>
+                                                                        )}
+                                                                    </div>
+                                                                    <span style={{ fontWeight: currentListId === list.id ? 600 : 400 }}>{list.name}</span>
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+
+                                        {/* Render Lists NOT in folders */}
+                                        {lists.filter(l => l.spaceId === space.id && !l.folderId).map(list => (
                                             <a
                                                 key={list.id}
                                                 href="#"
@@ -221,7 +299,6 @@ const Sidebar: React.FC = () => {
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     setCurrentListId(list.id);
-
                                                     const taskViews = ['list', 'kanban', 'calendar', 'gantt'];
                                                     if (!taskViews.includes(currentView)) {
                                                         setCurrentView('list');
@@ -240,13 +317,17 @@ const Sidebar: React.FC = () => {
                                                 <span style={{ fontWeight: currentListId === list.id ? 600 : 400 }}>{list.name}</span>
                                             </a>
                                         ))}
-                                        <a href="#" className="nav-item add-list-btn" onClick={(e) => {
-                                            e.preventDefault();
-                                            setCreateListSpaceId(space.id);
-                                        }}>
-                                            <Plus size={14} />
-                                            <span>Add List</span>
-                                        </a>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <a href="#" className="nav-item add-list-btn" onClick={(e) => {
+                                                e.preventDefault();
+                                                setCreateListSpaceId(space.id);
+                                                setCreateListFolderId(null);
+                                            }}>
+                                                <Plus size={14} />
+                                                <span>Add List</span>
+                                            </a>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -283,7 +364,22 @@ const Sidebar: React.FC = () => {
             {createListSpaceId && (
                 <CreateListModal
                     spaceId={createListSpaceId}
-                    onClose={() => setCreateListSpaceId(null)}
+                    folderId={createListFolderId || undefined}
+                    onClose={() => { setCreateListSpaceId(null); setCreateListFolderId(null); }}
+                />
+            )}
+            {createFolderSpaceId && (
+                <CreateFolderModal
+                    spaceId={createFolderSpaceId}
+                    onClose={() => setCreateFolderSpaceId(null)}
+                />
+            )}
+            {editingFolder && (
+                <CreateFolderModal
+                    spaceId={editingFolder.spaceId}
+                    editingFolder={editingFolder} // Pass editing folder
+                    onUpdate={updateFolder} // Pass update handler
+                    onClose={() => setEditingFolder(null)}
                 />
             )}
             {contextMenuProps.visible && (
