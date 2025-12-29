@@ -154,4 +154,12 @@ export interface AppState {
   activeTimer: { taskId: string; startTime: string } | null;
   aiConfig: AIConfig;
   aiMessages: Message[];
+  aiSessions: ChatSession[];
+}
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  createdAt: string;
+  messages: Message[];
 }

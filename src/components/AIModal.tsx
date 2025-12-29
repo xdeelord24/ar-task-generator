@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Sparkles, Bot, User, Trash2, History } from 'lucide-react';
+import { X, Send, Sparkles, Bot, User, Trash2, History, Plus, MessageSquare } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import type { Task, Space, Message } from '../types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import ReactMarkdown from 'react-markdown';
 import '../styles/AIModal.css';
+import '../styles/AIModalHistory.css';
 
 const AI_MODEL_NAME = 'gemini-1.5-flash';
 
@@ -19,7 +20,7 @@ const AIModal: React.FC<AIModalProps> = ({ onClose, onTaskClick }) => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const { tasks, spaces, currentSpaceId, aiConfig, aiMessages, setAiMessages, clearAiMessages } = useAppStore();
+    const { tasks, spaces, currentSpaceId, aiConfig, aiMessages, setAiMessages, clearAiMessages, aiSessions, startNewChat, loadSession, deleteSession } = useAppStore();
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -112,6 +113,8 @@ const AIModal: React.FC<AIModalProps> = ({ onClose, onTaskClick }) => {
         }
     };
 
+    const [showHistory, setShowHistory] = useState(false);
+
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content ai-modal" onClick={e => e.stopPropagation()}>
@@ -121,122 +124,159 @@ const AIModal: React.FC<AIModalProps> = ({ onClose, onTaskClick }) => {
                         <span>AI Assistant</span>
                     </div>
                     <div className="ai-actions">
-                        <button className="icon-btn-ghost" title="View History"><History size={18} /></button>
+                        <button className="icon-btn-ghost" title="New Chat" onClick={startNewChat}><Plus size={18} /></button>
+                        <button className={`icon-btn-ghost ${showHistory ? 'active' : ''}`} title="View History" onClick={() => setShowHistory(!showHistory)}><History size={18} /></button>
                         <button className="icon-btn-ghost" title="Clear Chat" onClick={clearAiMessages}><Trash2 size={18} /></button>
                         <button className="icon-btn-ghost" onClick={onClose}><X size={20} /></button>
                     </div>
                 </div>
 
-                <div className="ai-chat-container" ref={scrollRef}>
-                    {aiMessages.length === 0 ? (
-                        <div className="ai-welcome">
-                            <div className="ai-avatar-large">
-                                <Bot size={40} />
-                            </div>
-                            <h2>How can I help you today?</h2>
-                            <p>Ask me to summarize tasks, generate reports, or provide insights into your work.</p>
-                            <div className="ai-suggestions">
-                                <button className="btn-secondary" onClick={() => handleSend('What are my top priorities?')}>"What are my top priorities?"</button>
-                                <button className="btn-secondary" onClick={() => handleSend('How many tasks are in progress?')}>"How many tasks are in progress?"</button>
-                                <button className="btn-secondary" onClick={() => handleSend('What is due today?')}>"What is due today?"</button>
-                                <button className="btn-secondary" onClick={() => handleSend('Summarize my progress')}>"Summarize my progress"</button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="ai-messages">
-                            {aiMessages.map((m: Message, i: number) => (
-                                <div key={i} className={`ai-message-row ${m.role}`}>
-                                    <div className="ai-message-avatar">
-                                        {m.role === 'assistant' ? <Bot size={16} /> : <User size={16} />}
-                                    </div>
-                                    <div className="ai-message-bubble">
-                                        {m.role === 'assistant' ? (
-                                            <ReactMarkdown
-                                                components={{
-                                                    a: ({ node, ...props }) => {
-                                                        const href = props.href || '';
-                                                        const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:');
-
-                                                        const isTaskPrefixed = href.toLowerCase().startsWith('task:');
-                                                        const extractedId = isTaskPrefixed ? href.split(':')[1] : href;
-
-                                                        // Try to find task by ID or by Name
-                                                        const taskToOpen = tasks.find(t =>
-                                                            t.id === extractedId ||
-                                                            t.name.toLowerCase() === href.toLowerCase() ||
-                                                            (typeof props.children === 'string' && t.name.toLowerCase() === props.children.toLowerCase())
-                                                        );
-
-                                                        if (taskToOpen) {
-                                                            return (
-                                                                <a
-                                                                    href="#"
-                                                                    className="task-link"
-                                                                    onClick={(e) => {
-                                                                        e.preventDefault();
-                                                                        e.stopPropagation();
-                                                                        onTaskClick(taskToOpen.id);
-                                                                        onClose();
-                                                                    }}
-                                                                >
-                                                                    {props.children}
-                                                                </a>
-                                                            );
-                                                        }
-
-                                                        // External link or unknown
-                                                        return (
-                                                            <a
-                                                                {...props}
-                                                                target={isExternal ? "_blank" : "_self"}
-                                                                rel={isExternal ? "noopener noreferrer" : ""}
-                                                                onClick={(e) => {
-                                                                    if (!isExternal) e.preventDefault();
-                                                                }}
-                                                            >
-                                                                {props.children}
-                                                            </a>
-                                                        );
-                                                    }
+                <div className="ai-content-wrapper">
+                    {showHistory && (
+                        <div className="ai-history-sidebar">
+                            <h3>History</h3>
+                            {aiSessions.length === 0 ? (
+                                <div className="no-history">
+                                    <MessageSquare size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
+                                    <p>No past conversations</p>
+                                </div>
+                            ) : (
+                                <ul>
+                                    {aiSessions.map(session => (
+                                        <li key={session.id} onClick={() => { loadSession(session.id); setShowHistory(false); }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+                                                <MessageSquare size={14} className="flex-shrink-0" />
+                                                <span>{session.title}</span>
+                                            </div>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm('Delete this chat session?')) deleteSession(session.id);
                                                 }}
+                                                title="Delete Session"
                                             >
-                                                {m.content}
-                                            </ReactMarkdown>
-                                        ) : (
-                                            m.content
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                            {isLoading && (
-                                <div className="ai-message-row assistant">
-                                    <div className="ai-message-avatar">
-                                        <Bot size={16} />
-                                    </div>
-                                    <div className="ai-message-bubble loading">
-                                        <div className="dot"></div>
-                                        <div className="dot"></div>
-                                        <div className="dot"></div>
-                                    </div>
-                                </div>
+                                                <X size={12} />
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
                             )}
                         </div>
                     )}
-                </div>
 
-                <div className="ai-input-area">
-                    <div className="ai-input-wrapper">
-                        <input
-                            type="text"
-                            placeholder="Ask me anything..."
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                            autoFocus
-                        />
-                        <button className="send-btn" onClick={() => handleSend()} disabled={!input.trim() || isLoading}>
-                            <Send size={18} />
-                        </button>
+                    <div className="ai-main-area">
+                        <div className="ai-chat-container" ref={scrollRef}>
+                            {aiMessages.length === 0 ? (
+                                <div className="ai-welcome">
+                                    <div className="ai-avatar-large">
+                                        <Bot size={40} />
+                                    </div>
+                                    <h2>How can I help you today?</h2>
+                                    <p>Ask me to summarize tasks, generate reports, or provide insights into your work.</p>
+                                    <div className="ai-suggestions">
+                                        <button className="btn-secondary" onClick={() => handleSend('What are my top priorities?')}>"What are my top priorities?"</button>
+                                        <button className="btn-secondary" onClick={() => handleSend('How many tasks are in progress?')}>"How many tasks are in progress?"</button>
+                                        <button className="btn-secondary" onClick={() => handleSend('What is due today?')}>"What is due today?"</button>
+                                        <button className="btn-secondary" onClick={() => handleSend('Summarize my progress')}>"Summarize my progress"</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="ai-messages">
+                                    {aiMessages.map((m: Message, i: number) => (
+                                        <div key={i} className={`ai-message-row ${m.role}`}>
+                                            <div className="ai-message-avatar">
+                                                {m.role === 'assistant' ? <Bot size={16} /> : <User size={16} />}
+                                            </div>
+                                            <div className="ai-message-bubble">
+                                                {m.role === 'assistant' ? (
+                                                    <ReactMarkdown
+                                                        components={{
+                                                            a: ({ node, ...props }) => {
+                                                                const href = props.href || '';
+                                                                const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:');
+
+                                                                const isTaskPrefixed = href.toLowerCase().startsWith('task:');
+                                                                const extractedId = isTaskPrefixed ? href.split(':')[1] : href;
+
+                                                                // Try to find task by ID or by Name
+                                                                const taskToOpen = tasks.find(t =>
+                                                                    t.id === extractedId ||
+                                                                    t.name.toLowerCase() === href.toLowerCase() ||
+                                                                    (typeof props.children === 'string' && t.name.toLowerCase() === props.children.toLowerCase())
+                                                                );
+
+                                                                if (taskToOpen) {
+                                                                    return (
+                                                                        <a
+                                                                            href="#"
+                                                                            className="task-link"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                onTaskClick(taskToOpen.id);
+                                                                                onClose();
+                                                                            }}
+                                                                        >
+                                                                            {props.children}
+                                                                        </a>
+                                                                    );
+                                                                }
+
+                                                                // External link or unknown
+                                                                return (
+                                                                    <a
+                                                                        {...props}
+                                                                        target={isExternal ? "_blank" : "_self"}
+                                                                        rel={isExternal ? "noopener noreferrer" : ""}
+                                                                        onClick={(e) => {
+                                                                            if (!isExternal) e.preventDefault();
+                                                                        }}
+                                                                    >
+                                                                        {props.children}
+                                                                    </a>
+                                                                );
+                                                            }
+                                                        }}
+                                                    >
+                                                        {m.content}
+                                                    </ReactMarkdown>
+                                                ) : (
+                                                    m.content
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {isLoading && (
+                                        <div className="ai-message-row assistant">
+                                            <div className="ai-message-avatar">
+                                                <Bot size={16} />
+                                            </div>
+                                            <div className="ai-message-bubble loading">
+                                                <div className="dot"></div>
+                                                <div className="dot"></div>
+                                                <div className="dot"></div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="ai-input-area">
+                            <div className="ai-input-wrapper">
+                                <input
+                                    type="text"
+                                    placeholder="Ask me anything..."
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                                    autoFocus
+                                />
+                                <button className="send-btn" onClick={() => handleSend()} disabled={!input.trim() || isLoading}>
+                                    <Send size={18} />
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

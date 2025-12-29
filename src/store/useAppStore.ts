@@ -49,6 +49,9 @@ interface AppStore extends AppState {
     clearAiMessages: () => void;
     sidebarCollapsed: boolean;
     toggleSidebar: () => void;
+    startNewChat: () => void;
+    loadSession: (sessionId: string) => void;
+    deleteSession: (sessionId: string) => void;
 }
 
 const DEFAULT_STATUSES: Status[] = [
@@ -134,6 +137,7 @@ export const useAppStore = create<AppStore>()(
                 ollamaModel: 'llama3'
             },
             aiMessages: [],
+            aiSessions: [],
             sidebarCollapsed: false,
 
             setTasks: (tasks) => set({ tasks }),
@@ -354,6 +358,31 @@ export const useAppStore = create<AppStore>()(
                 aiMessages: typeof messages === 'function' ? messages(state.aiMessages) : messages
             })),
             clearAiMessages: () => set({ aiMessages: [] }),
+            startNewChat: () => set((state) => {
+                if (state.aiMessages.length === 0) return state;
+                const firstUserMsg = state.aiMessages.find(m => m.role === 'user');
+                const title = firstUserMsg ? (firstUserMsg.content.slice(0, 30) + (firstUserMsg.content.length > 30 ? '...' : '')) : 'New Chat';
+
+                const newSession = {
+                    id: crypto.randomUUID(),
+                    title,
+                    createdAt: new Date().toISOString(),
+                    messages: state.aiMessages
+                };
+
+                return {
+                    aiSessions: [newSession, ...state.aiSessions],
+                    aiMessages: []
+                };
+            }),
+            loadSession: (sessionId) => set((state) => {
+                const session = state.aiSessions.find(s => s.id === sessionId);
+                if (!session) return state;
+                return { aiMessages: session.messages };
+            }),
+            deleteSession: (sessionId) => set((state) => ({
+                aiSessions: state.aiSessions.filter(s => s.id !== sessionId)
+            })),
         }),
         {
             name: 'ar-generator-app-storage',
