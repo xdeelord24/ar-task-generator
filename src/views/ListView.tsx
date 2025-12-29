@@ -54,6 +54,8 @@ import { useAppStore } from '../store/useAppStore';
 import { format, isPast, isToday } from 'date-fns';
 import type { Task, ColumnSetting, Tag, Status } from '../types';
 import TaskOptionsMenu from '../components/TaskOptionsMenu';
+import DatePicker from '../components/DatePicker';
+import TagMenu from '../components/TagMenu';
 import '../styles/ListView.css';
 import '../styles/TaskOptionsMenu.css';
 
@@ -146,6 +148,8 @@ interface SortableRowProps {
     activePopover: ActivePopover | null;
     setActivePopover: (popover: ActivePopover | null) => void;
     onAddTag: (tag: Omit<Tag, 'id'>) => void;
+    onUpdateTag: (tagId: string, updates: Partial<Tag>) => void;
+    onDeleteTag: (tagId: string) => void;
     onStartTimer: () => void;
 }
 
@@ -167,6 +171,8 @@ const SortableRow: React.FC<SortableRowProps> = ({
     activePopover,
     setActivePopover,
     onAddTag,
+    onUpdateTag,
+    onDeleteTag,
     onStartTimer
 }) => {
     const {
@@ -178,9 +184,6 @@ const SortableRow: React.FC<SortableRowProps> = ({
         isDragging
     } = useSortable({ id: task.id });
 
-    const [newTagName, setNewTagName] = React.useState('');
-    const [newTagColor, setNewTagColor] = React.useState('#3b82f6');
-
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
@@ -189,13 +192,6 @@ const SortableRow: React.FC<SortableRowProps> = ({
     };
 
     const priorities: Task['priority'][] = ['urgent', 'high', 'medium', 'low'];
-    const tagColors = ['#ef4444', '#f97316', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'];
-
-    const handleAddTag = () => {
-        if (!newTagName.trim()) return;
-        onAddTag({ name: newTagName, color: newTagColor });
-        setNewTagName('');
-    };
 
     const renderCell = (col: ColumnSetting) => {
         switch (col.id) {
@@ -225,54 +221,22 @@ const SortableRow: React.FC<SortableRowProps> = ({
                                     <Plus size={10} />
                                 </button>
                                 {activePopover?.taskId === task.id && activePopover?.field === 'tags' && (
-                                    <div className="inline-popover tags-popover" onClick={e => e.stopPropagation()}>
-                                        <div className="popover-header">Select Tags</div>
-                                        <div className="popover-content">
-                                            {tags.map(tag => {
-                                                const isActive = task.tags?.includes(tag.id);
-                                                return (
-                                                    <div
-                                                        key={tag.id}
-                                                        className={`popover-item ${isActive ? 'active' : ''}`}
-                                                        onClick={() => {
-                                                            const newTags = isActive
-                                                                ? task.tags?.filter(t => t !== tag.id)
-                                                                : [...(task.tags || []), tag.id];
-                                                            onUpdateTask(task.id, { tags: newTags });
-                                                        }}
-                                                    >
-                                                        <span className="tag-dot" style={{ background: tag.color }}></span>
-                                                        {tag.name}
-                                                        {isActive && <CheckSquare size={12} className="check-icon" />}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                        <div className="popover-footer-create">
-                                            <div className="create-tag-input-row">
-                                                <input
-                                                    type="text"
-                                                    placeholder="New tag..."
-                                                    value={newTagName}
-                                                    onChange={e => setNewTagName(e.target.value)}
-                                                    onClick={e => e.stopPropagation()}
-                                                    onKeyDown={e => {
-                                                        if (e.key === 'Enter') handleAddTag();
-                                                    }}
-                                                />
-                                                <button onClick={(e) => { e.stopPropagation(); handleAddTag(); }}>Add</button>
-                                            </div>
-                                            <div className="create-tag-colors">
-                                                {tagColors.map(color => (
-                                                    <div
-                                                        key={color}
-                                                        className={`color-swatch ${newTagColor === color ? 'selected' : ''}`}
-                                                        style={{ background: color }}
-                                                        onClick={(e) => { e.stopPropagation(); setNewTagColor(color); }}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
+                                    <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100 }}>
+                                        <TagMenu
+                                            tags={tags}
+                                            selectedTagIds={task.tags || []}
+                                            onToggleTag={(tagId) => {
+                                                const currentTags = task.tags || [];
+                                                const newTags = currentTags.includes(tagId)
+                                                    ? currentTags.filter(t => t !== tagId)
+                                                    : [...currentTags, tagId];
+                                                onUpdateTask(task.id, { tags: newTags });
+                                            }}
+                                            onCreateTag={onAddTag}
+                                            onUpdateTag={onUpdateTag}
+                                            onDeleteTag={onDeleteTag}
+                                            onClose={() => setActivePopover(null)}
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -302,28 +266,15 @@ const SortableRow: React.FC<SortableRowProps> = ({
                             {task.dueDate ? format(new Date(task.dueDate), 'MMM d') : 'Set Date'}
                         </div>
                         {activePopover?.taskId === task.id && activePopover?.field === 'date' && (
-                            <div className="inline-popover date-popover" onClick={e => e.stopPropagation()}>
-                                <div className="popover-item" onClick={() => {
-                                    onUpdateTask(task.id, { dueDate: new Date().toISOString() });
-                                    setActivePopover(null);
-                                }}>Today</div>
-                                <div className="popover-item" onClick={() => {
-                                    const d = new Date();
-                                    d.setDate(d.getDate() + 1);
-                                    onUpdateTask(task.id, { dueDate: d.toISOString() });
-                                    setActivePopover(null);
-                                }}>Tomorrow</div>
-                                <div className="popover-item" onClick={() => {
-                                    const d = new Date();
-                                    d.setDate(d.getDate() + 7);
-                                    onUpdateTask(task.id, { dueDate: d.toISOString() });
-                                    setActivePopover(null);
-                                }}>Next Week</div>
-                                <div className="popover-divider"></div>
-                                <div className="popover-item danger" onClick={() => {
-                                    onUpdateTask(task.id, { dueDate: undefined });
-                                    setActivePopover(null);
-                                }}>Clear Date</div>
+                            <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100 }}>
+                                <DatePicker
+                                    initialDate={task.dueDate ? new Date(task.dueDate) : undefined}
+                                    onSelect={(date: Date | null) => {
+                                        onUpdateTask(task.id, { dueDate: date ? date.toISOString() : undefined });
+                                        setActivePopover(null);
+                                    }}
+                                    onClose={() => setActivePopover(null)}
+                                />
                             </div>
                         )}
                     </div>
@@ -439,6 +390,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         spaces,
         lists,
         addTag,
+        updateTag,
+        deleteTag,
         startTimer,
         addStatus
     } = useAppStore();
@@ -697,6 +650,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                                         activePopover={activePopover}
                                                         setActivePopover={setActivePopover}
                                                         onAddTag={addTag}
+                                                        onUpdateTag={updateTag}
+                                                        onDeleteTag={deleteTag}
                                                         onStartTimer={() => {
                                                             startTimer(task.id);
                                                             setOpenMenuTaskId(null);

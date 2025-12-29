@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Clock, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import {
     format,
     addMonths,
@@ -24,6 +24,15 @@ interface DatePickerProps {
 }
 
 const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose }) => {
+    // Close on Escape key
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onClose]);
+
     const [currentMonth, setCurrentMonth] = useState(initialDate || new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(initialDate || null);
 
@@ -74,7 +83,6 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose 
                 targetDate = nextWeekStart;
                 break;
             case 'Next weekend': // Next Saturday
-                const nextWeekendStart = addDays(startOfWeek(today), 6); // This Saturday
                 // If today is sat or sun, maybe next week sat? 
                 // Simple logic: Next Saturday from "now"
                 // If today is Friday, tomorrow is Sat.

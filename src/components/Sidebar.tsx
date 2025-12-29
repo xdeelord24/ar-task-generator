@@ -140,6 +140,8 @@ const Sidebar: React.FC = () => {
         { id: 'timesheet', icon: Clock, label: 'Timesheets' },
     ];
 
+    const favorites: any[] = [];
+
     const renderIcon = (iconName: string, size = 18, color?: string) => {
         const IconComponent = IconMap[iconName] || StarIcon;
         return <IconComponent size={size} color={color} />;
@@ -181,27 +183,49 @@ const Sidebar: React.FC = () => {
                 </a>
             </nav>
 
-            <div className="sidebar-section">
-                <div className="section-header">
-                    <span>Favorites</span>
-                    <ChevronRight size={14} />
+            {favorites.length > 0 && (
+                <div className="sidebar-section">
+                    <div className="section-header clickable" onClick={() => {/* Toggle favorites */ }}>
+                        <span>FAVORITES</span>
+                        <ChevronRight size={14} />
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className="sidebar-section">
                 <div className="section-header">
-                    <span>Spaces</span>
+                    <span>SPACES</span>
                     <button className="add-btn" onClick={() => setIsCreateSpaceOpen(true)}><Plus size={14} /></button>
                 </div>
                 <div className="spaces-list">
+                    {/* Everything Item */}
+                    <a
+                        href="#"
+                        className={`nav-item space-item ${currentSpaceId === 'everything' ? 'active' : ''}`}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentSpaceId('everything');
+                            setCurrentView('space_overview');
+                            setCurrentListId(null);
+                        }}
+                    >
+                        <div className="expand-icon-wrapper invisible">
+                            <ChevronRight size={14} />
+                        </div>
+                        <div className="space-icon star-icon">
+                            <StarIcon size={14} />
+                        </div>
+                        <span>Everything</span>
+                    </a>
+
                     {spaces.map(space => {
                         const isExpanded = expandedSpaceIds.has(space.id);
                         return (
                             <div key={space.id} className="space-item-container">
-                                <a
-                                    href="#"
+                                <div
                                     className={`nav-item space-item ${currentSpaceId === space.id ? 'active' : ''}`}
                                     onClick={(e) => {
+                                        // If clicking the row, select the space
                                         e.preventDefault();
                                         handleSpaceClick(space.id);
                                     }}
@@ -214,34 +238,29 @@ const Sidebar: React.FC = () => {
                                         { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteSpace(space.id), danger: true },
                                     ])}
                                 >
-                                    <div className="expand-icon-wrapper" onClick={(e) => toggleSpace(e, space.id)}>
+                                    <div
+                                        className="expand-icon-wrapper"
+                                        onClick={(e) => toggleSpace(e, space.id)}
+                                    >
                                         <ChevronRight size={14} className={`expand-icon ${isExpanded ? 'expanded' : ''}`} />
                                     </div>
                                     <div className="space-icon" style={{
-                                        backgroundColor: space.color ? `${space.color}20` : '#f1f5f9',
-                                        width: '22px',
-                                        height: '22px',
-                                        borderRadius: '6px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: space.color || '#64748b'
+                                        color: space.color || '#64748b',
+                                        background: `${space.color || '#64748b'}20`
                                     }}>
                                         {renderIcon(space.icon || 'star', 14, space.color || '#64748b')}
                                     </div>
-                                    <span style={{ fontWeight: currentSpaceId === space.id ? 600 : 400 }}>{space.name}</span>
-                                </a>
+                                    <span className="space-name">{space.name}</span>
+                                </div>
                                 {isExpanded && (
-                                    <div className="space-lists">
+                                    <div className="space-children">
                                         {/* Render Folders */}
                                         {folders.filter(f => f.spaceId === space.id).map(folder => {
                                             const isFolderExpanded = expandedFolderIds.has(folder.id);
                                             return (
-                                                <div key={folder.id} className="folder-item-container">
-                                                    <a
-                                                        href="#"
+                                                <div key={folder.id} className="folder-container">
+                                                    <div
                                                         className="nav-item folder-item"
-                                                        style={{ paddingLeft: '24px' }}
                                                         onClick={(e) => toggleFolder(e, folder.id)}
                                                         onContextMenu={(e) => showContextMenu(e, [
                                                             { label: 'Create List', icon: <Plus size={14} />, onClick: () => { setCreateListSpaceId(space.id); setCreateListFolderId(folder.id); } },
@@ -249,25 +268,24 @@ const Sidebar: React.FC = () => {
                                                             { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteFolder(folder.id), danger: true },
                                                         ])}
                                                     >
-                                                        <div className="expand-icon-wrapper" style={{ marginRight: '4px' }}>
+                                                        <div className="expand-icon-wrapper">
                                                             <ChevronRight size={14} className={`expand-icon ${isFolderExpanded ? 'expanded' : ''}`} />
                                                         </div>
-                                                        <Folder size={14} style={{ marginRight: '8px', color: '#64748b' }} />
+                                                        <Folder size={14} className="folder-icon" />
                                                         <span>{folder.name}</span>
-                                                    </a>
+                                                    </div>
                                                     {isFolderExpanded && (
-                                                        <div className="folder-lists">
+                                                        <div className="folder-children">
                                                             {lists.filter(l => l.folderId === folder.id).map(list => (
                                                                 <a
                                                                     key={list.id}
                                                                     href="#"
                                                                     className={`nav-item list-item ${currentListId === list.id ? 'active' : ''}`}
-                                                                    style={{ paddingLeft: '48px' }}
                                                                     onClick={(e) => {
                                                                         e.preventDefault();
                                                                         setCurrentListId(list.id);
-                                                                        const taskViews = ['list', 'kanban', 'calendar', 'gantt'];
-                                                                        if (!taskViews.includes(currentView)) {
+                                                                        // Ensure we are in a task view
+                                                                        if (!['list', 'kanban', 'calendar', 'gantt'].includes(currentView)) {
                                                                             setCurrentView('list');
                                                                         }
                                                                     }}
@@ -276,12 +294,12 @@ const Sidebar: React.FC = () => {
                                                                         { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteList(list.id), danger: true },
                                                                     ])}
                                                                 >
-                                                                    <div style={{ marginRight: '8px', display: 'flex', alignItems: 'center' }}>
-                                                                        {list.icon ? renderIcon(list.icon, 14, list.color || space.color || '#64748b') : (
+                                                                    <div className="list-icon-wrapper">
+                                                                        {list.icon ? renderIcon(list.icon, 14, list.color || space.color || undefined) : (
                                                                             <div className="list-dot" style={{ backgroundColor: list.color || space.color || '#64748b' }}></div>
                                                                         )}
                                                                     </div>
-                                                                    <span style={{ fontWeight: currentListId === list.id ? 600 : 400 }}>{list.name}</span>
+                                                                    <span>{list.name}</span>
                                                                 </a>
                                                             ))}
                                                         </div>
@@ -299,8 +317,7 @@ const Sidebar: React.FC = () => {
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     setCurrentListId(list.id);
-                                                    const taskViews = ['list', 'kanban', 'calendar', 'gantt'];
-                                                    if (!taskViews.includes(currentView)) {
+                                                    if (!['list', 'kanban', 'calendar', 'gantt'].includes(currentView)) {
                                                         setCurrentView('list');
                                                     }
                                                 }}
@@ -309,34 +326,21 @@ const Sidebar: React.FC = () => {
                                                     { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteList(list.id), danger: true },
                                                 ])}
                                             >
-                                                <div style={{ marginLeft: '4px', marginRight: '8px', display: 'flex', alignItems: 'center' }}>
-                                                    {list.icon ? renderIcon(list.icon, 14, list.color || space.color || '#64748b') : (
-                                                        <div className="list-dot" style={{ backgroundColor: list.color || space.color || '#64748b' }}></div>
-                                                    )}
+                                                <div className="list-icon-wrapper">
+                                                    {list.icon ? renderIcon(list.icon, 14, list.color || space.color || undefined) : <ListIcon size={14} color={list.color || space.color || undefined} />}
                                                 </div>
-                                                <span style={{ fontWeight: currentListId === list.id ? 600 : 400 }}>{list.name}</span>
+                                                <span>{list.name}</span>
                                             </a>
                                         ))}
-
-                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                            <a href="#" className="nav-item add-list-btn" onClick={(e) => {
-                                                e.preventDefault();
-                                                setCreateListSpaceId(space.id);
-                                                setCreateListFolderId(null);
-                                            }}>
-                                                <Plus size={14} />
-                                                <span>Add List</span>
-                                            </a>
-                                        </div>
                                     </div>
                                 )}
                             </div>
                         );
                     })}
                 </div>
-                <a href="#" className="nav-item create-space" onClick={(e) => { e.preventDefault(); setIsCreateSpaceOpen(true); }}>
-                    <Plus size={18} />
-                    <span>Create Space</span>
+                <a href="#" className="nav-item create-space-btn" onClick={(e) => { e.preventDefault(); setIsCreateSpaceOpen(true); }}>
+                    <Plus size={14} />
+                    <span>New Space</span>
                 </a>
             </div>
 
