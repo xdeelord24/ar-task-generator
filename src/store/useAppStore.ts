@@ -33,6 +33,7 @@ interface AppStore extends AppState {
     addComment: (taskId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => void;
     addTimeEntry: (taskId: string, entry: Omit<TimeEntry, 'id'>) => void;
     addRelationship: (taskId: string, relationship: Omit<Relationship, 'id'>) => void;
+    removeRelationship: (taskId: string, relationshipId: string) => void;
     addDoc: (doc: Omit<Doc, 'id' | 'updatedAt'>) => string;
     updateDoc: (docId: string, updates: Partial<Doc>) => void;
     addStatus: (targetId: string, isSpace: boolean, status: Omit<Status, 'id'>) => void;
@@ -260,6 +261,12 @@ export const useAppStore = create<AppStore>()(
                 tasks: state.tasks.map(task => task.id === taskId ? {
                     ...task,
                     relationships: [...(task.relationships || []), { ...relationship, id: crypto.randomUUID() }]
+                } : task)
+            })),
+            removeRelationship: (taskId, relationshipId) => set((state) => ({
+                tasks: state.tasks.map(task => task.id === taskId ? {
+                    ...task,
+                    relationships: (task.relationships || []).filter(r => r.id !== relationshipId)
                 } : task)
             })),
             addDoc: (doc) => {

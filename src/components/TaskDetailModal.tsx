@@ -8,7 +8,6 @@ import {
     MoreVertical,
     ChevronDown,
     MessageSquare,
-    Link as LinkIcon,
     Link2,
     Clock3,
     AlertCircle,
@@ -21,7 +20,10 @@ import {
     Flag,
     MoreHorizontal,
     Tag,
-    Edit2
+    Edit2,
+    MinusCircle,
+    Search,
+    Circle
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { format, parseISO } from 'date-fns';
@@ -39,7 +41,7 @@ interface TaskDetailModalProps {
     onTaskClick?: (id: string) => void;
 }
 
-type SidebarTab = 'activity' | 'links' | 'more';
+type SidebarTab = 'activity' | 'blocking' | 'waiting' | 'links' | 'more';
 
 const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTaskClick }) => {
     const {
@@ -98,6 +100,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
     const [commentText, setCommentText] = useState('');
     const [isTagPickerOpen, setIsTagPickerOpen] = useState(false);
+    const [isRelationshipPickerOpen, setIsRelationshipPickerOpen] = useState(false);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
     const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
@@ -395,15 +398,25 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                 <div className="meta-item">
                                     <span className="meta-label">Relationships</span>
                                     <div className="meta-inline-val">
-                                        <div className="rel-list-inline">
-                                            {task.relationships && task.relationships.map(rel => {
-                                                const relatedTask = tasks.find(t => t.id === rel.taskId);
-                                                return (
-                                                    <span key={rel.id} className="rel-pill-small">
-                                                        {rel.type}: {relatedTask ? relatedTask.name.substring(0, 10) + '...' : rel.taskId.substring(0, 4)}
-                                                    </span>
-                                                );
-                                            })}
+                                        <div className="rel-badges-container">
+                                            {task.relationships && task.relationships.filter(r => r.type === 'blocking').length > 0 && (
+                                                <div className="rel-badge blocking" onClick={() => setSidebarTab('blocking')}>
+                                                    <MinusCircle size={12} />
+                                                    <span>{task.relationships.filter(r => r.type === 'blocking').length} Blocking</span>
+                                                </div>
+                                            )}
+                                            {task.relationships && task.relationships.filter(r => r.type === 'waiting').length > 0 && (
+                                                <div className="rel-badge waiting" onClick={() => setSidebarTab('waiting')}>
+                                                    <AlertCircle size={12} />
+                                                    <span>{task.relationships.filter(r => r.type === 'waiting').length} Waiting on</span>
+                                                </div>
+                                            )}
+                                            {task.relationships && task.relationships.filter(r => r.type === 'linked').length > 0 && (
+                                                <div className="rel-badge linked" onClick={() => setSidebarTab('links')}>
+                                                    <Check size={12} />
+                                                    <span>{task.relationships.filter(r => r.type === 'linked').length} Task</span>
+                                                </div>
+                                            )}
                                             {(!task.relationships || task.relationships.length === 0) && (
                                                 <span className="empty-val">Empty</span>
                                             )}
@@ -637,13 +650,65 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                 </div>
                             )}
 
-                            {sidebarTab === 'links' && (
-                                <div className="links-panel">
-                                    <div className="panel-header">Links</div>
-                                    <div className="empty-panel-content">
-                                        <Link2 size={32} />
-                                        <p>No links yet</p>
+                            {(sidebarTab === 'links' || sidebarTab === 'blocking' || sidebarTab === 'waiting') && (
+                                <div className="links-panel relationship-sidebar-panel">
+                                    <div className="panel-header">
+                                        <span>{sidebarTab === 'links' ? 'Task Links' : sidebarTab === 'blocking' ? 'Blocking' : 'Waiting on'}</span>
+                                        <div className="panel-header-actions">
+                                            <Search size={14} />
+                                            <ExternalLink size={14} />
+                                            <Plus size={14} onClick={() => setIsRelationshipPickerOpen(true)} />
+                                        </div>
                                     </div>
+
+                                    <div className="rel-sidebar-content">
+                                        <div className="rel-sidebar-section">
+                                            <div className="rel-sec-header">
+                                                <ChevronDown size={14} />
+                                                <span>{sidebarTab === 'links' ? 'Linked' : sidebarTab === 'blocking' ? 'Blocking' : 'Waiting on'}</span>
+                                                <span className="rel-sec-count">
+                                                    {task.relationships?.filter(r => r.type === (sidebarTab === 'links' ? 'linked' : sidebarTab === 'blocking' ? 'blocking' : 'waiting')).length || 0}
+                                                </span>
+                                            </div>
+                                            <div className="rel-sec-list">
+                                                {task.relationships?.filter(r => r.type === (sidebarTab === 'links' ? 'linked' : sidebarTab === 'blocking' ? 'blocking' : 'waiting')).map(rel => {
+                                                    const rTask = tasks.find(t => t.id === rel.taskId);
+                                                    if (!rTask) return null;
+                                                    return (
+                                                        <div key={rel.id} className="rel-sidebar-item" onClick={() => onTaskClick?.(rTask.id)}>
+                                                            <Circle size={12} color="#cbd5e1" />
+                                                            <span className="rel-item-task-name">{rTask.name}</span>
+                                                            <span className="rel-item-due">{rTask.dueDate ? format(parseISO(rTask.dueDate), 'M/d/yy') : ''}</span>
+                                                            <Flag size={12} color="#cbd5e1" />
+                                                        </div>
+                                                    );
+                                                })}
+                                                <button className="add-rel-sidebar-btn" onClick={() => setIsRelationshipPickerOpen(true)}>
+                                                    <Plus size={14} />
+                                                    <span>Add {sidebarTab === 'links' ? 'linked task' : sidebarTab === 'blocking' ? 'blocking task' : 'waiting on task'}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {sidebarTab === 'links' && (
+                                            <div className="rel-sidebar-section">
+                                                <div className="rel-sec-header">
+                                                    <ChevronRight size={14} />
+                                                    <span>References</span>
+                                                    <span className="rel-sec-count">0</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {isRelationshipPickerOpen && (
+                                        <RelationshipMenu
+                                            taskId={taskId}
+                                            onClose={() => setIsRelationshipPickerOpen(false)}
+                                            mode="list"
+                                            isModal={true}
+                                        />
+                                    )}
                                 </div>
                             )}
 
@@ -676,15 +741,47 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                 className={`vertical-tab ${sidebarTab === 'activity' ? 'active' : ''}`}
                                 onClick={() => setSidebarTab('activity')}
                             >
-                                <MessageSquare size={18} />
+                                <div className="tab-icon-wrapper">
+                                    <MessageSquare size={18} />
+                                    <span className="tab-count-dot">1</span>
+                                </div>
                                 <span className="tab-label">Activity</span>
+                            </button>
+                            <button
+                                className={`vertical-tab ${sidebarTab === 'blocking' ? 'active' : ''}`}
+                                onClick={() => setSidebarTab('blocking')}
+                            >
+                                <div className="tab-icon-wrapper">
+                                    <MinusCircle size={18} />
+                                    {task?.relationships?.filter(r => r.type === 'blocking').length ? (
+                                        <span className="tab-count-dot">{task.relationships.filter(r => r.type === 'blocking').length}</span>
+                                    ) : null}
+                                </div>
+                                <span className="tab-label">Blocking</span>
+                            </button>
+                            <button
+                                className={`vertical-tab ${sidebarTab === 'waiting' ? 'active' : ''}`}
+                                onClick={() => setSidebarTab('waiting')}
+                            >
+                                <div className="tab-icon-wrapper">
+                                    <AlertCircle size={18} />
+                                    {task?.relationships?.filter(r => r.type === 'waiting').length ? (
+                                        <span className="tab-count-dot">{task.relationships.filter(r => r.type === 'waiting').length}</span>
+                                    ) : null}
+                                </div>
+                                <span className="tab-label">Waiting on</span>
                             </button>
                             <button
                                 className={`vertical-tab ${sidebarTab === 'links' ? 'active' : ''}`}
                                 onClick={() => setSidebarTab('links')}
                             >
-                                <LinkIcon size={18} />
-                                <span className="tab-label">Links</span>
+                                <div className="tab-icon-wrapper">
+                                    <Link2 size={18} />
+                                    {task?.relationships?.filter(r => r.type === 'linked').length ? (
+                                        <span className="tab-count-dot">{task.relationships.filter(r => r.type === 'linked').length}</span>
+                                    ) : null}
+                                </div>
+                                <span className="tab-label">Task Links</span>
                             </button>
                             <button
                                 className={`vertical-tab ${sidebarTab === 'more' ? 'active' : ''}`}

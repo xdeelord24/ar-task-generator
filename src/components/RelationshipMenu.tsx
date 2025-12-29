@@ -15,7 +15,7 @@ interface RelationshipMenuProps {
 }
 
 const RelationshipMenu: React.FC<RelationshipMenuProps> = ({ taskId, onClose, inline, mode = 'grid', isModal, modalPicker }) => {
-    const { tasks, addRelationship, updateTask } = useAppStore();
+    const { tasks, addRelationship, updateTask, removeRelationship } = useAppStore();
     const [pickerType, setPickerType] = useState<'waiting' | 'blocking' | 'linked' | 'custom' | 'doc' | null>(null);
 
     const activeTask = tasks.find(t => t.id === taskId);
@@ -23,10 +23,14 @@ const RelationshipMenu: React.FC<RelationshipMenuProps> = ({ taskId, onClose, in
 
     const handleSelectTask = (targetId: string) => {
         if (pickerType && pickerType !== 'doc') {
-            addRelationship(taskId, {
-                type: pickerType,
-                taskId: targetId
-            });
+            // Check for duplicates
+            const isDuplicate = relationships.some(r => r.taskId === targetId && r.type === pickerType);
+            if (!isDuplicate) {
+                addRelationship(taskId, {
+                    type: pickerType,
+                    taskId: targetId
+                });
+            }
         }
         setPickerType(null);
         if (!inline && mode === 'grid') onClose();
@@ -137,7 +141,16 @@ const RelationshipMenu: React.FC<RelationshipMenuProps> = ({ taskId, onClose, in
                                         const t = tasks.find(x => x.id === rel.taskId);
                                         return (
                                             <div key={rel.id} className="rel-item-pill">
-                                                <span>{t?.name || 'Unknown Task'}</span>
+                                                <span className="rel-item-name">{t?.name || 'Unknown Task'}</span>
+                                                <button
+                                                    className="remove-rel-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        removeRelationship(taskId, rel.id);
+                                                    }}
+                                                >
+                                                    <X size={14} />
+                                                </button>
                                             </div>
                                         );
                                     })}
