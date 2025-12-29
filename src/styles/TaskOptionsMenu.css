@@ -1,21 +1,20 @@
 .task-options-menu {
     width: 280px;
-    background: #1e293b;
-    /* Darker navy as in image */
+    background: var(--bg-surface);
     border-radius: 8px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-    border: 1px solid #334155;
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--border);
     position: absolute;
     z-index: 5000;
-    color: white;
+    color: var(--text-main);
     font-family: inherit;
     overflow: hidden;
 }
 
 .menu-header-row {
     display: flex;
-    background: #334155;
-    border-bottom: 1px solid #475569;
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border);
 }
 
 .menu-header-row button {
@@ -27,7 +26,7 @@
     padding: 10px 4px;
     background: transparent;
     border: none;
-    color: #cbd5e1;
+    color: var(--text-secondary);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -35,13 +34,13 @@
 }
 
 .menu-header-row button:hover {
-    color: white;
-    background: #475569;
+    color: var(--text-main);
+    background: var(--bg-active);
 }
 
 .menu-divider-v {
     width: 1px;
-    background: #475569;
+    background: var(--border);
 }
 
 .menu-main-content {
@@ -55,44 +54,47 @@
     padding: 10px 16px;
     background: transparent;
     border: none;
-    color: white;
+    color: var(--text-main);
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     transition: background 0.2s;
+    text-align: left;
 }
 
 .menu-item:hover {
-    background: #334155;
+    background: var(--bg-hover);
 }
 
 .menu-item .menu-icon {
-    color: #94a3b8;
+    color: var(--text-secondary);
     margin-right: 12px;
     flex-shrink: 0;
 }
 
 .menu-item .menu-label {
     flex: 1;
+    color: var(--text-main);
 }
 
 /* Layout for items WITHOUT chevron: label on the right */
 .menu-item:not(.has-chevron) .menu-label {
     text-align: right;
+    color: var(--text-secondary);
 }
 
 .menu-item .chevron-right {
     margin-left: 8px;
-    color: #64748b;
+    color: var(--text-tertiary);
 }
 
 .menu-item.danger .menu-label {
-    color: #ef4444;
+    color: var(--error);
 }
 
 .menu-divider-h {
     height: 1px;
-    background: #334155;
+    background: var(--border);
     margin: 4px 0;
 }
 
@@ -106,7 +108,7 @@
     align-items: center;
     justify-content: center;
     gap: 12px;
-    background: #2563eb;
+    background: var(--primary);
     color: white;
     border: none;
     padding: 12px;
@@ -114,8 +116,11 @@
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .btn-sharing:hover {
-    background: #1d4ed8;
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }

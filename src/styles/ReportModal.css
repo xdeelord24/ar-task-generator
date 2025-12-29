@@ -1,6 +1,6 @@
 /* Report Modal Container */
 .modal-content.report-modal {
-    background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(249, 250, 251, 0.98) 100%);
+    background: var(--bg-surface);
     max-width: 680px !important;
     max-height: 90vh;
     display: flex;
@@ -25,7 +25,7 @@
 
 /* Header */
 .report-modal .modal-header {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
     padding: 24px 28px;
     border-bottom: none;
 }
@@ -88,7 +88,7 @@
 .form-section {
     margin-bottom: 32px;
     padding: 20px;
-    background: white;
+    background: var(--bg-surface);
     border-radius: 12px;
     border: 1px solid var(--border-light);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -103,12 +103,12 @@
 .form-section h3 {
     font-size: 12px;
     font-weight: 700;
-    color: #2563eb;
+    color: var(--primary);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin-bottom: 18px;
     padding-bottom: 12px;
-    border-bottom: 2px solid #e0e7ff;
+    border-bottom: 2px solid var(--primary-light);
     position: relative;
     display: flex;
     align-items: center;
@@ -119,9 +119,9 @@
     content: '';
     width: 4px;
     height: 16px;
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
     border-radius: 2px;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
 }
 
 /* Template Selector */
@@ -134,26 +134,26 @@
 .template-option {
     position: relative;
     cursor: pointer;
-    border: 2px solid #e2e8f0;
+    border: 2px solid var(--border);
     border-radius: 10px;
     padding: 16px;
-    background: #f8fafc;
+    background: var(--bg-hover);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: block;
 }
 
 .template-option:hover {
-    border-color: #cbd5e1;
-    background: white;
+    border-color: var(--border-strong);
+    background: var(--bg-surface);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .template-option.active {
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    border-color: #2563eb;
+    background: var(--primary-light);
+    border-color: var(--primary);
     border-width: 2px;
-    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
 }
 
 .template-option input[type="radio"] {
@@ -196,7 +196,7 @@
 }
 
 .template-option.active .template-title {
-    color: #1e40af;
+    color: var(--primary-hover);
 }
 
 .template-desc {
@@ -206,7 +206,7 @@
 }
 
 .template-option.active .template-desc {
-    color: #3b82f6;
+    color: var(--primary);
 }
 
 /* Add checkmark for active template */
@@ -217,7 +217,7 @@
     right: 12px;
     width: 24px;
     height: 24px;
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
     color: white;
     border-radius: 50%;
     display: flex;
@@ -225,7 +225,7 @@
     justify-content: center;
     font-size: 14px;
     font-weight: bold;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
     animation: checkmarkPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
@@ -267,13 +267,13 @@
     display: block;
     font-size: 13px;
     font-weight: 600;
-    color: #475569;
+    color: var(--text-secondary);
     margin-bottom: 8px;
     transition: color 0.2s ease;
 }
 
 .form-group:focus-within label {
-    color: #2563eb;
+    color: var(--primary);
 }
 
 /* Form Inputs */
@@ -281,8 +281,8 @@
 .form-group select {
     width: 100%;
     padding: 11px 14px;
-    border: 2px solid #e2e8f0;
-    background-color: #f8fafc;
+    border: 2px solid var(--border);
+    background-color: var(--bg-hover);
     border-radius: 8px;
     font-size: 14px;
     color: var(--text-main);
@@ -293,20 +293,20 @@
 
 .form-group input:hover,
 .form-group select:hover {
-    border-color: #cbd5e1;
-    background-color: white;
+    border-color: var(--border-strong);
+    background-color: var(--bg-surface);
 }
 
 .form-group input:focus,
 .form-group select:focus {
-    border-color: #2563eb;
-    background-color: white;
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    border-color: var(--primary);
+    background-color: var(--bg-surface);
+    box-shadow: 0 0 0 4px var(--primary-light);
     transform: translateY(-1px);
 }
 
 .form-group input::placeholder {
-    color: #94a3b8;
+    color: var(--text-tertiary);
 }
 
 /* Date Inputs */
@@ -327,6 +327,7 @@
 
 /* Number Inputs */
 .form-group input[type="number"] {
+    appearance: textfield;
     -moz-appearance: textfield;
 }
 
@@ -339,9 +340,9 @@
 /* Select Dropdown */
 .form-group select {
     cursor: pointer;
+    appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
@@ -371,8 +372,8 @@
     color: var(--text-secondary);
     cursor: pointer;
     padding: 10px 16px;
-    background: #f8fafc;
-    border: 2px solid #e2e8f0;
+    background: var(--bg-hover);
+    border: 2px solid var(--border);
     border-radius: 8px;
     transition: all 0.2s ease;
     user-select: none;
@@ -380,7 +381,7 @@
 
 .checkbox-group label:hover {
     background: white;
-    border-color: #cbd5e1;
+    border-color: var(--border-strong);
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
@@ -389,7 +390,7 @@
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: #2563eb;
+    accent-color: var(--primary);
     transition: transform 0.2s ease;
 }
 
@@ -398,9 +399,9 @@
 }
 
 .checkbox-group label:has(input:checked) {
-    background: #eff6ff;
-    border-color: #2563eb;
-    color: #1e40af;
+    background: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary-hover);
     font-weight: 600;
 }
 
@@ -408,7 +409,7 @@
 .report-modal .modal-footer {
     padding: 20px 28px;
     border-top: 1px solid var(--border-light);
-    background: linear-gradient(to top, #f8fafc 0%, white 100%);
+    background: linear-gradient(to top, var(--bg-hover) 0%, var(--bg-surface) 100%);
     display: flex;
     gap: 12px;
     justify-content: flex-end;
@@ -417,7 +418,7 @@
 .report-modal .btn-secondary {
     padding: 11px 20px;
     background: white;
-    border: 2px solid #e2e8f0;
+    border: 2px solid var(--border);
     color: var(--text-secondary);
     font-weight: 600;
     font-size: 14px;
@@ -427,8 +428,8 @@
 }
 
 .report-modal .btn-secondary:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
     color: var(--text-main);
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -436,7 +437,7 @@
 
 .report-modal .btn-primary {
     padding: 11px 24px;
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
     border: none;
     color: white;
     font-weight: 600;
@@ -444,19 +445,19 @@
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
 .report-modal .btn-primary:hover {
-    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary-hover) 100%);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
 .report-modal .btn-primary:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }

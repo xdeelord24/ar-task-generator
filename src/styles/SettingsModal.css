@@ -83,12 +83,13 @@
     border-radius: 8px;
     border: none;
     background: transparent;
-    color: #64748b;
+    color: var(--text-secondary);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: var(--transition);
     text-align: left;
+    width: 100%;
 }
 
 .sidebar-item:hover {
@@ -126,10 +127,11 @@
     font-weight: 500;
     cursor: pointer;
     transition: var(--transition);
+    text-align: left;
 }
 
 .logout-btn:hover {
-    background: #fef2f2;
+    background: var(--error-light);
 }
 
 .settings-main {
@@ -144,7 +146,7 @@
     position: absolute;
     top: 20px;
     right: 20px;
-    background: #f1f5f9;
+    background: var(--bg-hover);
     border: none;
     width: 32px;
     height: 32px;
@@ -152,7 +154,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #64748b;
+    color: var(--text-secondary);
     cursor: pointer;
     transition: var(--transition);
     z-index: 10;
@@ -194,7 +196,7 @@
 .avatar-preview {
     width: 80px;
     height: 80px;
-    background: #6366f1;
+    background: var(--primary);
     color: white;
     border-radius: 50%;
     display: flex;
@@ -213,7 +215,7 @@
 .form-group label {
     font-size: 14px;
     font-weight: 600;
-    color: #64748b;
+    color: var(--text-secondary);
 }
 
 .form-group input {
@@ -227,7 +229,7 @@
 .form-group input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 3px var(--primary-light);
 }
 
 /* Themes Section */
@@ -286,8 +288,8 @@
     border-radius: 50%;
     cursor: pointer;
     transition: var(--transition);
-    border: 2px solid white;
-    box-shadow: 0 0 0 1px #e2e8f0;
+    border: 2px solid var(--bg-surface);
+    box-shadow: 0 0 0 1px var(--border);
 }
 
 .color-circle:hover {
@@ -302,7 +304,7 @@
 .shortcut-group h3 {
     font-size: 14px;
     font-weight: 700;
-    color: #64748b;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 16px;
