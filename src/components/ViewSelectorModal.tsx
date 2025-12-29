@@ -143,7 +143,7 @@ const ViewSelectorModal: React.FC<ViewSelectorModalProps> = ({ onClose, onSelect
     const [showNameInput, setShowNameInput] = useState(false);
     const [selectedViewType, setSelectedViewType] = useState<ViewType | null>(null);
 
-    const { addSavedView, currentSpaceId, currentListId } = useAppStore();
+    const { addSavedView, currentSpaceId, currentListId, addDashboard, setCurrentDashboardId } = useAppStore();
 
     const filteredViews = VIEW_OPTIONS.filter(view =>
         view.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -162,13 +162,31 @@ const ViewSelectorModal: React.FC<ViewSelectorModalProps> = ({ onClose, onSelect
     const handleCreateView = () => {
         if (!selectedViewType || !viewName.trim()) return;
 
+        let dashboardId: string | undefined;
+
+        if (selectedViewType === 'dashboards') {
+            dashboardId = addDashboard({
+                name: viewName.trim(),
+                spaceId: currentSpaceId === 'everything' ? undefined : currentSpaceId,
+                listId: currentListId || undefined,
+                items: [
+                    { id: '1', type: 'stat', title: 'Total Tasks', size: 'small', config: { metric: 'total' } },
+                    { id: '2', type: 'stat', title: 'Completed', size: 'small', config: { metric: 'completed' } },
+                    { id: '3', type: 'stat', title: 'In Progress', size: 'small', config: { metric: 'inprogress' } },
+                    { id: '4', type: 'stat', title: 'Urgent', size: 'small', config: { metric: 'urgent' } }
+                ]
+            });
+            setCurrentDashboardId(dashboardId);
+        }
+
         addSavedView({
             name: viewName.trim(),
             viewType: selectedViewType,
             spaceId: currentSpaceId === 'everything' ? undefined : currentSpaceId,
             listId: currentListId || undefined,
             isPinned,
-            isPrivate
+            isPrivate,
+            dashboardId
         });
 
         // Switch to the newly created view

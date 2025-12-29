@@ -90,8 +90,12 @@ const Sidebar: React.FC = () => {
         deleteList,
         updateList,
         sidebarCollapsed,
-        toggleSidebar
+        toggleSidebar,
+        dashboards,
+        currentDashboardId,
+        setCurrentDashboardId
     } = useAppStore();
+
     const [isCreateSpaceOpen, setIsCreateSpaceOpen] = React.useState(false);
     const [editingSpace, setEditingSpace] = React.useState<any>(null);
     const [editingFolder, setEditingFolder] = React.useState<any>(null);
@@ -129,8 +133,6 @@ const Sidebar: React.FC = () => {
         setCurrentSpaceId(spaceId);
         setCurrentListId(null);
         setExpandedSpaceIds(prev => new Set(prev).add(spaceId));
-
-        // Always go to Space Overview when clicking a space
         setCurrentView('space_overview');
     };
 
@@ -141,8 +143,6 @@ const Sidebar: React.FC = () => {
         { id: 'docs', icon: FileText, label: 'Docs' },
         { id: 'timesheet', icon: Clock, label: 'Timesheets' },
     ];
-
-    const favorites: any[] = [];
 
     const renderIcon = (iconName: string, size = 18, color?: string) => {
         const IconComponent = IconMap[iconName] || StarIcon;
@@ -156,7 +156,7 @@ const Sidebar: React.FC = () => {
                     <div className="workspace-avatar">M</div>
                     {!sidebarCollapsed && <span>My Workspace</span>}
                 </div>
-                <button className="sidebar-toggle-btn" onClick={toggleSidebar} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
+                <button className="sidebar-toggle-btn" onClick={toggleSidebar}>
                     {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
                 </button>
             </div>
@@ -164,46 +164,40 @@ const Sidebar: React.FC = () => {
             <nav className="main-nav">
                 {navItems.map((item) => {
                     const Icon = item.icon;
+                    const isGlobalDashboard = item.id === 'dashboards' &&
+                        currentView === 'dashboards' &&
+                        (!currentDashboardId || !dashboards.find(d => d.id === currentDashboardId)?.spaceId && !dashboards.find(d => d.id === currentDashboardId)?.listId);
+
+                    const isActive = item.id === 'dashboards' ? isGlobalDashboard : currentView === item.id;
+
                     return (
                         <a
                             key={item.id}
                             href="#"
-                            className={`nav-item ${currentView === item.id ? 'active' : ''}`}
+                            className={`nav-item ${isActive ? 'active' : ''}`}
                             onClick={(e) => {
                                 e.preventDefault();
                                 setCurrentView(item.id as any);
                                 setCurrentSpaceId('everything');
                                 setCurrentListId(null);
+                                if (item.id === 'dashboards') {
+                                    setCurrentDashboardId(null);
+                                }
                             }}
-                            title={sidebarCollapsed ? item.label : undefined}
                         >
                             <Icon size={18} />
                             {!sidebarCollapsed && <span>{item.label}</span>}
                         </a>
                     );
                 })}
-                <a href="#" className="nav-item" title={sidebarCollapsed ? "More" : undefined}>
-                    <Plus size={18} />
-                    {!sidebarCollapsed && <span>More</span>}
-                </a>
             </nav>
-
-            {favorites.length > 0 && (
-                <div className="sidebar-section">
-                    <div className="section-header clickable" onClick={() => {/* Toggle favorites */ }}>
-                        {!sidebarCollapsed && <span>FAVORITES</span>}
-                        <ChevronRight size={14} />
-                    </div>
-                </div>
-            )}
 
             <div className="sidebar-section">
                 <div className="section-header">
                     {!sidebarCollapsed && <span>SPACES</span>}
-                    <button className="add-btn" onClick={() => setIsCreateSpaceOpen(true)} title="Create new space"><Plus size={14} /></button>
+                    <button className="add-btn" onClick={() => setIsCreateSpaceOpen(true)}><Plus size={14} /></button>
                 </div>
                 <div className="spaces-list">
-                    {/* Everything Item */}
                     <a
                         href="#"
                         className={`nav-item space-item ${currentSpaceId === 'everything' ? 'active' : ''}`}
@@ -213,7 +207,6 @@ const Sidebar: React.FC = () => {
                             setCurrentView('space_overview');
                             setCurrentListId(null);
                         }}
-                        title={sidebarCollapsed ? "Everything" : undefined}
                     >
                         <div className="expand-icon-wrapper invisible">
                             <ChevronRight size={14} />
@@ -231,7 +224,6 @@ const Sidebar: React.FC = () => {
                                 <div
                                     className={`nav-item space-item ${currentSpaceId === space.id ? 'active' : ''}`}
                                     onClick={(e) => {
-                                        // If clicking the row, select the space
                                         e.preventDefault();
                                         handleSpaceClick(space.id);
                                     }}
@@ -240,10 +232,8 @@ const Sidebar: React.FC = () => {
                                         { label: 'Create Folder', icon: <Folder size={14} />, onClick: () => setCreateFolderSpaceId(space.id) },
                                         { label: 'Space Settings', icon: <Settings size={14} />, onClick: () => setEditingSpace(space) },
                                         { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingSpace(space) },
-                                        { label: 'Duplicate', icon: <StarIcon size={14} />, onClick: () => console.log('Duplicate', space.name) },
                                         { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteSpace(space.id), danger: true },
                                     ])}
-                                    title={sidebarCollapsed ? space.name : undefined}
                                 >
                                     <div
                                         className="expand-icon-wrapper"
@@ -259,9 +249,9 @@ const Sidebar: React.FC = () => {
                                     </div>
                                     {!sidebarCollapsed && <span className="space-name">{space.name}</span>}
                                 </div>
+
                                 {isExpanded && !sidebarCollapsed && (
                                     <div className="space-children">
-                                        {/* Render Folders */}
                                         {folders.filter(f => f.spaceId === space.id).map(folder => {
                                             const isFolderExpanded = expandedFolderIds.has(folder.id);
                                             return (
@@ -284,30 +274,47 @@ const Sidebar: React.FC = () => {
                                                     {isFolderExpanded && (
                                                         <div className="folder-children">
                                                             {lists.filter(l => l.folderId === folder.id).map(list => (
-                                                                <a
-                                                                    key={list.id}
-                                                                    href="#"
-                                                                    className={`nav-item list-item ${currentListId === list.id ? 'active' : ''}`}
-                                                                    onClick={(e) => {
-                                                                        e.preventDefault();
-                                                                        setCurrentListId(list.id);
-                                                                        // Ensure we are in a task view
-                                                                        if (!['list', 'kanban', 'calendar', 'gantt'].includes(currentView)) {
-                                                                            setCurrentView('list');
-                                                                        }
-                                                                    }}
-                                                                    onContextMenu={(e) => showContextMenu(e, [
-                                                                        { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingList({ ...list, id: list.id, spaceId: space.id }) },
-                                                                        { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteList(list.id), danger: true },
-                                                                    ])}
-                                                                >
-                                                                    <div className="list-icon-wrapper">
-                                                                        {list.icon ? renderIcon(list.icon, 14, list.color || space.color || undefined) : (
-                                                                            <div className="list-dot" style={{ backgroundColor: list.color || space.color || '#64748b' }}></div>
-                                                                        )}
-                                                                    </div>
-                                                                    <span>{list.name}</span>
-                                                                </a>
+                                                                <React.Fragment key={list.id}>
+                                                                    <a
+                                                                        href="#"
+                                                                        className={`nav-item list-item ${currentListId === list.id ? 'active' : ''}`}
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            setCurrentListId(list.id);
+                                                                            if (!['list', 'kanban', 'calendar', 'gantt'].includes(currentView)) {
+                                                                                setCurrentView('list');
+                                                                            }
+                                                                        }}
+                                                                        onContextMenu={(e) => showContextMenu(e, [
+                                                                            { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingList({ ...list, id: list.id, spaceId: space.id }) },
+                                                                            { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteList(list.id), danger: true },
+                                                                        ])}
+                                                                    >
+                                                                        <div className="list-icon-wrapper">
+                                                                            {list.icon ? renderIcon(list.icon, 14, list.color || space.color || undefined) : (
+                                                                                <div className="list-dot" style={{ backgroundColor: list.color || space.color || '#64748b' }}></div>
+                                                                            )}
+                                                                        </div>
+                                                                        <span>{list.name}</span>
+                                                                    </a>
+                                                                    {dashboards.filter(d => d.listId === list.id).map(dash => (
+                                                                        <a
+                                                                            key={dash.id}
+                                                                            href="#"
+                                                                            className={`nav-item dashboard-sub-item ${currentDashboardId === dash.id ? 'active' : ''}`}
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                setCurrentDashboardId(dash.id);
+                                                                                setCurrentView('dashboards');
+                                                                            }}
+                                                                        >
+                                                                            <div className="list-icon-wrapper" style={{ paddingLeft: '12px' }}>
+                                                                                <BarChart2 size={12} />
+                                                                            </div>
+                                                                            <span>{dash.name}</span>
+                                                                        </a>
+                                                                    ))}
+                                                                </React.Fragment>
                                                             ))}
                                                         </div>
                                                     )}
@@ -315,28 +322,63 @@ const Sidebar: React.FC = () => {
                                             );
                                         })}
 
-                                        {/* Render Lists NOT in folders */}
                                         {lists.filter(l => l.spaceId === space.id && !l.folderId).map(list => (
+                                            <React.Fragment key={list.id}>
+                                                <a
+                                                    href="#"
+                                                    className={`nav-item list-item ${currentListId === list.id ? 'active' : ''}`}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        setCurrentListId(list.id);
+                                                        if (!['list', 'kanban', 'calendar', 'gantt'].includes(currentView)) {
+                                                            setCurrentView('list');
+                                                        }
+                                                    }}
+                                                    onContextMenu={(e) => showContextMenu(e, [
+                                                        { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingList({ ...list, id: list.id, spaceId: space.id }) },
+                                                        { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteList(list.id), danger: true },
+                                                    ])}
+                                                >
+                                                    <div className="list-icon-wrapper">
+                                                        {list.icon ? renderIcon(list.icon, 14, list.color || space.color || undefined) : <ListIcon size={14} color={list.color || space.color || undefined} />}
+                                                    </div>
+                                                    <span>{list.name}</span>
+                                                </a>
+                                                {dashboards.filter(d => d.listId === list.id).map(dash => (
+                                                    <a
+                                                        key={dash.id}
+                                                        href="#"
+                                                        className={`nav-item dashboard-sub-item ${currentDashboardId === dash.id ? 'active' : ''}`}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            setCurrentDashboardId(dash.id);
+                                                            setCurrentView('dashboards');
+                                                        }}
+                                                    >
+                                                        <div className="list-icon-wrapper" style={{ paddingLeft: '12px' }}>
+                                                            <BarChart2 size={12} />
+                                                        </div>
+                                                        <span>{dash.name}</span>
+                                                    </a>
+                                                ))}
+                                            </React.Fragment>
+                                        ))}
+
+                                        {dashboards.filter(d => d.spaceId === space.id && !d.listId).map(dash => (
                                             <a
-                                                key={list.id}
+                                                key={dash.id}
                                                 href="#"
-                                                className={`nav-item list-item ${currentListId === list.id ? 'active' : ''}`}
+                                                className={`nav-item dashboard-sub-item ${currentDashboardId === dash.id ? 'active' : ''}`}
                                                 onClick={(e) => {
                                                     e.preventDefault();
-                                                    setCurrentListId(list.id);
-                                                    if (!['list', 'kanban', 'calendar', 'gantt'].includes(currentView)) {
-                                                        setCurrentView('list');
-                                                    }
+                                                    setCurrentDashboardId(dash.id);
+                                                    setCurrentView('dashboards');
                                                 }}
-                                                onContextMenu={(e) => showContextMenu(e, [
-                                                    { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingList({ ...list, id: list.id, spaceId: space.id }) },
-                                                    { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteList(list.id), danger: true },
-                                                ])}
                                             >
                                                 <div className="list-icon-wrapper">
-                                                    {list.icon ? renderIcon(list.icon, 14, list.color || space.color || undefined) : <ListIcon size={14} color={list.color || space.color || undefined} />}
+                                                    <BarChart2 size={14} />
                                                 </div>
-                                                <span>{list.name}</span>
+                                                <span>{dash.name}</span>
                                             </a>
                                         ))}
                                     </div>
@@ -352,13 +394,6 @@ const Sidebar: React.FC = () => {
                     </a>
                 )}
             </div>
-
-            {!sidebarCollapsed && (
-                <div className="sidebar-footer">
-                    <a href="#">Invite</a>
-                    <a href="#">Help</a>
-                </div>
-            )}
 
             {isCreateSpaceOpen && <CreateSpaceModal onClose={() => setIsCreateSpaceOpen(false)} />}
             {editingSpace && (
@@ -392,8 +427,8 @@ const Sidebar: React.FC = () => {
             {editingFolder && (
                 <CreateFolderModal
                     spaceId={editingFolder.spaceId}
-                    editingFolder={editingFolder} // Pass editing folder
-                    onUpdate={updateFolder} // Pass update handler
+                    editingFolder={editingFolder}
+                    onUpdate={updateFolder}
                     onClose={() => setEditingFolder(null)}
                 />
             )}

@@ -123,6 +123,7 @@ export interface SavedView {
   listId?: string;
   isPinned: boolean;
   isPrivate: boolean;
+  dashboardId?: string;
   createdAt: string;
 }
 
@@ -145,6 +146,20 @@ export interface DashboardItem {
   config?: any;
 }
 
+export interface Dashboard {
+  id: string;
+  name: string;
+  spaceId?: string;
+  listId?: string;
+  items: DashboardItem[];
+  isFavorite?: boolean;
+  updatedAt: string;
+  createdAt: string;
+  ownerId: string;
+  ownerName: string;
+  lastViewed?: string;
+}
+
 export interface AppState {
   tasks: Task[];
   spaces: Space[];
@@ -163,7 +178,8 @@ export interface AppState {
   aiConfig: AIConfig;
   aiMessages: Message[];
   aiSessions: ChatSession[];
-  dashboardItems: DashboardItem[];
+  dashboards: Dashboard[];
+  currentDashboardId: string | null;
 }
 
 export interface ChatSession {

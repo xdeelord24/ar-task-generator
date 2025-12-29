@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     Plus,
     Layout as LayoutIcon,
     BarChart3,
     PieChart,
     Activity,
-    ArrowLeft
+    ArrowLeft,
+    Search,
+    ChevronDown,
+    Layers,
+    X
 } from 'lucide-react';
 import {
     DndContext,
@@ -31,14 +35,19 @@ import '../styles/DashboardView.css';
 const DashboardView: React.FC = () => {
     const {
         tasks,
-        dashboardItems,
-        setDashboardItems,
-        addDashboardItem,
-        updateDashboardItem,
-        deleteDashboardItem
+        dashboards,
+        currentDashboardId,
+        setCurrentDashboardId,
+        addDashboard,
+        updateDashboard,
+        deleteDashboard,
+        spaces,
+        lists
     } = useAppStore();
 
     const [isAddingChart, setIsAddingChart] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activeHubTab, setActiveHubTab] = useState<'All' | 'My' | 'Shared' | 'Private'>('All');
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -51,43 +60,237 @@ const DashboardView: React.FC = () => {
         })
     );
 
+    const currentDashboard = useMemo(() =>
+        dashboards.find(d => d.id === currentDashboardId),
+        [dashboards, currentDashboardId]);
+
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
+        if (!currentDashboard) return;
 
         if (over && active.id !== over.id) {
-            const oldIndex = dashboardItems.findIndex((item) => item.id === active.id);
-            const newIndex = dashboardItems.findIndex((item) => item.id === over.id);
-            setDashboardItems(arrayMove(dashboardItems, oldIndex, newIndex));
+            const oldIndex = currentDashboard.items.findIndex((item) => item.id === active.id);
+            const newIndex = currentDashboard.items.findIndex((item) => item.id === over.id);
+            const newItems = arrayMove(currentDashboard.items, oldIndex, newIndex);
+            updateDashboard(currentDashboard.id, { items: newItems });
         }
     };
 
     const handleResize = (id: string) => {
-        const item = dashboardItems.find(i => i.id === id);
+        if (!currentDashboard) return;
+        const item = currentDashboard.items.find(i => i.id === id);
         if (!item) return;
 
         const sizes: ('small' | 'medium' | 'large' | 'full')[] = ['small', 'medium', 'large', 'full'];
         const currentIndex = sizes.indexOf(item.size);
         const nextSize = sizes[(currentIndex + 1) % sizes.length];
 
-        updateDashboardItem(id, { size: nextSize });
+        const newItems = currentDashboard.items.map(i => i.id === id ? { ...i, size: nextSize } : i);
+        updateDashboard(currentDashboard.id, { items: newItems });
     };
 
     const addNewChart = (type: any, title: string) => {
-        addDashboardItem({
+        if (!currentDashboard) return;
+        const newItem = {
+            id: crypto.randomUUID(),
             type,
             title,
-            size: 'medium',
+            size: 'medium' as const,
             config: type === 'stat' ? { metric: 'total' } : {}
-        });
+        };
+        updateDashboard(currentDashboard.id, { items: [...currentDashboard.items, newItem] });
         setIsAddingChart(false);
     };
 
+    const handleDeleteCard = (id: string) => {
+        if (!currentDashboard) return;
+        updateDashboard(currentDashboard.id, {
+            items: currentDashboard.items.filter(i => i.id !== id)
+        });
+    };
+
+    const handleCreateNew = () => {
+        addDashboard({
+            name: 'New Dashboard',
+            items: []
+        });
+    };
+
+    const getLocationName = (spaceId?: string, listId?: string) => {
+        if (listId) {
+            const list = lists.find(l => l.id === listId);
+            return list ? `in ${list.name}` : 'in List';
+        }
+        if (spaceId) {
+            const space = spaces.find(s => s.id === spaceId);
+            return space ? `in ${space.name}` : 'in Space';
+        }
+        return 'Personal';
+    };
+
+    // --- Hub Rendering ---
+    if (!currentDashboardId || !currentDashboard) {
+        return (
+            <div className="view-container dashboard-hub">
+                <div className="view-header dash-header">
+                    <div className="breadcrumb">
+                        <BarChart3 size={20} className="header-icon" />
+                        <span className="space-name">Dashboards</span>
+                    </div>
+                    <div className="view-controls">
+                        <div className="search-box">
+                            <Search size={14} />
+                            <input
+                                type="text"
+                                placeholder="Search Dashboards"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <button className="btn-primary" onClick={handleCreateNew}>
+                            New Dashboard
+                        </button>
+                    </div>
+                </div>
+
+                <div className="hub-content">
+                    <section className="hub-section templates">
+                        <div className="section-header">
+                            <h3>Start with a template</h3>
+                            <button className="icon-btn"><X size={14} /></button>
+                        </div>
+                        <div className="template-grid">
+                            <div className="template-card" onClick={handleCreateNew}>
+                                <div className="template-icon blue"><Layers size={24} /></div>
+                                <div className="template-info">
+                                    <h4>Task Management</h4>
+                                    <span>Manage & prioritize tasks</span>
+                                </div>
+                            </div>
+                            <div className="template-card">
+                                <div className="template-icon purple"><Activity size={24} /></div>
+                                <div className="template-info">
+                                    <h4>AI Team Center</h4>
+                                    <span>View team activity with AI</span>
+                                </div>
+                            </div>
+                            <div className="template-card">
+                                <div className="template-icon orange"><BarChart3 size={24} /></div>
+                                <div className="template-info">
+                                    <h4>Project Management</h4>
+                                    <span>Analyze project progress and metrics</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div className="hub-overview-grid">
+                        <section className="hub-card-section">
+                            <h3>Recent</h3>
+                            <div className="compact-list">
+                                {dashboards.slice(0, 3).map(dash => (
+                                    <div key={dash.id} className="compact-item" onClick={() => setCurrentDashboardId(dash.id)}>
+                                        <BarChart3 size={14} />
+                                        <span className="name">{dash.name}</span>
+                                        <span className="location">• {getLocationName(dash.spaceId, dash.listId)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                        <section className="hub-card-section">
+                            <h3>Favorites</h3>
+                            <div className="empty-state">
+                                <BarChart3 size={32} />
+                                <p>Your favorited Dashboards will show here.</p>
+                            </div>
+                        </section>
+                        <section className="hub-card-section">
+                            <h3>Created by Me</h3>
+                            <div className="compact-list">
+                                {dashboards.filter(d => d.ownerId === 'user-1').slice(0, 3).map(dash => (
+                                    <div key={dash.id} className="compact-item" onClick={() => setCurrentDashboardId(dash.id)}>
+                                        <BarChart3 size={14} />
+                                        <span className="name">{dash.name}</span>
+                                        <span className="location">• {getLocationName(dash.spaceId, dash.listId)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    </div>
+
+                    <section className="hub-table-section">
+                        <div className="table-filters">
+                            <div className="tabs">
+                                {['All', 'My Dashboards', 'Shared', 'Private', 'Workspace'].map(tab => (
+                                    <button
+                                        key={tab}
+                                        className={`tab ${activeHubTab === tab ? 'active' : ''}`}
+                                        onClick={() => setActiveHubTab(tab as any)}
+                                    >
+                                        {tab}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="table-search">
+                                <Search size={14} />
+                                <span>Search</span>
+                            </div>
+                        </div>
+
+                        <table className="dash-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Location</th>
+                                    <th>Date viewed <ChevronDown size={14} /></th>
+                                    <th>Date updated</th>
+                                    <th>Owner</th>
+                                    <th>Sharing</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {dashboards.map(dash => (
+                                    <tr key={dash.id} onClick={() => setCurrentDashboardId(dash.id)}>
+                                        <td>
+                                            <div className="td-name">
+                                                <BarChart3 size={14} />
+                                                {dash.name}
+                                            </div>
+                                        </td>
+                                        <td><div className="td-location"><Layers size={12} /> {getLocationName(dash.spaceId, dash.listId).replace('in ', '')}</div></td>
+                                        <td>Just now</td>
+                                        <td>{new Date(dash.updatedAt).toLocaleDateString()}</td>
+                                        <td><div className="user-avatar-sm">JM</div></td>
+                                        <td><div className="user-avatar-sm">JM</div></td>
+                                        <td onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (window.confirm(`Delete dashboard "${dash.name}"?`)) {
+                                                deleteDashboard(dash.id);
+                                            }
+                                        }}>
+                                            <button className="icon-btn"><X size={14} /></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </section>
+                </div>
+            </div>
+        );
+    }
+
+    // --- Instance Rendering ---
     return (
         <div className="view-container">
             <div className="view-header dash-header">
                 <div className="breadcrumb">
-                    <span className="space-name">Dashboards</span>
-                    <span className="task-count">Project Overview</span>
+                    <button className="back-to-hub" title="Back to Hub" onClick={() => setCurrentDashboardId(null)}>
+                        <BarChart3 size={18} />
+                    </button>
+                    <span className="space-name">{currentDashboard.name}</span>
+                    <span className="task-count">{getLocationName(currentDashboard.spaceId, currentDashboard.listId)}</span>
                 </div>
                 <div className="view-controls">
                     <button className="view-mode-btn active">Overview</button>
@@ -138,15 +341,15 @@ const DashboardView: React.FC = () => {
                         modifiers={[restrictToFirstScrollableAncestor]}
                     >
                         <SortableContext
-                            items={dashboardItems.map(i => i.id)}
+                            items={currentDashboard.items.map(i => i.id)}
                             strategy={rectSortingStrategy}
                         >
-                            {dashboardItems.map((item) => (
+                            {currentDashboard.items.map((item) => (
                                 <DashboardCard
                                     key={item.id}
                                     item={item}
                                     tasks={tasks}
-                                    onDelete={deleteDashboardItem}
+                                    onDelete={handleDeleteCard}
                                     onResize={handleResize}
                                 />
                             ))}

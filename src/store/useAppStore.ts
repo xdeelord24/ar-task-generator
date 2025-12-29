@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, DashboardItem } from '../types';
+import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard } from '../types';
 
 interface AppStore extends AppState {
     setTasks: (tasks: Task[]) => void;
@@ -52,10 +52,10 @@ interface AppStore extends AppState {
     startNewChat: () => void;
     loadSession: (sessionId: string) => void;
     deleteSession: (sessionId: string) => void;
-    setDashboardItems: (items: DashboardItem[]) => void;
-    addDashboardItem: (item: Omit<DashboardItem, 'id'>) => void;
-    updateDashboardItem: (id: string, updates: Partial<DashboardItem>) => void;
-    deleteDashboardItem: (id: string) => void;
+    addDashboard: (dashboard: Omit<Dashboard, 'id' | 'updatedAt' | 'createdAt' | 'ownerId' | 'ownerName'> & { id?: string }) => string;
+    updateDashboard: (id: string, updates: Partial<Dashboard>) => void;
+    deleteDashboard: (id: string) => void;
+    setCurrentDashboardId: (id: string | null) => void;
 }
 
 const DEFAULT_STATUSES: Status[] = [
@@ -142,14 +142,26 @@ export const useAppStore = create<AppStore>()(
             },
             aiMessages: [],
             aiSessions: [],
-            dashboardItems: [
-                { id: '1', type: 'stat', title: 'Total Tasks', size: 'small', config: { metric: 'total' } },
-                { id: '2', type: 'stat', title: 'Completed', size: 'small', config: { metric: 'completed' } },
-                { id: '3', type: 'stat', title: 'In Progress', size: 'small', config: { metric: 'inprogress' } },
-                { id: '4', type: 'stat', title: 'Urgent', size: 'small', config: { metric: 'urgent' } },
-                { id: '5', type: 'bar', title: 'Task Distribution', size: 'large' },
-                { id: '6', type: 'priority', title: 'Priority Breakdown', size: 'medium' }
+            dashboards: [
+                {
+                    id: 'dash-1',
+                    name: 'Project Overview',
+                    spaceId: 'team-space',
+                    items: [
+                        { id: '1', type: 'stat', title: 'Total Tasks', size: 'small', config: { metric: 'total' } },
+                        { id: '2', type: 'stat', title: 'Completed', size: 'small', config: { metric: 'completed' } },
+                        { id: '3', type: 'stat', title: 'In Progress', size: 'small', config: { metric: 'inprogress' } },
+                        { id: '4', type: 'stat', title: 'Urgent', size: 'small', config: { metric: 'urgent' } },
+                        { id: '5', type: 'bar', title: 'Task Distribution', size: 'large' },
+                        { id: '6', type: 'priority', title: 'Priority Breakdown', size: 'medium' }
+                    ],
+                    updatedAt: new Date().toISOString(),
+                    createdAt: new Date().toISOString(),
+                    ownerId: 'user-1',
+                    ownerName: 'Jundee'
+                }
             ],
+            currentDashboardId: null,
             sidebarCollapsed: false,
 
             setTasks: (tasks) => set({ tasks }),
@@ -395,16 +407,31 @@ export const useAppStore = create<AppStore>()(
             deleteSession: (sessionId) => set((state) => ({
                 aiSessions: state.aiSessions.filter(s => s.id !== sessionId)
             })),
-            setDashboardItems: (items) => set({ dashboardItems: items }),
-            addDashboardItem: (item) => set((state) => ({
-                dashboardItems: [...state.dashboardItems, { ...item, id: crypto.randomUUID() } as DashboardItem]
+            addDashboard: (dashboard) => {
+                const id = dashboard.id || crypto.randomUUID();
+                set((state) => ({
+                    dashboards: [
+                        ...state.dashboards,
+                        {
+                            ...dashboard,
+                            id,
+                            updatedAt: new Date().toISOString(),
+                            createdAt: new Date().toISOString(),
+                            ownerId: 'user-1',
+                            ownerName: 'Jundee'
+                        } as Dashboard
+                    ]
+                }));
+                return id;
+            },
+            updateDashboard: (id, updates) => set((state) => ({
+                dashboards: state.dashboards.map(d => d.id === id ? { ...d, ...updates, updatedAt: new Date().toISOString() } : d)
             })),
-            updateDashboardItem: (id, updates) => set((state) => ({
-                dashboardItems: state.dashboardItems.map(item => item.id === id ? { ...item, ...updates } : item)
+            deleteDashboard: (id) => set((state) => ({
+                dashboards: state.dashboards.filter(d => d.id !== id),
+                currentDashboardId: state.currentDashboardId === id ? null : state.currentDashboardId
             })),
-            deleteDashboardItem: (id) => set((state) => ({
-                dashboardItems: state.dashboardItems.filter(item => item.id !== id)
-            })),
+            setCurrentDashboardId: (id) => set({ currentDashboardId: id }),
         }),
         {
             name: 'ar-generator-app-storage',

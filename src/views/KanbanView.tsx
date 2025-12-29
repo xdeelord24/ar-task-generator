@@ -414,7 +414,8 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         tags,
         spaces,
         lists,
-        savedViews
+        savedViews,
+        setCurrentDashboardId
     } = useAppStore();
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
@@ -568,7 +569,12 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                             <button
                                 key={savedView.id}
                                 className={`view-mode-btn ${currentView === savedView.viewType ? 'active' : ''}`}
-                                onClick={() => setCurrentView(savedView.viewType)}
+                                onClick={() => {
+                                    setCurrentView(savedView.viewType);
+                                    if (savedView.viewType === 'dashboards' && savedView.dashboardId) {
+                                        setCurrentDashboardId(savedView.dashboardId);
+                                    }
+                                }}
                                 onContextMenu={(e) => {
                                     e.preventDefault();
                                     setContextMenu({

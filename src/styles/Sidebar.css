@@ -252,6 +252,24 @@
     background-color: var(--text-tertiary);
 }
 
+.dashboard-sub-item {
+    gap: 10px;
+    padding: 6px 12px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-left: 8px;
+}
+
+.dashboard-sub-item:hover {
+    color: var(--primary);
+}
+
+.dashboard-sub-item.active {
+    color: var(--primary);
+    background: var(--primary-light);
+    font-weight: 600;
+}
+
 .create-space-btn {
     margin-top: 8px;
     color: var(--text-secondary);

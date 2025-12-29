@@ -553,7 +553,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         addStatus,
         savedViews,
         updateSpace,
-        updateList
+        updateList,
+        setCurrentDashboardId
     } = useAppStore();
     const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
@@ -759,7 +760,12 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                             <button
                                 key={savedView.id}
                                 className={`view-mode-btn ${currentView === savedView.viewType ? 'active' : ''}`}
-                                onClick={() => setCurrentView(savedView.viewType)}
+                                onClick={() => {
+                                    setCurrentView(savedView.viewType);
+                                    if (savedView.viewType === 'dashboards' && savedView.dashboardId) {
+                                        setCurrentDashboardId(savedView.dashboardId);
+                                    }
+                                }}
                                 onContextMenu={(e) => {
                                     e.preventDefault();
                                     setContextMenu({
