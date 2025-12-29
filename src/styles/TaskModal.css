@@ -738,3 +738,98 @@
     background: var(--bg-hover);
     color: var(--text-main);
 }
+
+/* AI Popup - Response View */
+.ai-close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    transition: color 0.2s;
+    transition: color 0.2s;
+}
+
+.ai-response-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-main);
+    background: var(--bg-secondary);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    white-space: pre-wrap;
+    /* Preserves normal whitespace */
+}
+
+.ai-response-text p {
+    margin-bottom: 8px;
+}
+
+.ai-response-text strong {
+    font-weight: 600;
+    color: var(--text-heading);
+}
+
+.ai-close-btn:hover {
+    color: var(--text-main);
+}
+
+.ai-response-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.ai-feedback-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.feedback-btn {
+    color: var(--text-tertiary);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.feedback-btn:hover {
+    color: var(--text-main);
+}
+
+.ai-result-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 12px;
+}
+
+.action-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-main);
+    transition: background 0.1s;
+}
+
+.action-row:hover {
+    background: var(--bg-hover);
+}
+
+.action-row.primary-action {
+    background: var(--bg-hover);
+    /* Light grey bg for Insert below */
+    font-weight: 500;
+}
+
+.action-row.primary-action:hover {
+    background: var(--bg-active);
+}

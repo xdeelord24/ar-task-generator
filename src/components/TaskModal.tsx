@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import {
     X, Calendar, Flag, Users, Tag, MoreHorizontal,
     Sparkles, Paperclip, Bell, ChevronDown, Maximize2, Minimize2,
     FileText, LayoutDashboard, Square, ListTodo, Plus,
-    Table, Columns, List, File, User, MessageSquare, PenTool
+    Table, Columns, List, File, User, MessageSquare, PenTool,
+    AtSign, ArrowRight, CornerDownLeft, Copy, RotateCcw, ThumbsUp, ThumbsDown, ChevronLeft
 } from 'lucide-react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore } from '../store/useAppStore';
 import type { Priority, Task } from '../types';
 import '../styles/TaskModal.css';
@@ -15,7 +18,7 @@ interface TaskModalProps {
 }
 
 const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
-    const { addTask, currentSpaceId, currentListId, spaces, lists } = useAppStore();
+    const { addTask, currentSpaceId, currentListId, spaces, lists, aiConfig } = useAppStore();
 
     const activeList = lists.find(l => l.id === currentListId);
     const activeSpace = spaces.find(s => s.id === currentSpaceId);
@@ -37,6 +40,64 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
     const [activeTab, setActiveTab] = useState('task');
     const [isMaximized, setIsMaximized] = useState(false);
     const [isPrivate, setIsPrivate] = useState(false);
+
+    // AI Popup State
+    const [showAI, setShowAI] = useState(false);
+    const [aiInput, setAiInput] = useState('');
+    const [aiState, setAiState] = useState<'initial' | 'response'>('initial');
+    const [aiResponse, setAiResponse] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleGenerateAI = async (overridePrompt?: string) => {
+        const query = overridePrompt || aiInput;
+        if (!query.trim()) return;
+
+        setAiState('response');
+        setIsLoading(true);
+        setAiInput('');
+        setAiResponse('');
+
+        try {
+            if (aiConfig.provider === 'ollama') {
+                const response = await fetch(`${aiConfig.ollamaHost}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: aiConfig.ollamaModel,
+                        prompt: query,
+                        stream: false,
+                        system: "You are a helpful AI assistant helping to write task descriptions. Keep it concise/professional."
+                    }),
+                });
+                if (!response.ok) throw new Error('Ollama Error');
+                const data = await response.json();
+                setAiResponse(data.response);
+            } else {
+                const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+                if (!apiKey) {
+                    setAiResponse("Please configure your Gemini API Key in .env file.");
+                    return;
+                }
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const result = await model.generateContent(query);
+                setAiResponse(result.response.text());
+            }
+        } catch (error) {
+            console.error(error);
+            setAiResponse("Sorry, I couldn't generate a response. Please check your AI settings/connection.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleInsert = () => {
+        if (!aiResponse) return;
+        setDescription(prev => prev ? prev + '\n\n' + aiResponse : aiResponse);
+        setShowAI(false);
+        setAiState('initial');
+        setAiResponse('');
+    };
 
     const handleSubmit = (e?: React.FormEvent) => {
         if (e) e.preventDefault();
@@ -110,7 +171,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
             </div>
 
             {/* Main Form */}
-            <div className="task-form">
+            <div className="task-form" style={{ position: 'relative' }}>
                 <input
                     type="text"
                     className="task-name-input"
@@ -134,11 +195,130 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
                         value={description}
                         onChange={e => setDescription(e.target.value)}
                     />
-                    <button className="ai-btn">
+                    <button className="ai-btn" onClick={() => setShowAI(!showAI)}>
                         <Sparkles size={14} color="#8b5cf6" />
                         Write with AI
                     </button>
                 </div>
+
+                {/* AI Popup */}
+                {showAI && (
+                    <div className="ai-popup">
+                        {aiState === 'initial' ? (
+                            <>
+                                <div className="ai-header">
+                                    <div className="ai-icon-large">
+                                        <Sparkles size={24} className="text-purple-500" fill="currentColor" style={{ color: '#a855f7' }} />
+                                    </div>
+                                    <div className="ai-title">How can I help your writing?</div>
+                                    <div className="ai-subtitle">I can refine your writing, fix grammar, and more.</div>
+                                </div>
+
+                                <div className="ai-input-wrapper">
+                                    <input
+                                        type="text"
+                                        className="ai-input"
+                                        placeholder="Ask AI to edit or write"
+                                        value={aiInput}
+                                        onChange={e => setAiInput(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleGenerateAI()}
+                                        autoFocus
+                                    />
+                                    <div className="ai-input-actions">
+                                        <AtSign size={14} />
+                                        <ArrowRight size={14} onClick={() => handleGenerateAI()} style={{ cursor: 'pointer' }} />
+                                    </div>
+                                </div>
+
+                                <div className="ai-action-list">
+                                    <div className="ai-action-item" onClick={() => handleGenerateAI("Write a description")}>
+                                        <Columns size={14} />
+                                        Write a description
+                                        <ArrowRight size={12} className="enter-icon" />
+                                    </div>
+                                    <div className="ai-action-item" onClick={() => handleGenerateAI("Create a plan")}>
+                                        <ListTodo size={14} />
+                                        Create a plan
+                                    </div>
+                                    <div className="ai-action-item" onClick={() => handleGenerateAI("Generate action items")}>
+                                        <List size={14} />
+                                        Generate action items
+                                    </div>
+                                </div>
+
+                                <div className="ai-footer">
+                                    <button className="ai-pill">
+                                        Default Tone
+                                        <ChevronDown size={12} />
+                                    </button>
+                                    <button className="ai-pill">
+                                        Medium Creativity
+                                        <ChevronDown size={12} />
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="ai-header" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                    <Sparkles size={18} fill="currentColor" style={{ color: '#a855f7' }} />
+                                    <span style={{ fontWeight: 700, fontSize: '15px' }}>AI</span>
+                                    <X size={16} className="ai-close-btn" onClick={() => setShowAI(false)} />
+                                </div>
+
+                                <div className="ai-response-text">
+                                    {isLoading ? (
+                                        <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                                            <Sparkles size={24} className="animate-spin" style={{ marginBottom: '8px' }} />
+                                            <div>Generating...</div>
+                                        </div>
+                                    ) : (
+                                        <ReactMarkdown>{aiResponse}</ReactMarkdown>
+                                    )}
+                                </div>
+
+                                <div className="ai-feedback-row">
+                                    <button className="feedback-btn"><RotateCcw size={14} /></button>
+                                    <button className="feedback-btn"><ThumbsUp size={14} /></button>
+                                    <button className="feedback-btn"><ThumbsDown size={14} /></button>
+                                </div>
+
+                                <div className="ai-input-wrapper">
+                                    <input
+                                        type="text"
+                                        className="ai-input"
+                                        placeholder="Ask Brain to edit or write"
+                                        value={aiInput}
+                                        onChange={e => setAiInput(e.target.value)}
+                                    />
+                                    <div className="ai-input-actions">
+                                        <AtSign size={14} />
+                                        <ArrowRight size={14} />
+                                    </div>
+                                </div>
+
+                                <div className="ai-result-actions">
+                                    <div className="action-row primary-action" onClick={handleInsert}>
+                                        <CornerDownLeft size={14} />
+                                        Insert below
+                                        <span style={{ marginLeft: 'auto', fontSize: '10px', opacity: 0.6 }}>↵</span>
+                                    </div>
+                                    <div className="action-row">
+                                        <Copy size={14} />
+                                        Copy
+                                    </div>
+                                    <div className="action-row">
+                                        <Sparkles size={14} />
+                                        Save & continue in Ask AI
+                                    </div>
+                                    <div className="action-row" onClick={() => setAiState('initial')}>
+                                        <ChevronLeft size={14} />
+                                        Back
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 <div className="task-properties">
                     <div className="prop-btn status-btn">
