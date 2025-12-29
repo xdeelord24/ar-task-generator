@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     X,
     Trash2,
@@ -23,11 +23,13 @@ import {
     Edit2,
     MinusCircle,
     Search,
-    Circle
+    Circle,
+    Image as ImageIcon
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { format, parseISO } from 'date-fns';
 import type { Task, Subtask } from '../types';
+import ReactMarkdown from 'react-markdown';
 import PremiumDatePicker from './PremiumDatePicker';
 import TimePicker from './TimePicker';
 import RichTextEditor from './RichTextEditor';
@@ -104,6 +106,14 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
     const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
+    const activityFeedRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll activity feed to bottom
+    useEffect(() => {
+        if (activityFeedRef.current) {
+            activityFeedRef.current.scrollTop = activityFeedRef.current.scrollHeight;
+        }
+    }, [task?.comments, sidebarTab]);
 
     if (!task) return null;
 
@@ -209,12 +219,38 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             return;
         }
         if (!commentText.trim()) return;
+
+        // Auto-convert plain URLs to markdown links if not already markdown
+        let formattedText = commentText;
+        const urlRegex = /(?<!\()https?:\/\/[^\s]+(?!\))/g;
+        formattedText = formattedText.replace(urlRegex, (url) => `[${url}](${url})`);
+
         addComment(taskId, {
             userId: 'user-1',
             userName: 'Jundee',
-            text: commentText
+            text: formattedText
         });
         setCommentText('');
+    };
+
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const base64 = event.target?.result;
+                        if (typeof base64 === 'string') {
+                            // Append markdown image to comment text
+                            setCommentText(prev => prev + (prev.trim() ? '\n' : '') + `![Image](${base64})`);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
     };
 
     const handleAddTime = (time: string) => {
@@ -618,12 +654,22 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                             {sidebarTab === 'activity' && (
                                 <div className="activity-panel">
                                     <div className="panel-header">Activity</div>
-                                    <div className="activity-feed">
+                                    <div className="activity-feed" ref={activityFeedRef}>
                                         {task.comments && task.comments.map(comment => (
                                             <div key={comment.id} className="activity-row" style={{ marginBottom: '16px' }}>
                                                 <div className="activity-avatar">{comment.userName[0]}</div>
                                                 <div className="activity-info">
-                                                    <div className="activity-msg"><strong>{comment.userName}</strong>: {comment.text}</div>
+                                                    <div className="activity-msg-header"><strong>{comment.userName}</strong></div>
+                                                    <div className="activity-msg">
+                                                        <ReactMarkdown
+                                                            components={{
+                                                                img: ({ node, ...props }) => <img {...props} style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px' }} />,
+                                                                a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }} />
+                                                            }}
+                                                        >
+                                                            {comment.text}
+                                                        </ReactMarkdown>
+                                                    </div>
                                                     <div className="activity-time">{format(parseISO(comment.createdAt), 'MMM d, h:mm a')}</div>
                                                 </div>
                                             </div>
@@ -637,14 +683,32 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                         </div>
                                     </div>
                                     <div className="comment-composer">
-                                        <input
+                                        <textarea
                                             placeholder="Write a comment..."
                                             value={commentText}
                                             onChange={(e) => setCommentText(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    handleAddComment();
+                                                }
+                                            }}
+                                            onPaste={handlePaste}
+                                            rows={1}
+                                            style={{
+                                                height: 'auto',
+                                                minHeight: '40px',
+                                                maxHeight: '120px',
+                                                resize: 'none'
+                                            }}
                                         />
                                         <div className="composer-actions">
-                                            <button className="icon-btn-sm" onClick={handleAddComment}><Send size={14} /></button>
+                                            <button className="icon-btn-sm" title="Paste Image (Experimental)">
+                                                <ImageIcon size={14} />
+                                            </button>
+                                            <button className="icon-btn-sm" onClick={handleAddComment} disabled={!commentText.trim()}>
+                                                <Send size={14} />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
