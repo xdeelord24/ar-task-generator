@@ -101,10 +101,10 @@ interface SortableCardProps {
     task: Task;
     onTaskClick: (taskId: string) => void;
     tags: Tag[];
-    onOpenMenu: (taskId: string, openUp: boolean) => void;
+    onOpenMenu: (taskId: string, trigger: HTMLElement) => void;
     isMenuOpen: boolean;
-    menuOpenUp?: boolean;
     onCloseMenu: () => void;
+    menuTrigger: HTMLElement | null;
     onDuplicate: (taskId: string) => void;
     onArchive: (taskId: string) => void;
     onDelete: (taskId: string) => void;
@@ -121,7 +121,6 @@ const SortableCard: React.FC<SortableCardProps> = ({
     tags,
     onOpenMenu,
     isMenuOpen,
-    menuOpenUp,
     onCloseMenu,
     onDuplicate,
     onArchive,
@@ -130,7 +129,8 @@ const SortableCard: React.FC<SortableCardProps> = ({
     isAddingSubtask,
     onStartAddSubtask,
     onCancelAddSubtask,
-    onAddSubtask
+    onAddSubtask,
+    menuTrigger
 }) => {
     const {
         attributes,
@@ -197,9 +197,7 @@ const SortableCard: React.FC<SortableCardProps> = ({
                                 if (isMenuOpen) {
                                     onCloseMenu();
                                 } else {
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    const openUp = rect.top > window.innerHeight / 2;
-                                    onOpenMenu(task.id, openUp);
+                                    onOpenMenu(task.id, e.currentTarget);
                                 }
                             }}
                             title="More actions"
@@ -207,25 +205,17 @@ const SortableCard: React.FC<SortableCardProps> = ({
                             <MoreHorizontal size={20} />
                         </button>
                         {isMenuOpen && (
-                            <div style={{
-                                position: 'absolute',
-                                right: 0,
-                                [menuOpenUp ? 'bottom' : 'top']: '100%',
-                                zIndex: 5001,
-                                marginBottom: menuOpenUp ? '8px' : '0',
-                                marginTop: menuOpenUp ? '0' : '8px'
-                            }}>
-                                <TaskOptionsMenu
-                                    taskId={task.id}
-                                    onClose={onCloseMenu}
-                                    onRename={() => { onTaskClick(task.id); onCloseMenu(); }}
-                                    onDuplicate={() => onDuplicate(task.id)}
-                                    onArchive={() => onArchive(task.id)}
-                                    onDelete={() => onDelete(task.id)}
-                                    onConvertToDoc={() => onConvertToDoc(task)}
-                                    onStartTimer={() => { alert('Timer started for task ' + task.id); onCloseMenu(); }}
-                                />
-                            </div>
+                            <TaskOptionsMenu
+                                taskId={task.id}
+                                onClose={onCloseMenu}
+                                onRename={() => { onTaskClick(task.id); onCloseMenu(); }}
+                                onDuplicate={() => onDuplicate(task.id)}
+                                onArchive={() => onArchive(task.id)}
+                                onDelete={() => onDelete(task.id)}
+                                onConvertToDoc={() => onConvertToDoc(task)}
+                                onStartTimer={() => { alert('Timer started for task ' + task.id); onCloseMenu(); }}
+                                triggerElement={menuTrigger}
+                            />
                         )}
                     </div>
                 </div>
@@ -321,18 +311,18 @@ interface KanbanColumnProps {
     onAddTask: (status?: string) => void;
     onTaskClick: (taskId: string) => void;
     tags: Tag[];
-    openMenuTaskId: string | null;
-    menuOpenUp: boolean;
-    onOpenMenu: (taskId: string, openUp: boolean) => void;
-    onCloseMenu: () => void;
-    onDuplicate: (taskId: string) => void;
-    onArchive: (taskId: string) => void;
-    onDelete: (taskId: string) => void;
     onConvertToDoc: (task: Task) => void;
-    addSubtaskTaskId: string | null;
     onStartAddSubtask: (taskId: string) => void;
     onCancelAddSubtask: () => void;
     onAddSubtask: (taskId: string, subtask: Omit<Subtask, 'id' | 'createdAt' | 'updatedAt'>) => void;
+    addSubtaskTaskId: string | null;
+    openMenuTaskId: string | null;
+    onOpenMenu: (taskId: string, trigger: HTMLElement) => void;
+    onCloseMenu: () => void;
+    menuTrigger: HTMLElement | null;
+    onDuplicate: (taskId: string) => void;
+    onArchive: (taskId: string) => void;
+    onDelete: (taskId: string) => void;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -343,9 +333,9 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     onTaskClick,
     tags,
     openMenuTaskId,
-    menuOpenUp,
     onOpenMenu,
     onCloseMenu,
+    menuTrigger,
     onDuplicate,
     onArchive,
     onDelete,
@@ -386,8 +376,8 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                             tags={tags}
                             onOpenMenu={onOpenMenu}
                             isMenuOpen={openMenuTaskId === task.id}
-                            menuOpenUp={menuOpenUp}
                             onCloseMenu={onCloseMenu}
+                            menuTrigger={menuTrigger}
                             onDuplicate={onDuplicate}
                             onArchive={onArchive}
                             onDelete={onDelete}
@@ -428,20 +418,23 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
     } = useAppStore();
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
-    const [menuOpenUp, setMenuOpenUp] = React.useState(false);
+    const [menuTrigger, setMenuTrigger] = React.useState<HTMLElement | null>(null);
     const [isAddingColumn, setIsAddingColumn] = React.useState(false);
     const [newColumnName, setNewColumnName] = React.useState('');
     const [showViewSelector, setShowViewSelector] = React.useState(false);
     const [addSubtaskTaskId, setAddSubtaskTaskId] = React.useState<string | null>(null);
     const [contextMenu, setContextMenu] = React.useState<{ view: any; position: { x: number; y: number } } | null>(null);
 
-    const handleOpenMenu = (taskId: string, openUp: boolean) => {
+    const handleOpenMenu = (taskId: string, trigger: HTMLElement) => {
         setOpenMenuTaskId(taskId);
-        setMenuOpenUp(openUp);
+        setMenuTrigger(trigger);
     };
 
     React.useEffect(() => {
-        const handleClickOutside = () => setOpenMenuTaskId(null);
+        const handleClickOutside = () => {
+            setOpenMenuTaskId(null);
+            setMenuTrigger(null);
+        };
         if (openMenuTaskId) {
             window.addEventListener('click', handleClickOutside);
             return () => window.removeEventListener('click', handleClickOutside);
@@ -630,9 +623,9 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                             onTaskClick={onTaskClick}
                             tags={tags}
                             openMenuTaskId={openMenuTaskId}
-                            menuOpenUp={menuOpenUp}
                             onOpenMenu={handleOpenMenu}
-                            onCloseMenu={() => setOpenMenuTaskId(null)}
+                            onCloseMenu={() => { setOpenMenuTaskId(null); setMenuTrigger(null); }}
+                            menuTrigger={menuTrigger}
                             onDuplicate={duplicateTask}
                             onArchive={archiveTask}
                             onDelete={deleteTask}

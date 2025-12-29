@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
     Link2,
     Copy,
@@ -33,6 +34,7 @@ interface TaskOptionsMenuProps {
     onStartTimer?: () => void;
     onMove?: () => void;
     taskId: string;
+    triggerElement?: HTMLElement | null;
 }
 
 const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
@@ -44,42 +46,71 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
     onConvertToDoc,
     onStartTimer,
     onMove,
-    taskId
+    taskId,
+    triggerElement
 }) => {
     const [isRelationshipMenuOpen, setIsRelationshipMenuOpen] = React.useState(false);
     const menuRef = React.useRef<HTMLDivElement>(null);
-    const [style, setStyle] = React.useState<React.CSSProperties>({});
+    const [style, setStyle] = React.useState<React.CSSProperties>({ visibility: 'hidden' });
 
     React.useLayoutEffect(() => {
         if (!menuRef.current) return;
 
-        const rect = menuRef.current.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
+        const menuWidth = 280;
+        const menuHeight = menuRef.current.scrollHeight;
 
-        const newStyle: React.CSSProperties = {};
+        if (triggerElement) {
+            const rect = triggerElement.getBoundingClientRect();
+            const newStyle: React.CSSProperties = {
+                position: 'fixed',
+                zIndex: 10000,
+                width: `${menuWidth}px`,
+                visibility: 'visible'
+            };
 
-        // Vertical adjustment - check if it goes below the screen
-        if (rect.bottom > viewportHeight) {
-            newStyle.top = 'auto';
-            newStyle.bottom = '100%';
-            newStyle.marginTop = '0';
-            newStyle.marginBottom = '8px';
+            // Horizontal positioning: align right edge with trigger's right edge
+            let left = rect.right - menuWidth;
+            if (left < 10) left = 10;
+            if (left + menuWidth > viewportWidth - 10) left = viewportWidth - menuWidth - 10;
+
+            newStyle.left = `${left}px`;
+
+            // Vertical positioning
+            if (rect.bottom + menuHeight + 10 > viewportHeight && rect.top > menuHeight + 10) {
+                // Open upwards
+                newStyle.bottom = `${viewportHeight - rect.top + 8}px`;
+                newStyle.top = 'auto';
+            } else {
+                // Open downwards
+                newStyle.top = `${rect.bottom + 8}px`;
+            }
+
+            setStyle(newStyle);
+        } else {
+            // Legacy/Fallback: relative to parent
+            const rect = menuRef.current.getBoundingClientRect();
+            const newStyle: React.CSSProperties = { visibility: 'visible' };
+
+            if (rect.bottom > viewportHeight) {
+                newStyle.top = 'auto';
+                newStyle.bottom = '100%';
+                newStyle.marginTop = '0';
+                newStyle.marginBottom = '8px';
+            }
+
+            if (rect.right > viewportWidth) {
+                newStyle.right = '0';
+                newStyle.left = 'auto';
+            } else if (rect.left < 0) {
+                newStyle.left = '0';
+                newStyle.right = 'auto';
+            }
+
+            setStyle(newStyle);
         }
-
-        // Horizontal adjustment - check if it goes beyond the right edge
-        if (rect.right > viewportWidth) {
-            newStyle.right = '0';
-            newStyle.left = 'auto';
-        }
-        // Horizontal adjustment - check if it goes beyond the left edge
-        else if (rect.left < 0) {
-            newStyle.left = '0';
-            newStyle.right = 'auto';
-        }
-
-        setStyle(newStyle);
-    }, []);
+    }, [triggerElement, isRelationshipMenuOpen]);
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(window.location.href);
@@ -97,7 +128,8 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
         window.open(window.location.href, '_blank');
         onClose();
     };
-    return (
+
+    const content = (
         <div
             ref={menuRef}
             className="task-options-menu"
@@ -223,6 +255,8 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
             </div>
         </div>
     );
+
+    return triggerElement ? createPortal(content, document.body) : content;
 };
 
 export default TaskOptionsMenu;

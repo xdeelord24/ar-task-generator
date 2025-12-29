@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Plus, MoreHorizontal, X, Trash2, Check } from 'lucide-react';
 import { type Tag } from '../types';
 import '../styles/TagMenu.css';
@@ -11,6 +12,7 @@ interface TagMenuProps {
     onUpdateTag: (tagId: string, updates: Partial<Tag>) => void;
     onDeleteTag: (tagId: string) => void;
     onClose: () => void;
+    triggerElement?: HTMLElement | null;
 }
 
 const COLORS = [
@@ -26,7 +28,8 @@ const TagMenu: React.FC<TagMenuProps> = ({
     onCreateTag,
     onUpdateTag,
     onDeleteTag,
-    onClose
+    onClose,
+    triggerElement
 }) => {
     const [search, setSearch] = useState('');
     const [editingTagId, setEditingTagId] = useState<string | null>(null);
@@ -39,38 +42,65 @@ const TagMenu: React.FC<TagMenuProps> = ({
     const [newTagColor, setNewTagColor] = useState(COLORS[Math.floor(Math.random() * COLORS.length)]);
 
     const menuRef = useRef<HTMLDivElement>(null);
-    const [style, setStyle] = useState<React.CSSProperties>({});
+    const [style, setStyle] = useState<React.CSSProperties>({ visibility: 'hidden' });
 
     React.useLayoutEffect(() => {
         if (!menuRef.current) return;
 
-        const rect = menuRef.current.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
+        const menuWidth = 240; // Default width for tag menu
 
-        const newStyle: React.CSSProperties = {};
+        if (triggerElement) {
+            const rect = triggerElement.getBoundingClientRect();
+            const menuHeight = menuRef.current.offsetHeight;
 
-        // Vertical adjustment
-        if (rect.bottom > viewportHeight) {
-            newStyle.top = 'auto';
-            newStyle.bottom = '100%';
-            newStyle.marginTop = '0';
-            newStyle.marginBottom = '8px';
-        }
+            const newStyle: React.CSSProperties = {
+                position: 'fixed',
+                zIndex: 10001,
+                width: `${menuWidth}px`,
+                visibility: 'visible'
+            };
 
-        // Horizontal adjustment
-        if (rect.right > viewportWidth) {
-            newStyle.right = '0';
-            newStyle.left = 'auto';
-        } else if (rect.left < 0) {
-            newStyle.left = '0';
-            newStyle.right = 'auto';
-        }
+            // Horizontal positioning
+            let left = rect.left;
+            if (left + menuWidth > viewportWidth - 10) left = viewportWidth - menuWidth - 10;
+            if (left < 10) left = 10;
+            newStyle.left = `${left}px`;
 
-        if (Object.keys(newStyle).length > 0) {
+            // Vertical positioning
+            if (rect.bottom + menuHeight + 10 > viewportHeight && rect.top > menuHeight + 10) {
+                newStyle.bottom = `${viewportHeight - rect.top + 8}px`;
+                newStyle.top = 'auto';
+            } else {
+                newStyle.top = `${rect.bottom + 8}px`;
+            }
+
+            setStyle(newStyle);
+        } else {
+            const rect = menuRef.current.getBoundingClientRect();
+            const newStyle: React.CSSProperties = { visibility: 'visible' };
+
+            // Vertical adjustment
+            if (rect.bottom > viewportHeight) {
+                newStyle.top = 'auto';
+                newStyle.bottom = '100%';
+                newStyle.marginTop = '0';
+                newStyle.marginBottom = '8px';
+            }
+
+            // Horizontal adjustment
+            if (rect.right > viewportWidth) {
+                newStyle.right = '0';
+                newStyle.left = 'auto';
+            } else if (rect.left < 0) {
+                newStyle.left = '0';
+                newStyle.right = 'auto';
+            }
+
             setStyle(newStyle);
         }
-    }, []);
+    }, [triggerElement, tags.length, isCreating, editingTagId]);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -123,7 +153,7 @@ const TagMenu: React.FC<TagMenuProps> = ({
         }
     };
 
-    return (
+    const content = (
         <div className="tag-menu-dropdown" ref={menuRef} style={style} onClick={e => e.stopPropagation()}>
             <div className="tag-menu-header">
                 <Search size={14} className="search-icon" />
@@ -133,9 +163,6 @@ const TagMenu: React.FC<TagMenuProps> = ({
                     value={search}
                     onChange={e => {
                         setSearch(e.target.value);
-                        if (!isCreating && e.target.value && !tags.some(t => t.name.toLowerCase() === e.target.value.toLowerCase())) {
-                            // Optional: auto show create button or just let user click "+"
-                        }
                     }}
                     autoFocus
                 />
@@ -263,6 +290,8 @@ const TagMenu: React.FC<TagMenuProps> = ({
             </div>
         </div>
     );
+
+    return triggerElement ? createPortal(content, document.body) : content;
 };
 
 export default TagMenu;

@@ -131,6 +131,7 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column }) => {
 interface ActivePopover {
     taskId: string;
     field: 'priority' | 'date' | 'tags';
+    element: HTMLElement;
 }
 
 interface SortableRowProps {
@@ -140,7 +141,7 @@ interface SortableRowProps {
     getPriorityColor: (priority: Task['priority']) => string;
     getDateStatus: (dateStr?: string) => string | null;
     tags: Tag[];
-    onOpenMenu: (taskId: string) => void;
+    onOpenMenu: (taskId: string, trigger: HTMLElement) => void;
     isMenuOpen: boolean;
     onCloseMenu: () => void;
     onDuplicate: (taskId: string) => void;
@@ -154,6 +155,7 @@ interface SortableRowProps {
     onUpdateTag: (tagId: string, updates: Partial<Tag>) => void;
     onDeleteTag: (tagId: string) => void;
     onStartTimer: () => void;
+    menuTrigger: HTMLElement | null;
 }
 
 // Helper component for Subtasks
@@ -276,7 +278,8 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
     onUpdateTag,
     onDeleteTag,
     onStartTimer,
-    onUpdateSubtask
+    onUpdateSubtask,
+    menuTrigger
 }) => {
     const {
         attributes,
@@ -336,7 +339,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                     className="add-tag-btn-inline"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setActivePopover({ taskId: task.id, field: 'tags' });
+                                        setActivePopover({ taskId: task.id, field: 'tags', element: e.currentTarget });
                                     }}
                                 >
                                     <Plus size={10} />
@@ -357,6 +360,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                             onUpdateTag={onUpdateTag}
                                             onDeleteTag={onDeleteTag}
                                             onClose={() => setActivePopover(null)}
+                                            triggerElement={activePopover.element}
                                         />
                                     </div>
                                 )}
@@ -388,7 +392,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             className={`date-badge-interactive ${task.dueDate ? getDateStatus(task.dueDate) : 'empty'}`}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                setActivePopover({ taskId: task.id, field: 'date' });
+                                setActivePopover({ taskId: task.id, field: 'date', element: e.currentTarget });
                             }}
                         >
                             <CalendarIcon size={12} />
@@ -403,6 +407,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                         setActivePopover(null);
                                     }}
                                     onClose={() => setActivePopover(null)}
+                                    triggerElement={activePopover.element}
                                 />
                             </div>
                         )}
@@ -416,7 +421,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             style={{ color: getPriorityColor(task.priority) }}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                setActivePopover({ taskId: task.id, field: 'priority' });
+                                setActivePopover({ taskId: task.id, field: 'priority', element: e.currentTarget });
                             }}
                         >
                             {task.priority || '-'}
@@ -475,7 +480,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             if (isMenuOpen) {
                                 onCloseMenu();
                             } else {
-                                onOpenMenu(task.id);
+                                onOpenMenu(task.id, e.currentTarget);
                             }
                         }}
                     >
@@ -492,6 +497,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                 onDelete={() => onDelete(task.id)}
                                 onConvertToDoc={() => onConvertToDoc(task)}
                                 onStartTimer={onStartTimer}
+                                triggerElement={menuTrigger}
                             />
                         </div>
                     )}
@@ -546,6 +552,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
     } = useAppStore();
     const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
+    const [menuTrigger, setMenuTrigger] = React.useState<HTMLElement | null>(null);
     const [activePopover, setActivePopover] = React.useState<ActivePopover | null>(null);
     const [showViewSelector, setShowViewSelector] = React.useState(false);
     const [contextMenu, setContextMenu] = React.useState<{ view: any; position: { x: number; y: number } } | null>(null);
@@ -553,6 +560,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
     React.useEffect(() => {
         const handleClickOutside = () => {
             setOpenMenuTaskId(null);
+            setMenuTrigger(null);
             setActivePopover(null);
         };
         // Only attach if menu or popover is open
@@ -822,9 +830,15 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                                         getPriorityColor={getPriorityColor}
                                                         getDateStatus={getDateStatus}
                                                         tags={tags}
-                                                        onOpenMenu={(id) => setOpenMenuTaskId(id)}
+                                                        onOpenMenu={(id, trigger) => {
+                                                            setOpenMenuTaskId(id);
+                                                            setMenuTrigger(trigger);
+                                                        }}
                                                         isMenuOpen={openMenuTaskId === task.id}
-                                                        onCloseMenu={() => setOpenMenuTaskId(null)}
+                                                        onCloseMenu={() => {
+                                                            setOpenMenuTaskId(null);
+                                                            setMenuTrigger(null);
+                                                        }}
                                                         onDuplicate={duplicateTask}
                                                         onArchive={archiveTask}
                                                         onDelete={deleteTask}
@@ -838,8 +852,10 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                                         onStartTimer={() => {
                                                             startTimer(task.id);
                                                             setOpenMenuTaskId(null);
+                                                            setMenuTrigger(null);
                                                         }}
                                                         onUpdateSubtask={updateSubtask}
+                                                        menuTrigger={menuTrigger}
                                                     />
                                                 ))}
                                                 <button className="btn-inline-add" onClick={onAddTask}>
@@ -883,9 +899,15 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                                     getPriorityColor={getPriorityColor}
                                                     getDateStatus={getDateStatus}
                                                     tags={tags}
-                                                    onOpenMenu={(id) => setOpenMenuTaskId(id)}
+                                                    onOpenMenu={(id, trigger) => {
+                                                        setOpenMenuTaskId(id);
+                                                        setMenuTrigger(trigger);
+                                                    }}
                                                     isMenuOpen={openMenuTaskId === task.id}
-                                                    onCloseMenu={() => setOpenMenuTaskId(null)}
+                                                    onCloseMenu={() => {
+                                                        setOpenMenuTaskId(null);
+                                                        setMenuTrigger(null);
+                                                    }}
                                                     onDuplicate={duplicateTask}
                                                     onArchive={archiveTask}
                                                     onDelete={deleteTask}
@@ -899,8 +921,10 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                                     onStartTimer={() => {
                                                         startTimer(task.id);
                                                         setOpenMenuTaskId(null);
+                                                        setMenuTrigger(null);
                                                     }}
                                                     onUpdateSubtask={updateSubtask}
+                                                    menuTrigger={menuTrigger}
                                                 />
                                             ))}
                                         </div>

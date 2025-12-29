@@ -104,8 +104,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [sidebarTab, setSidebarTab] = useState<SidebarTab>('activity');
     const [newSubtaskName, setNewSubtaskName] = useState('');
     const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+    const [optionsMenuTrigger, setOptionsMenuTrigger] = useState<HTMLElement | null>(null);
     const [commentText, setCommentText] = useState('');
     const [isTagPickerOpen, setIsTagPickerOpen] = useState(false);
+    const [tagPickerTrigger, setTagPickerTrigger] = useState<HTMLElement | null>(null);
     const [isRelationshipPickerOpen, setIsRelationshipPickerOpen] = useState(false);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
@@ -333,13 +335,23 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                             <Trash2 size={18} />
                         </button>
                         <div style={{ position: 'relative' }}>
-                            <button className="icon-btn-ghost" onClick={() => setIsOptionsMenuOpen(!isOptionsMenuOpen)}>
+                            <button
+                                className="icon-btn-ghost"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOptionsMenuTrigger(e.currentTarget);
+                                    setIsOptionsMenuOpen(!isOptionsMenuOpen);
+                                }}
+                            >
                                 <MoreVertical size={18} />
                             </button>
                             {isOptionsMenuOpen && (
                                 <TaskOptionsMenu
                                     taskId={taskId}
-                                    onClose={() => setIsOptionsMenuOpen(false)}
+                                    onClose={() => {
+                                        setIsOptionsMenuOpen(false);
+                                        setOptionsMenuTrigger(null);
+                                    }}
                                     onRename={handleRename}
                                     onDuplicate={handleDuplicate}
                                     onArchive={handleArchive}
@@ -347,6 +359,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                     onConvertToDoc={handleConvertToDoc}
                                     onMove={() => { setIsLocationPickerOpen(true); setIsOptionsMenuOpen(false); }}
                                     onStartTimer={() => { alert('Timer started for task ' + taskId); setIsOptionsMenuOpen(false); }}
+                                    triggerElement={optionsMenuTrigger}
                                 />
                             )}
                         </div>
@@ -498,21 +511,29 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                             ) : null;
                                         })}
                                         <div style={{ position: 'relative' }}>
-                                            <button className="add-tag-btn" onClick={() => setIsTagPickerOpen(!isTagPickerOpen)}>
+                                            <button
+                                                className="add-tag-btn"
+                                                onClick={(e) => {
+                                                    setTagPickerTrigger(e.currentTarget);
+                                                    setIsTagPickerOpen(!isTagPickerOpen);
+                                                }}
+                                            >
                                                 <Plus size={12} />
                                             </button>
                                             {isTagPickerOpen && (
-                                                <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 100 }}>
-                                                    <TagMenu
-                                                        tags={tags}
-                                                        selectedTagIds={task.tags || []}
-                                                        onToggleTag={toggleTag}
-                                                        onCreateTag={addTag}
-                                                        onUpdateTag={updateTag}
-                                                        onDeleteTag={deleteTag}
-                                                        onClose={() => setIsTagPickerOpen(false)}
-                                                    />
-                                                </div>
+                                                <TagMenu
+                                                    tags={tags}
+                                                    selectedTagIds={task.tags || []}
+                                                    onToggleTag={toggleTag}
+                                                    onCreateTag={addTag}
+                                                    onUpdateTag={updateTag}
+                                                    onDeleteTag={deleteTag}
+                                                    onClose={() => {
+                                                        setIsTagPickerOpen(false);
+                                                        setTagPickerTrigger(null);
+                                                    }}
+                                                    triggerElement={tagPickerTrigger}
+                                                />
                                             )}
                                         </div>
                                     </div>

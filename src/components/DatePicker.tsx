@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import {
     format,
@@ -21,11 +22,12 @@ interface DatePickerProps {
     initialDate?: Date;
     onSelect: (date: Date | null) => void;
     onClose: () => void;
+    triggerElement?: HTMLElement | null;
 }
 
-const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose }) => {
+const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose, triggerElement }) => {
     // Close on Escape key
-    React.useEffect(() => {
+    useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onClose();
         };
@@ -35,39 +37,65 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose 
 
     const [currentMonth, setCurrentMonth] = useState(initialDate || new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(initialDate || null);
-    const pickerRef = React.useRef<HTMLDivElement>(null);
-    const [style, setStyle] = useState<React.CSSProperties>({});
+    const pickerRef = useRef<HTMLDivElement>(null);
+    const [style, setStyle] = useState<React.CSSProperties>({ visibility: 'hidden' });
 
-    React.useLayoutEffect(() => {
+    useLayoutEffect(() => {
         if (!pickerRef.current) return;
 
-        const rect = pickerRef.current.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
+        const pickerWidth = 460; // Approximate width based on CSS
 
-        const newStyle: React.CSSProperties = {};
+        if (triggerElement) {
+            const rect = triggerElement.getBoundingClientRect();
+            const pickerHeight = pickerRef.current.offsetHeight;
 
-        // Vertical adjustment
-        if (rect.bottom > viewportHeight) {
-            newStyle.top = 'auto';
-            newStyle.bottom = '100%';
-            newStyle.marginTop = '0';
-            newStyle.marginBottom = '8px';
-        }
+            const newStyle: React.CSSProperties = {
+                position: 'fixed',
+                zIndex: 10001,
+                visibility: 'visible'
+            };
 
-        // Horizontal adjustment
-        if (rect.right > viewportWidth) {
-            newStyle.right = '0';
-            newStyle.left = 'auto';
-        } else if (rect.left < 0) {
-            newStyle.left = '0';
-            newStyle.right = 'auto';
-        }
+            // Horizontal positioning
+            let left = rect.left;
+            if (left + pickerWidth > viewportWidth - 10) left = viewportWidth - pickerWidth - 10;
+            if (left < 10) left = 10;
+            newStyle.left = `${left}px`;
 
-        if (Object.keys(newStyle).length > 0) {
+            // Vertical positioning
+            if (rect.bottom + pickerHeight + 10 > viewportHeight && rect.top > pickerHeight + 10) {
+                newStyle.bottom = `${viewportHeight - rect.top + 8}px`;
+                newStyle.top = 'auto';
+            } else {
+                newStyle.top = `${rect.bottom + 8}px`;
+            }
+
+            setStyle(newStyle);
+        } else {
+            const rect = pickerRef.current.getBoundingClientRect();
+            const newStyle: React.CSSProperties = { visibility: 'visible' };
+
+            // Vertical adjustment
+            if (rect.bottom > viewportHeight) {
+                newStyle.top = 'auto';
+                newStyle.bottom = '100%';
+                newStyle.marginTop = '0';
+                newStyle.marginBottom = '8px';
+            }
+
+            // Horizontal adjustment
+            if (rect.right > viewportWidth) {
+                newStyle.right = '0';
+                newStyle.left = 'auto';
+            } else if (rect.left < 0) {
+                newStyle.left = '0';
+                newStyle.right = 'auto';
+            }
+
             setStyle(newStyle);
         }
-    }, []);
+    }, [triggerElement, currentMonth]);
 
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
@@ -86,8 +114,6 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose 
     const handleToday = () => {
         const today = new Date();
         setCurrentMonth(today);
-        // Do not force select today unless intended, user might just want to view today
-        // But usually "Today" button in calendar header means "Go to today's view"
     };
 
     const handleDateClick = (date: Date) => {
@@ -105,21 +131,15 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose 
                 break;
             case 'Later':
                 targetDate = addWeeks(today, 1);
-                break; // Simplified logic for "Later"
+                break;
             case 'Tomorrow':
                 targetDate = addDays(today, 1);
                 break;
-            case 'Next week': // Next Monday
-                // If today is Monday, go to next Monday.
-                // startOfWeek is Sunday. 
+            case 'Next week':
                 const nextWeekStart = startOfWeek(addWeeks(today, 1), { weekStartsOn: 1 });
                 targetDate = nextWeekStart;
                 break;
-            case 'Next weekend': // Next Saturday
-                // If today is sat or sun, maybe next week sat? 
-                // Simple logic: Next Saturday from "now"
-                // If today is Friday, tomorrow is Sat.
-                // let's just find next Saturday.
+            case 'Next weekend':
                 const nextSat = addDays(today, (6 - today.getDay() + 7) % 7 || 7);
                 targetDate = nextSat;
                 break;
@@ -139,7 +159,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose 
         onSelect(targetDate);
     };
 
-    return (
+    const content = (
         <div className="date-picker-container" ref={pickerRef} style={style} onClick={e => e.stopPropagation()}>
             <div className="date-picker-sidebar">
                 <div className="sidebar-section">
@@ -223,10 +243,13 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose 
 
                 <div className="date-picker-cleanup">
                     <button className="clear-date-btn" onClick={() => onSelect(null)}>Clear</button>
+                    <button className="clear-date-btn" onClick={onClose} style={{ marginLeft: 'auto', background: '#f8fafc' }}>Close</button>
                 </div>
             </div>
         </div>
     );
+
+    return triggerElement ? createPortal(content, document.body) : content;
 };
 
 export default DatePicker;
