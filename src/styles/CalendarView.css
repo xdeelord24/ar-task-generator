@@ -3,7 +3,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: white;
+    background-color: var(--bg-main);
 }
 
 .calendar-grid {
@@ -17,8 +17,8 @@
 .weekdays-header {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    border-bottom: 1px solid #e2e8f0;
-    background: #f8fafc;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-surface);
     border-radius: 8px 8px 0 0;
 }
 
@@ -27,7 +27,7 @@
     text-align: center;
     font-size: 12px;
     font-weight: 700;
-    color: #64748b;
+    color: var(--text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -37,16 +37,16 @@
     grid-template-columns: repeat(7, 1fr);
     grid-auto-rows: 1fr;
     flex: 1;
-    border-left: 1px solid #e2e8f0;
-    border-top: 1px solid #e2e8f0;
+    border-left: 1px solid var(--border);
+    border-top: 1px solid var(--border);
 }
 
 .calendar-day {
     min-height: 100px;
     padding: 8px;
-    border-right: 1px solid #e2e8f0;
-    border-bottom: 1px solid #e2e8f0;
-    background: white;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-main);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -54,27 +54,27 @@
 }
 
 .calendar-day.other-month {
-    background: #f8fafc;
-    color: #cbd5e1;
+    background: var(--bg-side);
+    color: var(--text-tertiary);
 }
 
 .calendar-day.today {
-    background: #f0f7ff;
+    background: var(--bg-active);
 }
 
 .calendar-day.drag-over {
-    background: #e0f2fe;
-    box-shadow: inset 0 0 0 2px #3b82f6;
+    background: var(--bg-hover);
+    box-shadow: inset 0 0 0 2px var(--primary);
 }
 
 .day-number {
     font-size: 12px;
     font-weight: 600;
-    color: #475569;
+    color: var(--text-secondary);
 }
 
 .calendar-day.today .day-number {
-    color: #3b82f6;
+    color: var(--primary);
 }
 
 .day-tasks {
@@ -88,20 +88,21 @@
     font-size: 11px;
     padding: 4px 8px;
     border-radius: 4px;
-    background: white;
-    border: 1px solid #e2e8f0;
-    color: #1e293b;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-main);
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     cursor: grab;
-    transition: all 0.2s ease;
+    transition: var(--transition);
 }
 
 .calendar-task-tag:hover {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    border-color: #cbd5e1;
+    box-shadow: var(--shadow-sm);
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
 }
 
 .calendar-task-tag.dragging {
@@ -110,15 +111,15 @@
 }
 
 .calendar-task-tag.to-do {
-    border-left: 3px solid #3b82f6;
+    border-left: 3px solid var(--info);
 }
 
 .calendar-task-tag.in-progress {
-    border-left: 3px solid #f59e0b;
+    border-left: 3px solid var(--warning);
 }
 
 .calendar-task-tag.completed {
-    border-left: 3px solid #10b981;
+    border-left: 3px solid var(--success);
 }
 
 .calendar-nav {
@@ -130,72 +131,77 @@
 .current-month {
     font-size: 18px;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text-main);
     min-width: 200px;
     text-align: center;
 }
 
 .nav-btn {
     background: transparent;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border);
     border-radius: 6px;
     padding: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #64748b;
+    color: var(--text-secondary);
     cursor: pointer;
+    transition: var(--transition);
 }
 
 .nav-btn:hover {
-    background: #f1f5f9;
-    color: #1e293b;
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
 
 .btn-today {
-    background: white;
-    border: 1px solid #e2e8f0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
     border-radius: 6px;
     padding: 6px 12px;
     font-size: 13px;
     font-weight: 600;
-    color: #475569;
+    color: var(--text-secondary);
     cursor: pointer;
+    transition: var(--transition);
 }
 
 .btn-today:hover {
-    background: #f1f5f9;
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
 
 /* Mode Switcher */
 .calendar-mode-switcher {
     display: flex;
-    background: #f1f5f9;
+    background: var(--bg-surface);
     padding: 2px;
     border-radius: 8px;
     gap: 2px;
+    border: 1px solid var(--border);
 }
 
 .mode-btn {
     padding: 4px 12px;
     font-size: 12px;
     font-weight: 600;
-    color: #64748b;
+    color: var(--text-secondary);
     background: transparent;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: var(--transition);
 }
 
 .mode-btn:hover {
-    color: #1e293b;
+    color: var(--text-main);
+    background: var(--bg-hover);
 }
 
 .mode-btn.active {
-    background: white;
-    color: #3b82f6;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: var(--bg-active);
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
 }
 
 /* Time Grid Styles */
@@ -204,13 +210,13 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: white;
+    background: var(--bg-main);
 }
 
 .time-grid-header {
     display: flex;
-    border-bottom: 1px solid #e2e8f0;
-    background: #f8fafc;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-surface);
     position: sticky;
     top: 0;
     z-index: 20;
@@ -218,9 +224,9 @@
 
 .all-day-row {
     display: flex;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border);
     min-height: 48px;
-    background: #f8fafc;
+    background: var(--bg-surface);
     position: sticky;
     top: 60px;
     /* Below header */
@@ -231,7 +237,7 @@
     font-size: 10px;
     text-transform: uppercase;
     font-weight: 700;
-    color: #94a3b8;
+    color: var(--text-tertiary);
     letter-spacing: 0.05em;
     display: flex;
     align-items: center;
@@ -243,7 +249,7 @@
     flex: 1;
     min-height: 48px;
     padding: 6px;
-    border-right: 1px solid #f1f5f9;
+    border-right: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -263,7 +269,7 @@
 .time-gutter {
     width: 60px;
     flex-shrink: 0;
-    border-right: 1px solid #e2e8f0;
+    border-right: 1px solid var(--border);
 }
 
 .time-column-header {
@@ -273,28 +279,28 @@
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    border-right: 1px solid #e2e8f0;
+    border-right: 1px solid var(--border);
 }
 
 .time-column-header.today {
-    background: #f0f7ff;
+    background: var(--bg-active);
 }
 
 .time-column-header .day-name {
     font-size: 11px;
     font-weight: 700;
-    color: #64748b;
+    color: var(--text-secondary);
     text-transform: uppercase;
 }
 
 .time-column-header .day-number {
     font-size: 18px;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text-main);
 }
 
 .time-column-header.today .day-number {
-    color: #3b82f6;
+    color: var(--primary);
 }
 
 .time-grid-body {
@@ -302,6 +308,7 @@
     display: flex;
     overflow-y: auto;
     position: relative;
+    background: var(--bg-main);
 }
 
 .time-label {
@@ -310,7 +317,7 @@
     align-items: center;
     justify-content: center;
     font-size: 11px;
-    color: #64748b;
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
@@ -325,7 +332,7 @@
     left: 0;
     right: 0;
     height: 60px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .time-columns .time-slot-row {
@@ -336,23 +343,23 @@
     flex: 1;
     height: 1440px;
     /* 24 * 60px */
-    border-right: 1px solid #e2e8f0;
+    border-right: 1px solid var(--border);
     position: relative;
 }
 
 .time-slot {
     height: 60px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--border-light);
     box-sizing: border-box;
     transition: background 0.2s;
 }
 
 .time-slot:hover {
-    background: #f8fafc;
+    background: var(--bg-hover);
 }
 
 .time-slot.drag-over {
-    background: #e0f2fe;
+    background: var(--bg-active);
 }
 
 .day-tasks-absolute {
@@ -374,6 +381,7 @@
 .draggable-task-wrapper .calendar-task-tag {
     height: 100%;
     margin: 0;
+    background: var(--bg-surface);
 }
 
 .resize-handle-bottom {
@@ -389,11 +397,12 @@
 }
 
 .draggable-task-wrapper:hover .resize-handle-bottom {
-    background: rgba(59, 130, 246, 0.3);
+    background: rgba(99, 102, 241, 0.3);
+    /* using generic primary-ish transparent */
 }
 
 .resize-handle-bottom:hover {
-    background: #3b82f6 !important;
+    background: var(--primary) !important;
 }
 
 /* Current Time Indicator */
@@ -402,7 +411,7 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: #ef4444;
+    background: var(--error);
     z-index: 10;
     pointer-events: none;
 }
@@ -413,6 +422,6 @@
     top: -3px;
     width: 8px;
     height: 8px;
-    background: #ef4444;
+    background: var(--error);
     border-radius: 50%;
 }
