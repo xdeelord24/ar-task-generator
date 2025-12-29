@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     ChevronLeft,
     ChevronRight,
@@ -7,23 +7,32 @@ import {
     Settings,
     Tag,
     DollarSign,
-    Briefcase
+    Briefcase,
+    Play,
+    Square,
+    Search,
+    X
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { format, startOfWeek, endOfWeek, addDays, isSameDay, isToday } from 'date-fns';
 import type { Task } from '../types';
 import '../styles/TimesheetView.css';
-import '../styles/ListView.css';
+import '../styles/ListView.css'; // Re-using variables if needed
 
 const TimesheetView: React.FC = () => {
-    const { tasks, currentSpaceId } = useAppStore();
-    const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 })); // Week starts on Sunday as per screenshot
+    const { tasks, currentSpaceId, startTimer, stopTimer, activeTimer } = useAppStore();
+    const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 })); // Sunday start
 
-    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+    // Manage manually added tasks to the view
+    const [manualTaskIds, setManualTaskIds] = useState<string[]>([]);
 
-    const filteredTasks = tasks.filter(task =>
-        currentSpaceId === 'everything' || task.spaceId === currentSpaceId
-    );
+    // Add task dropdown state
+    const [showAddTask, setShowAddTask] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const weekDays = useMemo(() =>
+        Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i))
+        , [currentWeekStart]);
 
     const prevWeek = () => setCurrentWeekStart(addDays(currentWeekStart, -7));
     const nextWeek = () => setCurrentWeekStart(addDays(currentWeekStart, 7));
@@ -33,6 +42,7 @@ const TimesheetView: React.FC = () => {
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
         if (mins === 0) return `${hours}h`;
+        if (hours === 0) return `${mins}m`;
         return `${hours}h ${mins}m`;
     };
 
@@ -47,15 +57,51 @@ const TimesheetView: React.FC = () => {
         return weekDays.reduce((acc, day) => acc + getTaskDailyTotal(task, day), 0);
     };
 
+    // Determine which tasks to show
+    // 1. Tasks belonging to current space
+    // 2. AND (Have time entries this week OR Are the active timer task OR have been manually added)
+    const visibleTasks = useMemo(() => {
+        return tasks.filter(task => {
+            // Space filter
+            if (currentSpaceId !== 'everything' && task.spaceId !== currentSpaceId) return false;
+
+            // Visibility filter
+            const hasTimeEntriesThisWeek = task.timeEntries?.some(entry => {
+                const entryDate = new Date(entry.date);
+                return entryDate >= currentWeekStart && entryDate <= addDays(currentWeekStart, 7);
+            });
+
+            const isActive = activeTimer?.taskId === task.id;
+            const isManuallyAdded = manualTaskIds.includes(task.id);
+
+            return hasTimeEntriesThisWeek || isActive || isManuallyAdded;
+        });
+    }, [tasks, currentSpaceId, currentWeekStart, activeTimer, manualTaskIds]);
+
     const getDailyTotal = (day: Date) => {
-        return filteredTasks.reduce((acc, task) => acc + getTaskDailyTotal(task, day), 0);
+        return visibleTasks.reduce((acc, task) => acc + getTaskDailyTotal(task, day), 0);
     };
 
     const getWeeklyGrandTotal = () => {
-        return filteredTasks.reduce((acc, task) => acc + getTaskWeeklyTotal(task), 0);
+        return visibleTasks.reduce((acc, task) => acc + getTaskWeeklyTotal(task), 0);
     };
 
-    const hasTasks = filteredTasks.length > 0;
+    const handleTaskAdd = (taskId: string) => {
+        if (!manualTaskIds.includes(taskId)) {
+            setManualTaskIds([...manualTaskIds, taskId]);
+        }
+        setShowAddTask(false);
+        setSearchQuery('');
+    };
+
+    // Filter for the "Add Task" dropdown
+    const availableTasks = tasks.filter(task =>
+        (currentSpaceId === 'everything' || task.spaceId === currentSpaceId) &&
+        !visibleTasks.find(vt => vt.id === task.id) &&
+        task.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const hasTasks = visibleTasks.length > 0;
 
     return (
         <div className="view-container">
@@ -130,19 +176,52 @@ const TimesheetView: React.FC = () => {
                             </div>
                             <div className="empty-title">No time entries for this week</div>
                             <div className="empty-subtitle">Add tasks or track time to begin.</div>
-                            <button className="btn-track-time">
+                            <button className="btn-track-time" onClick={() => setShowAddTask(true)}>
                                 <Clock size={16} /> Track time
                             </button>
                         </div>
                     ) : (
                         <div>
-                            {filteredTasks.map(task => {
+                            {visibleTasks.map(task => {
                                 const weeklyTotal = getTaskWeeklyTotal(task);
+                                const isTimerRunning = activeTimer?.taskId === task.id;
+
                                 return (
                                     <div key={task.id} className="task-row">
                                         <div className="col-task-cell">
-                                            <div className="ts-task-name">{task.name}</div>
-                                            <div className="ts-task-project">Team Space</div>
+                                            <div className="flex items-center" style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
+                                                {/* Timer Button */}
+                                                <div className="timer-btn-wrapper">
+                                                    {isTimerRunning ? (
+                                                        <button
+                                                            className="btn-timer stop"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                stopTimer();
+                                                            }}
+                                                            title="Stop timer"
+                                                        >
+                                                            <Square size={12} fill="currentColor" />
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            className="btn-timer"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                startTimer(task.id);
+                                                            }}
+                                                            title="Start timer"
+                                                        >
+                                                            <Play size={14} fill="currentColor" />
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <div className="ts-task-name">{task.name}</div>
+                                                    <div className="ts-task-project">Team Space / Tasks</div>
+                                                </div>
+                                            </div>
                                         </div>
                                         {weekDays.map(day => {
                                             const total = getTaskDailyTotal(task, day);
@@ -150,7 +229,7 @@ const TimesheetView: React.FC = () => {
                                                 <div key={day.toISOString()} className="col-time-cell">
                                                     <input
                                                         type="text"
-                                                        placeholder="0h"
+                                                        placeholder="–"
                                                         value={total > 0 ? formatDuration(total) : ''}
                                                         readOnly
                                                         className="ts-time-input"
@@ -169,10 +248,49 @@ const TimesheetView: React.FC = () => {
                 </div>
             </div>
 
-            {/* Floating Add Task Button */}
-            <button className="btn-add-task-floating">
-                <Plus size={18} /> Add task
-            </button>
+            {/* Floating Add Task Button with Popover */}
+            <div className="add-task-container" style={{ position: 'fixed', bottom: '32px', left: '280px', zIndex: 100 }}>
+                {showAddTask && (
+                    <div className="add-task-popover">
+                        <div className="popover-search">
+                            <Search size={16} className="text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search for task name..."
+                                autoFocus
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            <button onClick={() => setShowAddTask(false)} className="icon-btn-ghost">
+                                <X size={14} />
+                            </button>
+                        </div>
+                        <div className="popover-list">
+                            {availableTasks.length === 0 ? (
+                                <div className="popover-empty">No matching tasks found</div>
+                            ) : (
+                                availableTasks.map(task => (
+                                    <div
+                                        key={task.id}
+                                        className="popover-item"
+                                        onClick={() => handleTaskAdd(task.id)}
+                                    >
+                                        <div className="popover-item-name">{task.name}</div>
+                                        <div className="popover-item-path">Team Space</div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
+                <button
+                    className="btn-add-task-floating"
+                    onClick={() => setShowAddTask(!showAddTask)}
+                    style={{ position: 'static' }} // Override specific static positioning since parent handles fixed
+                >
+                    <Plus size={18} /> Add task
+                </button>
+            </div>
         </div>
     );
 };
