@@ -7,7 +7,6 @@ import {
     Activity,
     ArrowLeft,
     Search,
-    ChevronRight,
     ChevronDown,
     Layers,
     X
@@ -31,6 +30,7 @@ import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
 
 import { useAppStore } from '../store/useAppStore';
 import DashboardCard from '../components/DashboardCard';
+import ViewHeader from '../components/ViewHeader';
 import '../styles/DashboardView.css';
 
 const DashboardView: React.FC = () => {
@@ -44,9 +44,6 @@ const DashboardView: React.FC = () => {
         deleteDashboard,
         spaces,
         lists,
-        savedViews,
-        currentView,
-        setCurrentView
     } = useAppStore();
 
     const [isAddingChart, setIsAddingChart] = useState(false);
@@ -285,81 +282,13 @@ const DashboardView: React.FC = () => {
         );
     }
 
-    const isProjectContext = currentDashboard.spaceId || currentDashboard.listId;
-    const activeSpace = spaces.find(s => s.id === currentDashboard.spaceId);
-    const activeList = lists.find(l => l.id === currentDashboard.listId);
-
-    const renderIcon = (_iconName: string, size = 16, color?: string) => {
-        return <Layers size={size} color={color} />;
-    };
-
     return (
         <div className="view-container">
-            <div className="view-header">
-                {isProjectContext ? (
-                    <div className="breadcrumb">
-                        <div className="breadcrumb-item">
-                            {activeSpace && renderIcon(activeSpace.icon, 18, activeSpace.color || undefined)}
-                            <span className="space-name">{activeSpace?.name || 'Space'}</span>
-                        </div>
-                        {currentDashboard.listId && (
-                            <>
-                                <ChevronRight size={14} className="breadcrumb-separator" />
-                                <div className="breadcrumb-item">
-                                    {activeList?.icon && renderIcon(activeList.icon, 18, activeList.color || activeSpace?.color || undefined)}
-                                    <span className="space-name">{activeList?.name}</span>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                ) : (
-                    <div className="breadcrumb">
-                        <button className="back-to-hub" title="Back to Hub" onClick={() => setCurrentDashboardId(null)}>
-                            <BarChart3 size={18} />
-                        </button>
-                        <span className="space-name">{currentDashboard.name}</span>
-                        <span className="task-count">{getLocationName(currentDashboard.spaceId, currentDashboard.listId)}</span>
-                    </div>
-                )}
-
-                <div className="view-controls">
-                    {isProjectContext ? (
-                        <>
-                            {savedViews
-                                .filter(v => !v.spaceId || v.spaceId === currentDashboard.spaceId)
-                                .filter(v => !v.listId || v.listId === currentDashboard.listId)
-                                .sort((a, b) => (a.isPinned === b.isPinned ? 0 : a.isPinned ? -1 : 1))
-                                .map(savedView => (
-                                    <button
-                                        key={savedView.id}
-                                        className={`view-mode-btn ${(savedView.viewType === 'dashboards' && savedView.dashboardId === currentDashboard.id) ||
-                                            (savedView.viewType !== 'dashboards' && currentView === savedView.viewType)
-                                            ? 'active' : ''
-                                            }`}
-                                        onClick={() => {
-                                            setCurrentView(savedView.viewType);
-                                            if (savedView.viewType === 'dashboards' && savedView.dashboardId) {
-                                                setCurrentDashboardId(savedView.dashboardId);
-                                            }
-                                        }}
-                                    >
-                                        {savedView.name}
-                                    </button>
-                                ))
-                            }
-                        </>
-                    ) : (
-                        <>
-                            <button className="view-mode-btn active">Overview</button>
-                            <button className="view-mode-btn">Analytics</button>
-                            <button className="view-mode-btn">Workload</button>
-                        </>
-                    )}
-                    <div className="h-divider"></div>
-                    <button className="btn-primary" onClick={() => setIsAddingChart(!isAddingChart)}>
-                        <Plus size={16} /> Add Chart
-                    </button>
-                </div>
+            <ViewHeader />
+            <div className="view-header-overlay-controls">
+                <button className="btn-primary" onClick={() => setIsAddingChart(!isAddingChart)}>
+                    <Plus size={16} /> Add Chart
+                </button>
             </div>
 
             <div className="dashboard-content">

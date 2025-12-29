@@ -28,8 +28,7 @@ import {
     parseISO,
 } from 'date-fns';
 import type { Task } from '../types';
-import ViewSelectorModal from '../components/ViewSelectorModal';
-import ViewContextMenu from '../components/ViewContextMenu';
+import ViewHeader from '../components/ViewHeader';
 import '../styles/GanttView.css';
 import '../styles/ListView.css';
 
@@ -80,11 +79,9 @@ const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, monthStart,
 };
 
 const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
-    const { tasks, currentSpaceId, setCurrentView, updateTask, savedViews } = useAppStore();
+    const { tasks, currentSpaceId, updateTask } = useAppStore();
     const [viewDate, setViewDate] = useState(new Date());
     const [zoom, setZoom] = useState(1);
-    const [showViewSelector, setShowViewSelector] = useState(false);
-    const [contextMenu, setContextMenu] = useState<{ view: any; position: { x: number; y: number } } | null>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -132,41 +129,7 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
 
     return (
         <div className="view-container gantt-view">
-            <div className="view-header">
-                <div className="breadcrumb">
-                    <span className="space-name">Team Space</span>
-                    <span className="task-count">{filteredTasks.length}</span>
-                </div>
-                <div className="view-controls">
-                    {savedViews
-                        .filter(v => !v.spaceId || v.spaceId === currentSpaceId)
-                        .sort((a, b) => {
-                            if (a.isPinned && !b.isPinned) return -1;
-                            if (!a.isPinned && b.isPinned) return 1;
-                            return 0;
-                        })
-                        .map(savedView => (
-                            <button
-                                key={savedView.id}
-                                className={`view-mode-btn ${savedView.viewType === 'gantt' ? 'active' : ''}`}
-                                onClick={() => setCurrentView(savedView.viewType)}
-                                onContextMenu={(e) => {
-                                    e.preventDefault();
-                                    setContextMenu({
-                                        view: savedView,
-                                        position: { x: e.clientX, y: e.clientY }
-                                    });
-                                }}
-                            >
-                                {savedView.name}
-                            </button>
-                        ))
-                    }
-                    <button className="view-mode-btn add-view-btn" onClick={() => setShowViewSelector(true)}>
-                        <Plus size={14} /> View
-                    </button>
-                </div>
-            </div>
+            <ViewHeader />
 
             <div className="toolbar">
                 <div className="toolbar-left">
@@ -231,22 +194,6 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
                 </div>
             </DndContext>
 
-            {showViewSelector && (
-                <ViewSelectorModal
-                    onClose={() => setShowViewSelector(false)}
-                    onSelectView={(viewType) => {
-                        setCurrentView(viewType);
-                    }}
-                />
-            )}
-
-            {contextMenu && (
-                <ViewContextMenu
-                    view={contextMenu.view}
-                    position={contextMenu.position}
-                    onClose={() => setContextMenu(null)}
-                />
-            )}
         </div>
     );
 };

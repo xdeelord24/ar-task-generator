@@ -85,8 +85,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useAppStore } from '../store/useAppStore';
 import type { Task, Tag } from '../types';
 import TaskOptionsMenu from '../components/TaskOptionsMenu';
-import ViewSelectorModal from '../components/ViewSelectorModal';
-import ViewContextMenu from '../components/ViewContextMenu';
+import ViewHeader from '../components/ViewHeader';
 import '../styles/KanbanView.css';
 import '../styles/TaskOptionsMenu.css';
 import QuickAddSubtask from '../components/QuickAddSubtask';
@@ -414,17 +413,13 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         tags,
         spaces,
         lists,
-        savedViews,
-        setCurrentDashboardId
     } = useAppStore();
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
     const [menuTrigger, setMenuTrigger] = React.useState<HTMLElement | null>(null);
     const [isAddingColumn, setIsAddingColumn] = React.useState(false);
     const [newColumnName, setNewColumnName] = React.useState('');
-    const [showViewSelector, setShowViewSelector] = React.useState(false);
     const [addSubtaskTaskId, setAddSubtaskTaskId] = React.useState<string | null>(null);
-    const [contextMenu, setContextMenu] = React.useState<{ view: any; position: { x: number; y: number } } | null>(null);
 
     const handleOpenMenu = (taskId: string, trigger: HTMLElement) => {
         setOpenMenuTaskId(taskId);
@@ -539,59 +534,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
 
     return (
         <div className="view-container kanban-view">
-            <div className="view-header">
-                <div className="breadcrumb">
-                    <div className="breadcrumb-item">
-                        {activeSpace && renderIcon(activeSpace.icon, 18, activeSpace.color || undefined)}
-                        <span className="space-name">{activeSpace?.name || 'Space'}</span>
-                    </div>
-                    {currentListId && (
-                        <>
-                            <ChevronRight size={14} className="breadcrumb-separator" />
-                            <div className="breadcrumb-item">
-                                {lists.find(l => l.id === currentListId)?.icon && renderIcon(lists.find(l => l.id === currentListId)?.icon!, 18, lists.find(l => l.id === currentListId)?.color || activeSpace?.color || undefined)}
-                                <span className="space-name">{lists.find(l => l.id === currentListId)?.name}</span>
-                            </div>
-                        </>
-                    )}
-                    <span className="task-count">{filteredTasks.length}</span>
-                </div>
-                <div className="view-controls">
-                    {savedViews
-                        .filter(v => !v.spaceId || v.spaceId === currentSpaceId)
-                        .filter(v => !v.listId || v.listId === currentListId)
-                        .sort((a, b) => {
-                            if (a.isPinned && !b.isPinned) return -1;
-                            if (!a.isPinned && b.isPinned) return 1;
-                            return 0;
-                        })
-                        .map(savedView => (
-                            <button
-                                key={savedView.id}
-                                className={`view-mode-btn ${currentView === savedView.viewType ? 'active' : ''}`}
-                                onClick={() => {
-                                    setCurrentView(savedView.viewType);
-                                    if (savedView.viewType === 'dashboards' && savedView.dashboardId) {
-                                        setCurrentDashboardId(savedView.dashboardId);
-                                    }
-                                }}
-                                onContextMenu={(e) => {
-                                    e.preventDefault();
-                                    setContextMenu({
-                                        view: savedView,
-                                        position: { x: e.clientX, y: e.clientY }
-                                    });
-                                }}
-                            >
-                                {savedView.name}
-                            </button>
-                        ))
-                    }
-                    <button className="view-mode-btn add-view-btn" onClick={() => setShowViewSelector(true)}>
-                        <Plus size={14} /> View
-                    </button>
-                </div>
-            </div>
+            <ViewHeader />
 
             <div className="toolbar">
                 <div className="toolbar-left">
@@ -742,22 +685,6 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                 </DragOverlay>
             </DndContext>
 
-            {showViewSelector && (
-                <ViewSelectorModal
-                    onClose={() => setShowViewSelector(false)}
-                    onSelectView={(viewType) => {
-                        setCurrentView(viewType);
-                    }}
-                />
-            )}
-
-            {contextMenu && (
-                <ViewContextMenu
-                    view={contextMenu.view}
-                    position={contextMenu.position}
-                    onClose={() => setContextMenu(null)}
-                />
-            )}
         </div>
     );
 };

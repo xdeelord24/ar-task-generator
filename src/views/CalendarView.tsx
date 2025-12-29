@@ -5,54 +5,9 @@ import {
     Plus,
     Search,
     Filter,
-    Layout,
-    Users,
-    Lock,
-    Star as StarIcon,
-    Briefcase,
-    Code,
-    GraduationCap,
-    Music,
-    Heart,
-    Camera,
-    Globe,
-    Zap,
-    Cloud,
-    Moon,
-    Book,
-    Flag,
-    Target,
-    Coffee,
-    List as ListIcon,
-    CheckSquare,
-    Hash,
-    ChevronRight as ChevronRightIcon
 } from 'lucide-react';
+import ViewHeader from '../components/ViewHeader';
 
-const IconMap: Record<string, any> = {
-    'users': Users,
-    'layout': Layout,
-    'lock': Lock,
-    'star': StarIcon,
-    'briefcase': Briefcase,
-    'code': Code,
-    'graduation': GraduationCap,
-    'book': Book,
-    'globe': Globe,
-    'zap': Zap,
-    'cloud': Cloud,
-    'moon': Moon,
-    'flag': Flag,
-    'target': Target,
-    'coffee': Coffee,
-    'heart': Heart,
-    'music': Music,
-    'camera': Camera,
-    'list': ListIcon,
-    'check-square': CheckSquare,
-    'calendar': ChevronLeft, // fallback for calendar related icons
-    'hash': Hash
-};
 import {
     DndContext,
     closestCorners,
@@ -82,8 +37,6 @@ import {
     differenceInMinutes
 } from 'date-fns';
 import type { Task } from '../types';
-import ViewSelectorModal from '../components/ViewSelectorModal';
-import ViewContextMenu from '../components/ViewContextMenu';
 import '../styles/CalendarView.css';
 import '../styles/ListView.css';
 
@@ -360,17 +313,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
     const {
         tasks,
         currentSpaceId,
-        currentListId,
-        setCurrentView,
         updateTask,
-        spaces,
-        lists,
-        savedViews
     } = useAppStore();
     const [viewDate, setViewDate] = useState(new Date());
     const [calendarMode, setCalendarMode] = useState<CalendarMode>('month');
-    const [showViewSelector, setShowViewSelector] = useState(false);
-    const [contextMenu, setContextMenu] = useState<{ view: any; position: { x: number; y: number } } | null>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -380,16 +326,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
         })
     );
 
-    const activeSpace = spaces.find(s => s.id === currentSpaceId);
-
     const filteredTasks = tasks.filter(task =>
         currentSpaceId === 'everything' || task.spaceId === currentSpaceId
     );
-
-    const renderIcon = (iconName: string, size = 16, color?: string) => {
-        const IconComponent = IconMap[iconName] || StarIcon;
-        return <IconComponent size={size} color={color} />;
-    };
 
     const getDays = () => {
         switch (calendarMode) {
@@ -488,54 +427,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
 
     return (
         <div className="view-container calendar-view">
-            <div className="view-header">
-                <div className="breadcrumb">
-                    <div className="breadcrumb-item">
-                        {activeSpace && renderIcon(activeSpace.icon, 18, activeSpace.color || undefined)}
-                        <span className="space-name">{activeSpace?.name || 'Space'}</span>
-                    </div>
-                    {currentListId && (
-                        <>
-                            <ChevronRightIcon size={14} className="breadcrumb-separator" />
-                            <div className="breadcrumb-item">
-                                {lists.find(l => l.id === currentListId)?.icon && renderIcon(lists.find(l => l.id === currentListId)?.icon!, 18, lists.find(l => l.id === currentListId)?.color || activeSpace?.color || undefined)}
-                                <span className="space-name">{lists.find(l => l.id === currentListId)?.name}</span>
-                            </div>
-                        </>
-                    )}
-                    <span className="task-count">{filteredTasks.length}</span>
-                </div>
-                <div className="view-controls">
-                    {savedViews
-                        .filter(v => !v.spaceId || v.spaceId === currentSpaceId)
-                        .filter(v => !v.listId || v.listId === currentListId)
-                        .sort((a, b) => {
-                            if (a.isPinned && !b.isPinned) return -1;
-                            if (!a.isPinned && b.isPinned) return 1;
-                            return 0;
-                        })
-                        .map(savedView => (
-                            <button
-                                key={savedView.id}
-                                className={`view-mode-btn ${savedView.viewType === 'calendar' ? 'active' : ''}`}
-                                onClick={() => setCurrentView(savedView.viewType)}
-                                onContextMenu={(e) => {
-                                    e.preventDefault();
-                                    setContextMenu({
-                                        view: savedView,
-                                        position: { x: e.clientX, y: e.clientY }
-                                    });
-                                }}
-                            >
-                                {savedView.name}
-                            </button>
-                        ))
-                    }
-                    <button className="view-mode-btn add-view-btn" onClick={() => setShowViewSelector(true)}>
-                        <Plus size={14} /> View
-                    </button>
-                </div>
-            </div>
+            <ViewHeader />
 
             <div className="toolbar">
                 <div className="toolbar-left">
@@ -597,22 +489,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
                 )}
             </DndContext>
 
-            {showViewSelector && (
-                <ViewSelectorModal
-                    onClose={() => setShowViewSelector(false)}
-                    onSelectView={(viewType) => {
-                        setCurrentView(viewType);
-                    }}
-                />
-            )}
-
-            {contextMenu && (
-                <ViewContextMenu
-                    view={contextMenu.view}
-                    position={contextMenu.position}
-                    onClose={() => setContextMenu(null)}
-                />
-            )}
         </div>
     );
 };
