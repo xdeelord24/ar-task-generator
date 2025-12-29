@@ -225,3 +225,13 @@ ul {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.btn-text-small {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+}

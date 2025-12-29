@@ -3,6 +3,7 @@ import { X, Send, Sparkles, Bot, User, Trash2, History } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import type { Task, Space } from '../types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import ReactMarkdown from 'react-markdown';
 import '../styles/AIModal.css';
 
 const AI_MODEL_NAME = 'gemini-1.5-flash';
@@ -148,7 +149,11 @@ const AIModal: React.FC<AIModalProps> = ({ onClose }) => {
                                         {m.role === 'assistant' ? <Bot size={16} /> : <User size={16} />}
                                     </div>
                                     <div className="ai-message-bubble">
-                                        {m.content}
+                                        {m.role === 'assistant' ? (
+                                            <ReactMarkdown>{m.content}</ReactMarkdown>
+                                        ) : (
+                                            m.content
+                                        )}
                                     </div>
                                 </div>
                             ))}
