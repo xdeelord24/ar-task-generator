@@ -250,6 +250,33 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
     } = useSortable({ id: task.id });
 
     const [isExpanded, setIsExpanded] = React.useState(false);
+    const [isRenaming, setIsRenaming] = React.useState(false);
+    const [renameValue, setRenameValue] = React.useState(task.name);
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        if (isRenaming && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [isRenaming]);
+
+    const handleRenameSubmit = () => {
+        if (renameValue.trim() && renameValue !== task.name) {
+            onUpdateTask(task.id, { name: renameValue.trim() });
+        }
+        setIsRenaming(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleRenameSubmit();
+        } else if (e.key === 'Escape') {
+            setRenameValue(task.name);
+            setIsRenaming(false);
+        }
+        e.stopPropagation();
+    };
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -283,7 +310,33 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             </div>
 
                             <input type="checkbox" readOnly checked={task.status === 'COMPLETED'} />
-                            <span className="task-name">{task.name}</span>
+
+                            {isRenaming ? (
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={renameValue}
+                                    onChange={(e) => setRenameValue(e.target.value)}
+                                    onBlur={handleRenameSubmit}
+                                    onKeyDown={handleKeyDown}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="task-name-input"
+                                    style={{
+                                        flex: 1,
+                                        minWidth: 0,
+                                        border: '1px solid #3b82f6',
+                                        borderRadius: '4px',
+                                        padding: '0 4px',
+                                        fontSize: 'inherit',
+                                        fontFamily: 'inherit',
+                                        background: 'white',
+                                        color: 'inherit',
+                                        height: '24px'
+                                    }}
+                                />
+                            ) : (
+                                <span className="task-name">{task.name}</span>
+                            )}
                             <div className="task-tags">
                                 {task.tags?.map(tagId => {
                                     const tag = tags.find(t => t.id === tagId);
@@ -330,11 +383,8 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                     title="Add subtask"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        const name = window.prompt("Enter subtask name:");
-                                        if (name) {
-                                            onAddSubtask(task.id, name);
-                                            setIsExpanded(true);
-                                        }
+                                        onAddSubtask(task.id, "New Subtask");
+                                        setIsExpanded(true);
                                     }}
                                 >
                                     <Plus size={14} />
@@ -354,10 +404,8 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                     title="Rename"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        const newName = window.prompt("Rename task:", task.name);
-                                        if (newName && newName !== task.name) {
-                                            onUpdateTask(task.id, { name: newName });
-                                        }
+                                        setRenameValue(task.name);
+                                        setIsRenaming(true);
                                     }}
                                 >
                                     <Pencil size={14} />
@@ -390,17 +438,15 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             {task.dueDate ? format(new Date(task.dueDate), 'MMM d') : 'Set Date'}
                         </div>
                         {activePopover?.taskId === task.id && activePopover?.field === 'date' && (
-                            <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100 }}>
-                                <DatePicker
-                                    initialDate={task.dueDate ? new Date(task.dueDate) : undefined}
-                                    onSelect={(date: Date | null) => {
-                                        onUpdateTask(task.id, { dueDate: date ? date.toISOString() : undefined });
-                                        setActivePopover(null);
-                                    }}
-                                    onClose={() => setActivePopover(null)}
-                                    triggerElement={activePopover.element}
-                                />
-                            </div>
+                            <DatePicker
+                                initialDate={task.dueDate ? new Date(task.dueDate) : undefined}
+                                onSelect={(date: Date | null) => {
+                                    onUpdateTask(task.id, { dueDate: date ? date.toISOString() : undefined });
+                                    setActivePopover(null);
+                                }}
+                                onClose={() => setActivePopover(null)}
+                                triggerElement={activePopover.element}
+                            />
                         )}
                     </div>
                 );

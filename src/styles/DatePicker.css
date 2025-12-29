@@ -1,23 +1,21 @@
 .date-picker-container {
     display: flex;
-    background: #1e293b;
-    border: 1px solid #334155;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
     border-radius: 12px;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-xl);
     overflow: hidden;
     width: 600px;
-    /* Adjust based on visualization */
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: inherit;
     position: absolute;
-    /* Assuming parent container handles positioning context or it's in a portal */
     z-index: 1000;
 }
 
 /* Sidebar Styles */
 .date-picker-sidebar {
     width: 200px;
-    background: #1e293b;
-    border-right: 1px solid #334155;
+    background: var(--bg-side);
+    border-right: 1px solid var(--border);
     padding: 12px 0;
     display: flex;
     flex-direction: column;
@@ -35,43 +33,44 @@
     padding: 8px 16px;
     cursor: pointer;
     font-size: 13px;
-    color: #e2e8f0;
+    color: var(--text-main);
     transition: background-color 0.2s;
 }
 
 .sidebar-item:hover {
-    background-color: #334155;
+    background-color: var(--bg-hover);
 }
 
 .sidebar-meta {
-    color: #94a3b8;
+    color: var(--text-tertiary);
     font-size: 12px;
 }
 
 .sidebar-divider {
     height: 1px;
-    background-color: #334155;
+    background-color: var(--border);
     margin: 8px 16px;
 }
 
 .sidebar-footer {
     padding: 12px 16px;
-    border-top: 1px solid #334155;
+    border-top: 1px solid var(--border);
     display: flex;
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    color: #94a3b8;
+    color: var(--text-secondary);
     font-size: 13px;
     margin-top: auto;
 }
 
 .sidebar-footer:hover {
-    color: #f8fafc;
+    color: var(--text-main);
+    background: var(--bg-hover);
 }
 
 .recurring-icon {
-    color: #94a3b8;
+    color: var(--text-tertiary);
 }
 
 .chevron-right {
@@ -84,7 +83,7 @@
     padding: 24px;
     display: flex;
     flex-direction: column;
-    background: #1e293b;
+    background: var(--bg-surface);
 }
 
 .calendar-header {
@@ -97,7 +96,7 @@
 .current-month-label {
     font-size: 16px;
     font-weight: 600;
-    color: #f8fafc;
+    color: var(--text-main);
 }
 
 .calendar-controls {
@@ -109,7 +108,7 @@
 .today-btn {
     border: none;
     background: transparent;
-    color: #94a3b8;
+    color: var(--text-secondary);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -118,8 +117,8 @@
 }
 
 .today-btn:hover {
-    background-color: #334155;
-    color: #f8fafc;
+    background-color: var(--bg-hover);
+    color: var(--text-main);
 }
 
 .nav-btn {
@@ -130,15 +129,15 @@
     justify-content: center;
     border: none;
     background: transparent;
-    color: #94a3b8;
+    color: var(--text-secondary);
     cursor: pointer;
     border-radius: 4px;
     transition: background-color 0.2s;
 }
 
 .nav-btn:hover {
-    background-color: #334155;
-    color: #f8fafc;
+    background-color: var(--bg-hover);
+    color: var(--text-main);
 }
 
 /* Grid Styles */
@@ -158,7 +157,7 @@
 .week-day-cell {
     font-size: 12px;
     font-weight: 600;
-    color: #94a3b8;
+    color: var(--text-tertiary);
 }
 
 .days-grid {
@@ -174,39 +173,39 @@
     align-items: center;
     justify-content: center;
     font-size: 13px;
-    color: #e2e8f0;
+    color: var(--text-main);
     border-radius: 50%;
-    /* Rounded for dates often looks better, or 6px for square */
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .day-cell:hover {
-    background-color: #334155;
+    background-color: var(--bg-hover);
 }
 
 .day-cell.other-month {
-    color: #475569;
+    color: var(--text-tertiary);
+    opacity: 0.5;
 }
 
 .day-cell.is-today {
-    color: #3b82f6;
+    color: var(--primary);
     font-weight: 700;
 }
 
 .day-cell.selected {
-    background-color: #3b82f6;
+    background-color: var(--primary);
     color: white;
 }
 
 .day-cell.selected:hover {
-    background-color: #2563eb;
+    background-color: var(--primary-hover);
 }
 
 .date-picker-cleanup {
     margin-top: 16px;
     padding-top: 16px;
-    border-top: 1px solid #334155;
+    border-top: 1px solid var(--border);
     text-align: right;
     display: flex;
     justify-content: flex-end;
@@ -216,7 +215,7 @@
 .clear-date-btn {
     background: transparent;
     border: none;
-    color: #ef4444;
+    color: var(--error);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -226,17 +225,15 @@
 }
 
 .clear-date-btn:nth-child(2) {
-    color: #94a3b8;
+    color: var(--text-secondary);
     background: transparent !important;
-    /* Override inline styles if any */
 }
 
 .clear-date-btn:nth-child(2):hover {
-    color: #f8fafc;
-    background: #334155 !important;
+    color: var(--text-main);
+    background: var(--bg-hover) !important;
 }
 
 .clear-date-btn:hover {
-    background-color: rgba(239, 68, 68, 0.1);
-    text-decoration: none;
+    background-color: var(--error-light);
 }

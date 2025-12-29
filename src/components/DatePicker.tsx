@@ -45,11 +45,11 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose,
 
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
-        const pickerWidth = 460; // Approximate width based on CSS
 
         if (triggerElement) {
             const rect = triggerElement.getBoundingClientRect();
             const pickerHeight = pickerRef.current.offsetHeight;
+            const pickerWidth = pickerRef.current.offsetWidth;
 
             const newStyle: React.CSSProperties = {
                 position: 'fixed',
@@ -59,16 +59,27 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose,
 
             // Horizontal positioning
             let left = rect.left;
-            if (left + pickerWidth > viewportWidth - 10) left = viewportWidth - pickerWidth - 10;
+            if (left + pickerWidth > viewportWidth - 10) {
+                left = viewportWidth - pickerWidth - 10;
+            }
             if (left < 10) left = 10;
             newStyle.left = `${left}px`;
 
             // Vertical positioning
-            if (rect.bottom + pickerHeight + 10 > viewportHeight && rect.top > pickerHeight + 10) {
+            const spaceBelow = viewportHeight - rect.bottom;
+            const spaceAbove = rect.top;
+
+            if (spaceBelow >= pickerHeight + 10) {
+                // Fits below
+                newStyle.top = `${rect.bottom + 8}px`;
+            } else if (spaceAbove >= pickerHeight + 10) {
+                // Fits above
                 newStyle.bottom = `${viewportHeight - rect.top + 8}px`;
                 newStyle.top = 'auto';
             } else {
-                newStyle.top = `${rect.bottom + 8}px`;
+                // Doesn't fit perfectly either way, clamp to bottom edge
+                newStyle.bottom = '10px';
+                newStyle.top = 'auto';
             }
 
             setStyle(newStyle);
@@ -76,14 +87,13 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose,
             const rect = pickerRef.current.getBoundingClientRect();
             const newStyle: React.CSSProperties = { visibility: 'visible' };
 
-            // Vertical adjustment
+            // Vertical adjustment for inline usage (removed most of this logic as we use portal mostly now)
             if (rect.bottom > viewportHeight) {
                 newStyle.top = 'auto';
                 newStyle.bottom = '100%';
                 newStyle.marginTop = '0';
                 newStyle.marginBottom = '8px';
             }
-
             // Horizontal adjustment
             if (rect.right > viewportWidth) {
                 newStyle.right = '0';
@@ -92,7 +102,6 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose,
                 newStyle.left = '0';
                 newStyle.right = 'auto';
             }
-
             setStyle(newStyle);
         }
     }, [triggerElement, currentMonth]);
