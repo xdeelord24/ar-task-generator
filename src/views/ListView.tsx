@@ -123,6 +123,11 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column }) => {
     );
 };
 
+interface ActivePopover {
+    taskId: string;
+    field: 'priority' | 'date' | 'tags';
+}
+
 interface SortableRowProps {
     task: Task;
     columns: ColumnSetting[];
@@ -137,6 +142,9 @@ interface SortableRowProps {
     onArchive: (taskId: string) => void;
     onDelete: (taskId: string) => void;
     onConvertToDoc: (task: Task) => void;
+    onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
+    activePopover: ActivePopover | null;
+    setActivePopover: (popover: ActivePopover | null) => void;
 }
 
 const SortableRow: React.FC<SortableRowProps> = ({
@@ -152,7 +160,10 @@ const SortableRow: React.FC<SortableRowProps> = ({
     onDuplicate,
     onArchive,
     onDelete,
-    onConvertToDoc
+    onConvertToDoc,
+    onUpdateTask,
+    activePopover,
+    setActivePopover
 }) => {
     const {
         attributes,
@@ -167,8 +178,10 @@ const SortableRow: React.FC<SortableRowProps> = ({
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.3 : 1,
-        zIndex: isDragging ? 1 : 0,
+        zIndex: isDragging ? 1 : (activePopover?.taskId === task.id ? 50 : 0),
     };
+
+    const priorities: Task['priority'][] = ['urgent', 'high', 'medium', 'low'];
 
     const renderCell = (col: ColumnSetting) => {
         switch (col.id) {
@@ -188,6 +201,41 @@ const SortableRow: React.FC<SortableRowProps> = ({
                                         </span>
                                     );
                                 })}
+                                <button
+                                    className="add-tag-btn-inline"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActivePopover({ taskId: task.id, field: 'tags' });
+                                    }}
+                                >
+                                    <Plus size={10} />
+                                </button>
+                                {activePopover?.taskId === task.id && activePopover?.field === 'tags' && (
+                                    <div className="inline-popover tags-popover" onClick={e => e.stopPropagation()}>
+                                        <div className="popover-header">Select Tags</div>
+                                        <div className="popover-content">
+                                            {tags.map(tag => {
+                                                const isActive = task.tags?.includes(tag.id);
+                                                return (
+                                                    <div
+                                                        key={tag.id}
+                                                        className={`popover-item ${isActive ? 'active' : ''}`}
+                                                        onClick={() => {
+                                                            const newTags = isActive
+                                                                ? task.tags?.filter(t => t !== tag.id)
+                                                                : [...(task.tags || []), tag.id];
+                                                            onUpdateTask(task.id, { tags: newTags });
+                                                        }}
+                                                    >
+                                                        <span className="tag-dot" style={{ background: tag.color }}></span>
+                                                        {tag.name}
+                                                        {isActive && <CheckSquare size={12} className="check-icon" />}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -203,21 +251,75 @@ const SortableRow: React.FC<SortableRowProps> = ({
                 );
             case 'dueDate':
                 return (
-                    <div className="task-cell date-cell" style={{ width: col.width || 150 }}>
-                        {task.dueDate ? (
-                            <div className={`date-badge ${getDateStatus(task.dueDate)}`}>
-                                <CalendarIcon size={12} />
-                                {format(new Date(task.dueDate), 'MMM d')}
+                    <div className="task-cell date-cell" style={{ width: col.width || 150, position: 'relative', overflow: 'visible' }}>
+                        <div
+                            className={`date-badge-interactive ${task.dueDate ? getDateStatus(task.dueDate) : 'empty'}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setActivePopover({ taskId: task.id, field: 'date' });
+                            }}
+                        >
+                            <CalendarIcon size={12} />
+                            {task.dueDate ? format(new Date(task.dueDate), 'MMM d') : 'Set Date'}
+                        </div>
+                        {activePopover?.taskId === task.id && activePopover?.field === 'date' && (
+                            <div className="inline-popover date-popover" onClick={e => e.stopPropagation()}>
+                                <div className="popover-item" onClick={() => {
+                                    onUpdateTask(task.id, { dueDate: new Date().toISOString() });
+                                    setActivePopover(null);
+                                }}>Today</div>
+                                <div className="popover-item" onClick={() => {
+                                    const d = new Date();
+                                    d.setDate(d.getDate() + 1);
+                                    onUpdateTask(task.id, { dueDate: d.toISOString() });
+                                    setActivePopover(null);
+                                }}>Tomorrow</div>
+                                <div className="popover-item" onClick={() => {
+                                    const d = new Date();
+                                    d.setDate(d.getDate() + 7);
+                                    onUpdateTask(task.id, { dueDate: d.toISOString() });
+                                    setActivePopover(null);
+                                }}>Next Week</div>
+                                <div className="popover-divider"></div>
+                                <div className="popover-item danger" onClick={() => {
+                                    onUpdateTask(task.id, { dueDate: undefined });
+                                    setActivePopover(null);
+                                }}>Clear Date</div>
                             </div>
-                        ) : '-'}
+                        )}
                     </div>
                 );
             case 'priority':
                 return (
-                    <div className="task-cell priority-cell" style={{ width: col.width || 120 }}>
-                        <div className="priority-badge" style={{ color: getPriorityColor(task.priority) }}>
-                            {task.priority}
+                    <div className="task-cell priority-cell" style={{ width: col.width || 120, position: 'relative', overflow: 'visible' }}>
+                        <div
+                            className="priority-badge-interactive"
+                            style={{ color: getPriorityColor(task.priority) }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setActivePopover({ taskId: task.id, field: 'priority' });
+                            }}
+                        >
+                            {task.priority || '-'}
                         </div>
+                        {activePopover?.taskId === task.id && activePopover?.field === 'priority' && (
+                            <div className="inline-popover priority-popover" onClick={e => e.stopPropagation()}>
+                                {priorities.map(p => (
+                                    <div
+                                        key={p}
+                                        className="popover-item"
+                                        style={{ color: getPriorityColor(p), fontWeight: 700, textTransform: 'uppercase', fontSize: '11px' }}
+                                        onClick={() => {
+                                            onUpdateTask(task.id, { priority: p });
+                                            setActivePopover(null);
+                                        }}
+                                    >
+                                        <Flag size={12} style={{ marginRight: 8 }} />
+                                        {p}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 );
             case 'status':
