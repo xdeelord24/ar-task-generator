@@ -243,7 +243,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ initialDate, onSelect, onClose,
 
                 <div className="date-picker-cleanup">
                     <button className="clear-date-btn" onClick={() => onSelect(null)}>Clear</button>
-                    <button className="clear-date-btn" onClick={onClose} style={{ marginLeft: 'auto', background: '#f8fafc' }}>Close</button>
+                    <button className="clear-date-btn" onClick={onClose} style={{ marginLeft: 'auto' }}>Close</button>
                 </div>
             </div>
         </div>
