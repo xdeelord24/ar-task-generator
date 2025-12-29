@@ -12,9 +12,10 @@ const AI_MODEL_NAME = 'gemini-1.5-flash';
 
 interface AIModalProps {
     onClose: () => void;
+    onTaskClick: (taskId: string) => void;
 }
 
-const AIModal: React.FC<AIModalProps> = ({ onClose }) => {
+const AIModal: React.FC<AIModalProps> = ({ onClose, onTaskClick }) => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -38,10 +39,14 @@ const AIModal: React.FC<AIModalProps> = ({ onClose }) => {
         const systemPrompt = `You are an intelligent task management assistant for an application called "AR Generator". 
         You have access to the user's current workspace data:
         - Current Space: ${spaces.find((s: Space) => s.id === currentSpaceId)?.name || 'Unknown'}
-        - All Tasks: ${JSON.stringify(tasks.map((t: Task) => ({ name: t.name, status: t.status, priority: t.priority, dueDate: t.dueDate })))}
+        - All Tasks: ${JSON.stringify(tasks.map((t: Task) => ({ id: t.id, name: t.name, status: t.status, priority: t.priority, dueDate: t.dueDate })))}
         
         Your goal is to help the user manage their workload, prioritize tasks, and provide insights. 
-        Be concise, helpful, and professional. If the user asks about specific tasks, use the data provided above.`;
+        Be concise, helpful, and professional. If the user asks about specific tasks, use the data provided above.
+        
+        CRITICAL: When mentioning a specific task from the list above, you MUST wrap its name in a markdown link using the exact format: [Task Name](task:ID) where ID is the actual task ID. 
+        Example: "Your task [Fix Login Bug](task:task-123) is due today."
+        This makes the task clickable. DO NOT use any other format for tasks.`;
 
         try {
             if (aiConfig.provider === 'ollama') {
@@ -146,7 +151,57 @@ const AIModal: React.FC<AIModalProps> = ({ onClose }) => {
                                     </div>
                                     <div className="ai-message-bubble">
                                         {m.role === 'assistant' ? (
-                                            <ReactMarkdown>{m.content}</ReactMarkdown>
+                                            <ReactMarkdown
+                                                components={{
+                                                    a: ({ node, ...props }) => {
+                                                        const href = props.href || '';
+                                                        const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:');
+
+                                                        const isTaskPrefixed = href.toLowerCase().startsWith('task:');
+                                                        const extractedId = isTaskPrefixed ? href.split(':')[1] : href;
+
+                                                        // Try to find task by ID or by Name
+                                                        const taskToOpen = tasks.find(t =>
+                                                            t.id === extractedId ||
+                                                            t.name.toLowerCase() === href.toLowerCase() ||
+                                                            (typeof props.children === 'string' && t.name.toLowerCase() === props.children.toLowerCase())
+                                                        );
+
+                                                        if (taskToOpen) {
+                                                            return (
+                                                                <a
+                                                                    href="#"
+                                                                    className="task-link"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        onTaskClick(taskToOpen.id);
+                                                                        onClose();
+                                                                    }}
+                                                                >
+                                                                    {props.children}
+                                                                </a>
+                                                            );
+                                                        }
+
+                                                        // External link or unknown
+                                                        return (
+                                                            <a
+                                                                {...props}
+                                                                target={isExternal ? "_blank" : "_self"}
+                                                                rel={isExternal ? "noopener noreferrer" : ""}
+                                                                onClick={(e) => {
+                                                                    if (!isExternal) e.preventDefault();
+                                                                }}
+                                                            >
+                                                                {props.children}
+                                                            </a>
+                                                        );
+                                                    }
+                                                }}
+                                            >
+                                                {m.content}
+                                            </ReactMarkdown>
                                         ) : (
                                             m.content
                                         )}

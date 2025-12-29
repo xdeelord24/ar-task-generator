@@ -204,6 +204,25 @@
     border-top-right-radius: 2px;
 }
 
+.task-link {
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+    transition: all 0.2s ease;
+}
+
+.task-link:hover {
+    color: var(--primary-hover);
+    text-decoration-style: solid;
+    background: var(--primary-light);
+    border-radius: 4px;
+    padding: 0 4px;
+    margin: 0 -4px;
+}
+
 .ai-input-area {
     padding: 20px;
     background: var(--bg-surface);

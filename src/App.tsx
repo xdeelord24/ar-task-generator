@@ -89,7 +89,7 @@ function App() {
       {isModalOpen && <TaskModal initialStatus={initialStatus} onClose={() => { setIsModalOpen(false); setInitialStatus(undefined); }} />}
       {selectedTaskId && <TaskDetailModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} onTaskClick={(id) => setSelectedTaskId(id)} />}
       {isReportOpen && <ReportModal onClose={() => setIsReportOpen(false)} />}
-      {isAIOpen && <AIModal onClose={() => setIsAIOpen(false)} />}
+      {isAIOpen && <AIModal onClose={() => setIsAIOpen(false)} onTaskClick={(id) => setSelectedTaskId(id)} />}
       {settingsState.open && (
         <SettingsModal
           onClose={() => setSettingsState({ open: false })}
