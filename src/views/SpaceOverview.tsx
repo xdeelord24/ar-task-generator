@@ -16,6 +16,7 @@ import '../styles/SpaceOverview.css';
 import CreateListModal from '../components/CreateListModal';
 import CreateFolderModal from '../components/CreateFolderModal';
 import AddBookmarkModal from '../components/AddBookmarkModal';
+import CreateDocModal from '../components/CreateDocModal';
 import { format } from 'date-fns';
 
 const SpaceOverview: React.FC = () => {
@@ -23,6 +24,7 @@ const SpaceOverview: React.FC = () => {
     const [isCreateListOpen, setIsCreateListOpen] = useState(false);
     const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
     const [isAddBookmarkOpen, setIsAddBookmarkOpen] = useState(false);
+    const [isCreateDocOpen, setIsCreateDocOpen] = useState(false);
 
     const currentSpace = spaces.find(s => s.id === currentSpaceId);
     const spaceLists = lists.filter(l => l.spaceId === currentSpaceId);
@@ -153,7 +155,7 @@ const SpaceOverview: React.FC = () => {
                                     </div>
                                 </div>
                             ))}
-                            <button className="btn-card-action" style={{ marginTop: 'auto', alignSelf: 'flex-start' }}>Add a Doc</button>
+                            <button className="btn-card-action" style={{ marginTop: 'auto', alignSelf: 'flex-start' }} onClick={() => setIsCreateDocOpen(true)}>Add a Doc</button>
                         </div>
                     ) : (
                         <div className="empty-card-state">
@@ -161,7 +163,7 @@ const SpaceOverview: React.FC = () => {
                                 <FileText size={48} strokeWidth={1} />
                             </div>
                             <div className="empty-text">There are no Docs in this location yet.</div>
-                            <button className="btn-card-action">Add a Doc</button>
+                            <button className="btn-card-action" onClick={() => setIsCreateDocOpen(true)}>Add a Doc</button>
                         </div>
                     )}
                 </div>
@@ -371,6 +373,12 @@ const SpaceOverview: React.FC = () => {
                 <AddBookmarkModal
                     spaceId={currentSpace.id}
                     onClose={() => setIsAddBookmarkOpen(false)}
+                />
+            )}
+            {isCreateDocOpen && currentSpace && (
+                <CreateDocModal
+                    spaceId={currentSpace.id}
+                    onClose={() => setIsCreateDocOpen(false)}
                 />
             )}
         </div>
