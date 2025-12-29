@@ -790,7 +790,10 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                 >
                     <div className="list-body">
                         {activeStatuses.map(statusObj => {
-                            const statusTasks = filteredTasks.filter(t => t.status === statusObj.name);
+                            const statusTasks = filteredTasks.filter(t =>
+                                t.status.toLowerCase() === statusObj.name.toLowerCase() ||
+                                t.status === statusObj.id
+                            );
 
                             // Hide group if no tasks
                             if (statusTasks.length === 0) return null;
@@ -848,6 +851,64 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                 </div>
                             );
                         })}
+
+                        {/* Uncategorized Tasks */}
+                        {(() => {
+                            const uncategorizedTasks = filteredTasks.filter(t =>
+                                !activeStatuses.some(s =>
+                                    t.status.toLowerCase() === s.name.toLowerCase() ||
+                                    t.status === s.id
+                                )
+                            );
+
+                            if (uncategorizedTasks.length === 0) return null;
+
+                            return (
+                                <div className="status-group-container">
+                                    <DroppableStatusHeader
+                                        status="UNCATEGORIZED"
+                                        color="#94a3b8"
+                                        count={uncategorizedTasks.length}
+                                        isCollapsed={collapsedGroups.has('UNCATEGORIZED')}
+                                        onToggle={() => toggleGroup('UNCATEGORIZED')}
+                                    />
+                                    {!collapsedGroups.has('UNCATEGORIZED') && (
+                                        <div className="task-list">
+                                            {uncategorizedTasks.map(task => (
+                                                <SortableRow
+                                                    key={task.id}
+                                                    task={task}
+                                                    columns={activeColumns}
+                                                    onTaskClick={onTaskClick}
+                                                    getPriorityColor={getPriorityColor}
+                                                    getDateStatus={getDateStatus}
+                                                    tags={tags}
+                                                    onOpenMenu={(id) => setOpenMenuTaskId(id)}
+                                                    isMenuOpen={openMenuTaskId === task.id}
+                                                    onCloseMenu={() => setOpenMenuTaskId(null)}
+                                                    onDuplicate={duplicateTask}
+                                                    onArchive={archiveTask}
+                                                    onDelete={deleteTask}
+                                                    onConvertToDoc={handleConvertToDoc}
+                                                    onUpdateTask={updateTask}
+                                                    activePopover={activePopover}
+                                                    setActivePopover={setActivePopover}
+                                                    onAddTag={addTag}
+                                                    onUpdateTag={updateTag}
+                                                    onDeleteTag={deleteTag}
+                                                    onStartTimer={() => {
+                                                        startTimer(task.id);
+                                                        setOpenMenuTaskId(null);
+                                                    }}
+                                                    onUpdateSubtask={updateSubtask}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+
                         <div className="add-group-container">
                             <button
                                 className="btn-add-group"

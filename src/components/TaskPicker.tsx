@@ -82,13 +82,15 @@ const TaskPicker: React.FC<TaskPickerProps> = ({ onSelect, onClose, excludeTaskI
                                                 <span>{list.name}</span>
                                             </div>
                                             <div className="list-tasks-browse">
-                                                {tasks.filter(t => t.listId === list.id).map(task => (
-                                                    <div key={task.id} className="task-browse-item" onClick={() => onSelect(task.id)}>
-                                                        <Circle size={14} color={getStatusColor(task.status)} />
-                                                        <span className="task-name-text">{task.name}</span>
-                                                        <span className="task-id-text">#{task.id.substring(0, 8)}</span>
-                                                    </div>
-                                                ))}
+                                                {tasks
+                                                    .filter(t => t.listId === list.id && (excludeTaskId ? t.id !== excludeTaskId : true))
+                                                    .map(task => (
+                                                        <div key={task.id} className="task-browse-item" onClick={() => onSelect(task.id)}>
+                                                            <Circle size={14} color={getStatusColor(task.status)} />
+                                                            <span className="task-name-text">{task.name}</span>
+                                                            <span className="task-id-text">#{task.id.substring(0, 8)}</span>
+                                                        </div>
+                                                    ))}
                                             </div>
                                         </div>
                                     ))}
@@ -102,6 +104,17 @@ const TaskPicker: React.FC<TaskPickerProps> = ({ onSelect, onClose, excludeTaskI
                                 <ChevronRight size={14} />
                                 <Circle size={8} />
                                 <span>{list.name}</span>
+                            </div>
+                            <div className="list-tasks-browse">
+                                {tasks
+                                    .filter(t => t.listId === list.id && (excludeTaskId ? t.id !== excludeTaskId : true))
+                                    .map(task => (
+                                        <div key={task.id} className="task-browse-item" onClick={() => onSelect(task.id)}>
+                                            <Circle size={14} color={getStatusColor(task.status)} />
+                                            <span className="task-name-text">{task.name}</span>
+                                            <span className="task-id-text">#{task.id.substring(0, 8)}</span>
+                                        </div>
+                                    ))}
                             </div>
                         </div>
                     ))}

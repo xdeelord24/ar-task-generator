@@ -622,7 +622,10 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                             key={col.id}
                             status={col.name}
                             color={col.color}
-                            tasks={filteredTasks.filter(t => t.status === col.name)}
+                            tasks={filteredTasks.filter(t =>
+                                t.status.toLowerCase() === col.name.toLowerCase() ||
+                                t.status === col.id
+                            )}
                             onAddTask={onAddTask}
                             onTaskClick={onTaskClick}
                             tags={tags}

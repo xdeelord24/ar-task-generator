@@ -19,7 +19,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask }) => {
     const { tasks } = useAppStore();
 
     const todayTasks = tasks.filter(t => t.dueDate && isToday(parseISO(t.dueDate)));
-    const overdueTasks = tasks.filter(t => t.dueDate && !isToday(parseISO(t.dueDate)) && parseISO(t.dueDate) < new Date() && t.status !== 'COMPLETED');
+    const overdueTasks = tasks.filter(t => t.dueDate && !isToday(parseISO(t.dueDate)) && parseISO(t.dueDate) < new Date() && t.status.toUpperCase() !== 'COMPLETED');
 
     const recents = tasks.slice(0, 3);
 
