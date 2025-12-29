@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     X, User, Palette, Settings, Bell, Command,
     Gift, Download, HelpCircle, Trash2, LogOut,
@@ -12,9 +12,47 @@ interface SettingsModalProps {
     initialTab?: string;
 }
 
+// Declare QRCode type from CDN
+declare const QRCode: any;
+
 const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'profile' }) => {
     const [activeTab, setActiveTab] = useState(initialTab);
     const { theme, setTheme, accentColor, setAccentColor } = useAppStore();
+
+    // Generate QR codes when support tab is active
+    useEffect(() => {
+        if (activeTab === 'support') {
+            // Wait for DOM to be ready
+            const timer = setTimeout(() => {
+                if (typeof QRCode !== 'undefined') {
+                    const maribankEl = document.getElementById('maribank-qr-settings');
+                    const landbankEl = document.getElementById('landbank-qr-settings');
+
+                    if (maribankEl && !maribankEl.querySelector('canvas')) {
+                        new QRCode(maribankEl, {
+                            text: '00020101021127580012com.p2pqrpay0111LAUIPHM2XXX0208999644030411150909797605204601653036085802PH5914JUNDEE MARK M.6009Pagsanjan63049744',
+                            width: 150,
+                            height: 150,
+                            colorDark: '#000000',
+                            colorLight: '#ffffff'
+                        });
+                    }
+
+                    if (landbankEl && !landbankEl.querySelector('canvas')) {
+                        new QRCode(landbankEl, {
+                            text: '00020101021127750012com.p2pqrpay0111TLBPPHMMXXX020899964403041059470298880514+63-94546802805204601653036085802PH5918JUNDEE MARK MOLINA6006Manila6304EECF',
+                            width: 150,
+                            height: 150,
+                            colorDark: '#000000',
+                            colorLight: '#ffffff'
+                        });
+                    }
+                }
+            }, 100);
+
+            return () => clearTimeout(timer);
+        }
+    }, [activeTab]);
 
     const sidebarItems = [
         { id: 'profile', icon: User, label: 'My Profile' },
@@ -134,48 +172,36 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'pr
                 return (
                     <div className="settings-content-pane">
                         <h2>Support this Project</h2>
-                        <div className="support-info">
+                        <div className="support-info" style={{ textAlign: 'center' }}>
                             <div className="support-message">
                                 <Coffee size={48} style={{ marginBottom: '16px', color: 'var(--primary)' }} />
                                 <p style={{ fontSize: '16px', marginBottom: '24px', color: 'var(--text-secondary)' }}>
                                     This is an open-source project. If you find it helpful, please consider supporting its development! 💝
                                 </p>
                             </div>
-                            <div className="qr-support-container" style={{ display: 'flex', gap: '24px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '32px' }}>
-                                <div className="qr-support-card" style={{ textAlign: 'center', padding: '20px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                                    <h4 style={{ marginBottom: '16px' }}>Maribank</h4>
-                                    <div id="maribank-qr-settings" style={{ background: 'white', padding: '12px', borderRadius: '8px', display: 'inline-block' }}></div>
-                                    <p style={{ marginTop: '12px', fontSize: '14px', color: 'var(--text-secondary)' }}>JUNDEE MARK M.</p>
+                            <div className="qr-support-container" style={{ display: 'flex', gap: '32px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '32px' }}>
+                                <div className="qr-support-card" style={{ textAlign: 'center', padding: '24px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: '220px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
+                                        <div style={{ width: '32px', height: '32px', background: 'linear-gradient(135deg, #4CAF50, #45a049)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)' }}>M</div>
+                                        <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Maribank</h4>
+                                    </div>
+                                    <div id="maribank-qr-settings" style={{ background: 'white', padding: '12px', borderRadius: '8px', display: 'inline-block', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}></div>
+                                    <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>JUNDEE MARK M.</p>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-tertiary)' }}>Scan with your banking app</p>
                                 </div>
-                                <div className="qr-support-card" style={{ textAlign: 'center', padding: '20px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                                    <h4 style={{ marginBottom: '16px' }}>Landbank</h4>
-                                    <div id="landbank-qr-settings" style={{ background: 'white', padding: '12px', borderRadius: '8px', display: 'inline-block' }}></div>
-                                    <p style={{ marginTop: '12px', fontSize: '14px', color: 'var(--text-secondary)' }}>JUNDEE MARK MOLINA</p>
+                                <div className="qr-support-card" style={{ textAlign: 'center', padding: '24px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: '220px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
+                                        <div style={{ width: '32px', height: '32px', background: 'linear-gradient(135deg, #2196F3, #1976D2)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)' }}>L</div>
+                                        <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Landbank</h4>
+                                    </div>
+                                    <div id="landbank-qr-settings" style={{ background: 'white', padding: '12px', borderRadius: '8px', display: 'inline-block', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}></div>
+                                    <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>JUNDEE MARK MOLINA</p>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-tertiary)' }}>Scan with your banking app</p>
                                 </div>
                             </div>
-                            <script dangerouslySetInnerHTML={{
-                                __html: `
-                                setTimeout(() => {
-                                    if (typeof QRCode !== 'undefined') {
-                                        const maribankEl = document.getElementById('maribank-qr-settings');
-                                        const landbankEl = document.getElementById('landbank-qr-settings');
-                                        if (maribankEl && !maribankEl.querySelector('canvas')) {
-                                            new QRCode(maribankEl, {
-                                                text: '00020101021127580012com.p2pqrpay0111LAUIPHM2XXX0208999644030411150909797605204601653036085802PH5914JUNDEE MARK M.6009Pagsanjan63049744',
-                                                width: 150,
-                                                height: 150
-                                            });
-                                        }
-                                        if (landbankEl && !landbankEl.querySelector('canvas')) {
-                                            new QRCode(landbankEl, {
-                                                text: '00020101021127750012com.p2pqrpay0111TLBPPHMMXXX020899964403041059470298880514+63-94546802805204601653036085802PH5918JUNDEE MARK MOLINA6006Manila6304EECF',
-                                                width: 150,
-                                                height: 150
-                                            });
-                                        }
-                                    }
-                                }, 200);
-                            ` }} />
+                            <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border-color)' }}>
+                                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>Thank you for your support! ❤️</p>
+                            </div>
                         </div>
                     </div>
                 );
