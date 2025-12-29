@@ -15,12 +15,12 @@ import {
     ArrowRight,
     Play,
     Link as LinkIcon,
-    Wand2,
     Archive,
     Trash2,
     Shield,
     ChevronRight
 } from 'lucide-react';
+import RelationshipMenu from './RelationshipMenu';
 import '../styles/TaskOptionsMenu.css';
 
 interface TaskOptionsMenuProps {
@@ -46,6 +46,8 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
     onMove,
     taskId
 }) => {
+    const [isRelationshipMenuOpen, setIsRelationshipMenuOpen] = React.useState(false);
+
     const handleCopyLink = () => {
         navigator.clipboard.writeText(window.location.href);
         alert('Link copied to clipboard!');
@@ -142,18 +144,27 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
 
                 <div className="menu-divider-h"></div>
 
-                <button className="menu-item">
-                    <LinkIcon size={16} />
-                    <span>Dependencies</span>
-                </button>
-
-                <button className="menu-item">
-                    <Wand2 size={16} />
-                    <span>Templates</span>
-                    <ChevronRight size={14} className="chevron-right" />
-                </button>
-
-                <div className="menu-divider-h"></div>
+                <div className="menu-item-group" style={{ position: 'relative' }}>
+                    <button
+                        className={`menu-item ${isRelationshipMenuOpen ? 'active' : ''}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsRelationshipMenuOpen(!isRelationshipMenuOpen);
+                        }}
+                    >
+                        <LinkIcon size={16} />
+                        <span>Dependencies</span>
+                        <ChevronRight size={14} className={`chevron-right ${isRelationshipMenuOpen ? 'rotated' : ''}`} />
+                    </button>
+                    {isRelationshipMenuOpen && (
+                        <RelationshipMenu
+                            taskId={taskId}
+                            onClose={() => setIsRelationshipMenuOpen(false)}
+                            mode="list"
+                            isModal={true}
+                        />
+                    )}
+                </div>
 
                 <button className="menu-item" onClick={onArchive}>
                     <Archive size={16} />

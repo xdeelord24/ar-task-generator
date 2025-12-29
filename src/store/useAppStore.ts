@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig } from '../types';
+import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message } from '../types';
 
 interface AppStore extends AppState {
     setTasks: (tasks: Task[]) => void;
@@ -44,6 +44,8 @@ interface AppStore extends AppState {
     updateSavedView: (viewId: string, updates: Partial<SavedView>) => void;
     deleteSavedView: (viewId: string) => void;
     setAIConfig: (config: Partial<AIConfig>) => void;
+    setAiMessages: (messages: Message[] | ((prev: Message[]) => Message[])) => void;
+    clearAiMessages: () => void;
     sidebarCollapsed: boolean;
     toggleSidebar: () => void;
 }
@@ -130,6 +132,7 @@ export const useAppStore = create<AppStore>()(
                 ollamaHost: 'http://localhost:11434',
                 ollamaModel: 'llama3'
             },
+            aiMessages: [],
             sidebarCollapsed: false,
 
             setTasks: (tasks) => set({ tasks }),
@@ -327,6 +330,10 @@ export const useAppStore = create<AppStore>()(
             setAIConfig: (config) => set((state) => ({
                 aiConfig: { ...state.aiConfig, ...config }
             })),
+            setAiMessages: (messages) => set((state) => ({
+                aiMessages: typeof messages === 'function' ? messages(state.aiMessages) : messages
+            })),
+            clearAiMessages: () => set({ aiMessages: [] }),
         }),
         {
             name: 'ar-generator-app-storage',

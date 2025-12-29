@@ -9,7 +9,6 @@
     right: 0;
     margin-top: 8px;
     z-index: 5000;
-    overflow: hidden;
     color: var(--text-main);
     font-family: inherit;
 }
@@ -48,8 +47,7 @@
 
 .menu-main-content {
     padding: 8px 0;
-    max-height: 450px;
-    overflow-y: auto;
+    overflow: visible;
 }
 
 .menu-item {
@@ -69,14 +67,22 @@
     position: relative;
 }
 
-.menu-item:hover {
+.menu-item:hover,
+.menu-item.active {
     background: var(--bg-hover);
-    color: var(--text-main);
+    color: var(--primary);
 }
 
 .menu-item .chevron-right {
     margin-left: auto;
-    color: var(--text-muted);
+    color: var(--text-tertiary);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu-item.active .chevron-right,
+.menu-item .chevron-right.rotated {
+    transform: rotate(90deg);
+    color: var(--primary);
 }
 
 .menu-item.danger {

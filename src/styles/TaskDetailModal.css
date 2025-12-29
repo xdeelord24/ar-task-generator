@@ -540,53 +540,6 @@
     font-size: 14px;
 }
 
-.relationship-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-}
-
-.rel-grid-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 16px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.rel-grid-btn:hover {
-    border-color: var(--primary);
-    background: var(--bg-hover);
-    transform: translateY(-2px);
-}
-
-.rel-icon-box {
-    width: 40px;
-    height: 40px;
-    background: var(--bg-hover);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-secondary);
-}
-
-.rel-grid-btn:hover .rel-icon-box {
-    background: var(--bg-active);
-    color: var(--primary);
-}
-
-.rel-grid-btn span {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-}
-
 /* Descriptions & Lists */
 .detail-description {
     width: 100%;

@@ -35,7 +35,7 @@ export interface TimeEntry {
 
 export interface Relationship {
   id: string;
-  type: 'waiting' | 'blocking' | 'linked';
+  type: 'waiting' | 'blocking' | 'linked' | 'custom';
   taskId: string;
 }
 
@@ -132,6 +132,11 @@ export interface AIConfig {
   ollamaModel: string;
 }
 
+export interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface AppState {
   tasks: Task[];
   spaces: Space[];
@@ -148,4 +153,5 @@ export interface AppState {
   accentColor: string;
   activeTimer: { taskId: string; startTime: string } | null;
   aiConfig: AIConfig;
+  aiMessages: Message[];
 }

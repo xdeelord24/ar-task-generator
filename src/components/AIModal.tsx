@@ -1,17 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Sparkles, Bot, User, Trash2, History } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
-import type { Task, Space } from '../types';
+import type { Task, Space, Message } from '../types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import ReactMarkdown from 'react-markdown';
 import '../styles/AIModal.css';
 
 const AI_MODEL_NAME = 'gemini-1.5-flash';
 
-interface Message {
-    role: 'user' | 'assistant';
-    content: string;
-}
+// Interface for Message is now imported from ../types
 
 interface AIModalProps {
     onClose: () => void;
@@ -19,23 +16,22 @@ interface AIModalProps {
 
 const AIModal: React.FC<AIModalProps> = ({ onClose }) => {
     const [input, setInput] = useState('');
-    const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const { tasks, spaces, currentSpaceId, aiConfig } = useAppStore();
+    const { tasks, spaces, currentSpaceId, aiConfig, aiMessages, setAiMessages, clearAiMessages } = useAppStore();
 
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [messages]);
+    }, [aiMessages]);
 
     const handleSend = async (overrideInput?: string) => {
         const query = overrideInput || input;
         if (!query.trim()) return;
 
         const userMessage: Message = { role: 'user', content: query };
-        setMessages(prev => [...prev, userMessage]);
+        setAiMessages(prev => [...prev, userMessage]);
         setInput('');
         setIsLoading(true);
 
@@ -67,7 +63,7 @@ const AIModal: React.FC<AIModalProps> = ({ onClose }) => {
                     role: 'assistant',
                     content: data.response
                 };
-                setMessages(prev => [...prev, assistantMessage]);
+                setAiMessages(prev => [...prev, assistantMessage]);
             } else {
                 // Gemini Provider
                 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -89,7 +85,7 @@ const AIModal: React.FC<AIModalProps> = ({ onClose }) => {
                     role: 'assistant',
                     content: responseText
                 };
-                setMessages(prev => [...prev, assistantMessage]);
+                setAiMessages(prev => [...prev, assistantMessage]);
             }
         } catch (error: any) {
             let errorMsg = "I'm sorry, I encountered an error while processing your request.";
@@ -104,7 +100,7 @@ const AIModal: React.FC<AIModalProps> = ({ onClose }) => {
                 role: 'assistant',
                 content: errorMsg
             };
-            setMessages(prev => [...prev, assistantMessage]);
+            setAiMessages(prev => [...prev, assistantMessage]);
             console.error('AI Error:', error);
         } finally {
             setIsLoading(false);
@@ -121,13 +117,13 @@ const AIModal: React.FC<AIModalProps> = ({ onClose }) => {
                     </div>
                     <div className="ai-actions">
                         <button className="icon-btn-ghost" title="View History"><History size={18} /></button>
-                        <button className="icon-btn-ghost" title="Clear Chat" onClick={() => setMessages([])}><Trash2 size={18} /></button>
+                        <button className="icon-btn-ghost" title="Clear Chat" onClick={clearAiMessages}><Trash2 size={18} /></button>
                         <button className="icon-btn-ghost" onClick={onClose}><X size={20} /></button>
                     </div>
                 </div>
 
                 <div className="ai-chat-container" ref={scrollRef}>
-                    {messages.length === 0 ? (
+                    {aiMessages.length === 0 ? (
                         <div className="ai-welcome">
                             <div className="ai-avatar-large">
                                 <Bot size={40} />
@@ -143,7 +139,7 @@ const AIModal: React.FC<AIModalProps> = ({ onClose }) => {
                         </div>
                     ) : (
                         <div className="ai-messages">
-                            {messages.map((m, i) => (
+                            {aiMessages.map((m: Message, i: number) => (
                                 <div key={i} className={`ai-message-row ${m.role}`}>
                                     <div className="ai-message-avatar">
                                         {m.role === 'assistant' ? <Bot size={16} /> : <User size={16} />}

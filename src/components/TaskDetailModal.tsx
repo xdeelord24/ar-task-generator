@@ -12,7 +12,6 @@ import {
     Link2,
     Clock3,
     AlertCircle,
-    FileText,
     Send,
     Check,
     ChevronRight,
@@ -29,9 +28,9 @@ import { format, parseISO } from 'date-fns';
 import type { Task, Subtask } from '../types';
 import PremiumDatePicker from './PremiumDatePicker';
 import TimePicker from './TimePicker';
-import TaskPicker from './TaskPicker';
 import RichTextEditor from './RichTextEditor';
 import TaskOptionsMenu from './TaskOptionsMenu';
+import RelationshipMenu from './RelationshipMenu';
 import '../styles/TaskDetailModal.css';
 
 interface TaskDetailModalProps {
@@ -57,7 +56,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         setCurrentView,
         addComment,
         addTimeEntry,
-        addRelationship,
         duplicateTask,
         archiveTask
     } = useAppStore();
@@ -102,7 +100,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [isTagPickerOpen, setIsTagPickerOpen] = useState(false);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
-    const [relPickerType, setRelPickerType] = useState<'waiting' | 'blocking' | 'linked' | null>(null);
     const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
 
     if (!task) return null;
@@ -227,14 +224,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         });
         console.log(`Time logged for slot: ${time}`);
         setIsTimePickerOpen(false);
-    };
-
-    const handleAddRel = (type: 'waiting' | 'blocking' | 'linked', targetTaskId: string) => {
-        addRelationship(taskId, {
-            type,
-            taskId: targetTaskId
-        });
-        setRelPickerType(null);
     };
 
     const toggleTag = (tagId: string) => {
@@ -671,38 +660,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
 
                                     <div className="more-section">
                                         <h5>Add Relationship</h5>
-                                        <div className="relationship-grid" style={{ position: 'relative' }}>
-                                            <button className="rel-grid-btn" onClick={() => setRelPickerType('linked')}>
-                                                <div className="rel-icon-box"><CheckCircle2 size={16} /></div>
-                                                <span>Link Task</span>
-                                            </button>
-                                            <button className="rel-grid-btn" onClick={() => setRelPickerType('waiting')}>
-                                                <div className="rel-icon-box"><AlertCircle size={16} /></div>
-                                                <span>Waiting on</span>
-                                            </button>
-                                            <button className="rel-grid-btn" onClick={() => setRelPickerType('blocking')}>
-                                                <div className="rel-icon-box"><X size={16} /></div>
-                                                <span>Blocking</span>
-                                            </button>
-                                            <button className="rel-grid-btn">
-                                                <div className="rel-icon-box"><FileText size={16} /></div>
-                                                <span>Link Doc</span>
-                                            </button>
-                                            <button className="rel-grid-btn">
-                                                <div className="rel-icon-box"><Plus size={16} /></div>
-                                                <span>Custom</span>
-                                            </button>
-
-                                            {relPickerType && (
-                                                <div style={{ position: 'absolute', top: '-300px', left: 0 }}>
-                                                    <TaskPicker
-                                                        excludeTaskId={taskId}
-                                                        onSelect={(id) => handleAddRel(relPickerType, id)}
-                                                        onClose={() => setRelPickerType(null)}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
+                                        <RelationshipMenu
+                                            taskId={taskId}
+                                            onClose={() => { }}
+                                            inline
+                                        />
                                     </div>
                                 </div>
                             )}
