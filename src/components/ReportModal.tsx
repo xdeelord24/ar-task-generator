@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, FileText, Download } from 'lucide-react';
 import { Packer } from 'docx';
 import { saveAs } from 'file-saver';
@@ -107,95 +107,11 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
             return false;
         });
 
-        const doc = new Document({
-            sections: [{
-                properties: {},
-                children: [
-                    new Paragraph({
-                        text: "INDIVIDUAL ACCOMPLISHMENT REPORT",
-                        heading: HeadingLevel.TITLE,
-                        alignment: AlignmentType.CENTER,
-                        spacing: { after: 400 },
-                    }),
-                    new Paragraph({
-                        children: [
-                            new TextRun({ text: "Name: ", bold: true }),
-                            new TextRun(formData.name),
-                        ],
-                    }),
-                    new Paragraph({
-                        children: [
-                            new TextRun({ text: "Position: ", bold: true }),
-                            new TextRun(formData.position),
-                        ],
-                    }),
-                    new Paragraph({
-                        children: [
-                            new TextRun({ text: "Office: ", bold: true }),
-                            new TextRun(formData.office),
-                        ],
-                        spacing: { after: 400 },
-                    }),
-                    new Paragraph({
-                        children: [
-                            new TextRun({ text: "Period: ", bold: true }),
-                            new TextRun(`${formData.month}/${formData.year} (${formData.period === '1' ? '1st Half' : '2nd Half'})`),
-                        ],
-                        spacing: { after: 400 },
-                    }),
-                    new Paragraph({
-                        text: "ACCOMPLISHMENTS:",
-                        heading: HeadingLevel.HEADING_2,
-                        spacing: { after: 200 },
-                    }),
-                    ...reportTasks.flatMap(t => [
-                        new Paragraph({
-                            children: [
-                                new TextRun({ text: `[${t.status}] ${t.name}`, bold: true }),
-                            ],
-                            bullet: { level: 0 }
-                        }),
-                        ...(t.description ? [new Paragraph({
-                            text: t.description,
-                            indent: { left: 720 },
-                        })] : [])
-                    ]),
-                    new Paragraph({
-                        text: "",
-                        spacing: { after: 400 },
-                    }),
-                    new Paragraph({
-                        text: "SIGNATURES:",
-                        heading: HeadingLevel.HEADING_2,
-                        spacing: { after: 200 },
-                    }),
-                    ...(formData.reviewedBy ? [new Paragraph({
-                        children: [
-                            new TextRun({ text: "Reviewed by: ", bold: true }),
-                            new TextRun(formData.reviewedBy),
-                        ],
-                        spacing: { before: 200 }
-                    })] : []),
-                    ...(formData.verifiedBy ? [new Paragraph({
-                        children: [
-                            new TextRun({ text: "Verified by: ", bold: true }),
-                            new TextRun(formData.verifiedBy),
-                        ],
-                        spacing: { before: 200 }
-                    })] : []),
-                    ...(formData.approvedBy ? [new Paragraph({
-                        children: [
-                            new TextRun({ text: "Approved by: ", bold: true }),
-                            new TextRun(formData.approvedBy),
-                        ],
-                        spacing: { before: 200 }
-                    })] : [])
-                ],
-            }],
-        });
 
+        const doc = generateReportDocument(reportTasks, formData);
         const blob = await Packer.toBlob(doc);
-        saveAs(blob, `Accomplishment_Report_${formData.year}_${formData.month}.docx`);
+        const templateName = formData.template === 'general' ? 'General' : 'Custom';
+        saveAs(blob, `Accomplishment_Report_${templateName}_${formData.year}_${formData.month}.docx`);
         onClose();
     };
 
@@ -223,7 +139,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
                                     onChange={(e) => setFormData(prev => ({ ...prev, template: e.target.value }))}
                                 />
                                 <div className="template-content">
-                                    <div className="template-icon">📄</div>
+                                    <div className="template-icon">ðŸ“„</div>
                                     <div className="template-details">
                                         <div className="template-title">General Template</div>
                                         <div className="template-desc">Standard accomplishment report format</div>
@@ -239,7 +155,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
                                     onChange={(e) => setFormData(prev => ({ ...prev, template: e.target.value }))}
                                 />
                                 <div className="template-content">
-                                    <div className="template-icon">✨</div>
+                                    <div className="template-icon">âœ¨</div>
                                     <div className="template-details">
                                         <div className="template-title">Custom Template</div>
                                         <div className="template-desc">Enhanced format with detailed sections</div>
@@ -342,3 +258,4 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
 };
 
 export default ReportModal;
+
