@@ -5,7 +5,8 @@ import {
     Sparkles, Paperclip, Bell, ChevronDown, Maximize2, Minimize2,
     FileText, LayoutDashboard, Square, ListTodo, Plus,
     Table, Columns, List, File, User, MessageSquare, PenTool,
-    AtSign, ArrowRight, CornerDownLeft, Copy, RotateCcw, ThumbsUp, ThumbsDown, ChevronLeft
+    AtSign, ArrowRight, CornerDownLeft, Copy, RotateCcw, ThumbsUp, ThumbsDown, ChevronLeft,
+    UserPlus, Eye, CalendarDays, Inbox, CircleDot, GitMerge, Hash, Box
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore } from '../store/useAppStore';
@@ -132,6 +133,107 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
     const [showCustomFields, setShowCustomFields] = useState(false);
     const [fieldSearch, setFieldSearch] = useState('');
 
+    // Slash Command State
+    const [showSlashMenu, setShowSlashMenu] = useState(false);
+    const [slashQuery, setSlashQuery] = useState('');
+    const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
+
+    const slashCommands = [
+        {
+            category: 'SUGGESTIONS',
+            items: [
+                { id: 'template', label: 'Template', icon: <LayoutDashboard size={14} /> }
+            ]
+        },
+        {
+            category: 'EMBEDS',
+            items: [
+                { id: 'attachment', label: 'Attachment', icon: <Paperclip size={14} /> }
+            ]
+        },
+        {
+            category: 'TASK ACTIONS',
+            items: [
+                { id: 'assign', label: 'Assign', icon: <UserPlus size={14} /> },
+                { id: 'assign_me', label: 'Assign to me', icon: <User size={14} /> },
+                { id: 'follower', label: 'Follower', icon: <Eye size={14} /> },
+                { id: 'priority', label: 'Priority', icon: <Flag size={14} /> },
+                { id: 'due_date', label: 'Due Date', icon: <Calendar size={14} /> },
+                { id: 'due_date_today', label: 'Due Date to today', icon: <CalendarDays size={14} /> },
+                { id: 'inbox', label: 'Add to Inbox', icon: <Inbox size={14} /> },
+                { id: 'start_date', label: 'Start Date', icon: <Calendar size={14} /> },
+                { id: 'status', label: 'Status', icon: <CircleDot size={14} /> },
+                { id: 'tags', label: 'Tags', icon: <Tag size={14} /> },
+                { id: 'move', label: 'Move', icon: <ArrowRight size={14} /> },
+                { id: 'subtask', label: 'Subtask', icon: <GitMerge size={14} /> },
+                { id: 'position', label: 'Position', icon: <Hash size={14} /> },
+                { id: 'task_type', label: 'Task Type', icon: <Box size={14} /> },
+            ]
+        }
+    ];
+
+    const filteredSlashCommands = slashCommands.map(cat => ({
+        category: cat.category,
+        items: cat.items.filter(item => item.label.toLowerCase().includes(slashQuery.toLowerCase()))
+    })).filter(cat => cat.items.length > 0);
+
+    // Flat list for keyboard navigation
+    const flatSlashItems = filteredSlashCommands.flatMap(cat => cat.items);
+
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setName(val);
+
+        if (val.includes('/')) {
+            const lastSlashIndex = val.lastIndexOf('/');
+            // Simple check: is the slash likely a command trigger?
+            // e.g. "Task /" or starting with "/"
+            if (lastSlashIndex === 0 || val[lastSlashIndex - 1] === ' ') {
+                const query = val.substring(lastSlashIndex + 1);
+                setSlashQuery(query);
+                setShowSlashMenu(true);
+                setSlashSelectedIndex(0);
+                return;
+            }
+        }
+        setShowSlashMenu(false);
+    };
+
+    const handleSlashKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!showSlashMenu) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSlashSelectedIndex(prev => (prev + 1) % flatSlashItems.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSlashSelectedIndex(prev => (prev - 1 + flatSlashItems.length) % flatSlashItems.length);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (flatSlashItems[slashSelectedIndex]) {
+                handleSlashCommand(flatSlashItems[slashSelectedIndex]);
+            }
+        } else if (e.key === 'Escape') {
+            setShowSlashMenu(false);
+        }
+    };
+
+    const handleSlashCommand = (item: any) => {
+        // Remove the slash command text from name
+        const lastSlashIndex = name.lastIndexOf('/');
+        const newName = name.substring(0, lastSlashIndex).trim();
+        setName(newName);
+        setShowSlashMenu(false);
+
+        // Execute command (Mock implementation)
+        console.log("Execute command:", item.id);
+        // You would switch/case here to open specific pickers or set values
+        if (item.id === 'assign_me') {
+            // Logic to assign to self
+        }
+        // ...
+    };
+
     const fieldOptions = [
         { id: 'text', label: 'Custom Text', icon: <FileText size={16} color="#c026d3" /> },
         { id: 'summary', label: 'Summary', icon: <FileText size={16} color="#c026d3" /> },
@@ -180,9 +282,38 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus }) => {
                     className="task-name-input"
                     placeholder="Task Name or type '/' for commands"
                     value={name}
-                    onChange={e => setName(e.target.value)}
+                    onChange={handleNameChange} // Use new handler
+                    onKeyDown={handleSlashKeyDown} // Use new handler
                     autoFocus
                 />
+
+                {/* Slash Command Menu */}
+                {showSlashMenu && (
+                    <div className="slash-menu">
+                        {filteredSlashCommands.map(group => (
+                            <div key={group.category} className="slash-group">
+                                <div className="slash-category">{group.category}</div>
+                                {group.items.map(item => {
+                                    const isSelected = flatSlashItems[slashSelectedIndex]?.id === item.id;
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            className={`slash-item ${isSelected ? 'selected' : ''}`}
+                                            onClick={() => handleSlashCommand(item)}
+                                            onMouseEnter={() => {
+                                                const idx = flatSlashItems.findIndex(i => i.id === item.id);
+                                                setSlashSelectedIndex(idx);
+                                            }}
+                                        >
+                                            <div className="slash-item-icon">{item.icon}</div>
+                                            <div className="slash-item-label">{item.label}</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 <div className="description-section">
                     <div className="rich-text-wrapper">
