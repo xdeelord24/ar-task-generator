@@ -171,6 +171,8 @@
     align-items: center;
     gap: 8px;
     width: 100%;
+    position: relative;
+    /* Anchor for absolute elements like hover actions */
 }
 
 .name-cell .task-name {
@@ -475,4 +477,61 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Row Hover Actions */
+.row-hover-actions {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    /* Hidden by default */
+    transition: opacity 0.2s, transform 0.2s;
+    background: var(--bg-surface);
+    padding-left: 12px;
+    z-index: 20;
+    /* Create a fade effect on the left */
+    background: linear-gradient(90deg, transparent, var(--bg-surface) 10px, var(--bg-surface));
+    margin-right: 4px;
+}
+
+.task-item-row:hover .row-hover-actions {
+    opacity: 1;
+    /* Show on hover */
+    pointer-events: auto;
+}
+
+.row-action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    color: #64748b !important;
+    /* Force color slate-500 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.row-action-btn:hover {
+    background: var(--bg-hover);
+    color: var(--primary) !important;
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.row-action-btn svg {
+    /* Ensure icons size correctly */
+    width: 14px;
+    height: 14px;
+    stroke-width: 2px;
 }

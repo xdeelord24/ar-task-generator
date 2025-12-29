@@ -8,7 +8,9 @@ import {
     Calendar as CalendarIcon,
     MoreHorizontal,
     GripVertical,
-    Flag
+    Flag,
+    Tag as TagIcon,
+    Pencil
 } from 'lucide-react';
 import {
     DndContext,
@@ -210,6 +212,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
 
 interface SortableRowPropsWithUpdateSubtask extends SortableRowProps {
     onUpdateSubtask: (parentId: string, subtaskId: string, updates: any) => void;
+    onAddSubtask: (taskId: string, name: string) => void;
 }
 
 const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
@@ -234,6 +237,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
     onDeleteTag,
     onStartTimer,
     onUpdateSubtask,
+    onAddSubtask,
     menuTrigger
 }) => {
     const {
@@ -327,6 +331,46 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                     {task.subtasks!.length}
                                 </div>
                             )}
+
+                            <div className="row-hover-actions">
+                                <button
+                                    className="row-action-btn"
+                                    title="Add subtask"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const name = window.prompt("Enter subtask name:");
+                                        if (name) {
+                                            onAddSubtask(task.id, name);
+                                            setIsExpanded(true);
+                                        }
+                                    }}
+                                >
+                                    <Plus size={14} />
+                                </button>
+                                <button
+                                    className="row-action-btn"
+                                    title="Edit tags"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActivePopover({ taskId: task.id, field: 'tags', element: e.currentTarget });
+                                    }}
+                                >
+                                    <TagIcon size={14} />
+                                </button>
+                                <button
+                                    className="row-action-btn"
+                                    title="Rename"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const newName = window.prompt("Rename task:", task.name);
+                                        if (newName && newName !== task.name) {
+                                            onUpdateTask(task.id, { name: newName });
+                                        }
+                                    }}
+                                >
+                                    <Pencil size={14} />
+                                </button>
+                            </div>
 
                         </div>
                     </div>
@@ -503,6 +547,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         archiveTask,
         updateSpace,
         updateList,
+        addSubtask
     } = useAppStore();
     const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
@@ -773,6 +818,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                                             setMenuTrigger(null);
                                                         }}
                                                         onUpdateSubtask={updateSubtask}
+                                                        onAddSubtask={(taskId, name) => addSubtask(taskId, { name, status: 'TO DO' })}
                                                         menuTrigger={menuTrigger}
                                                     />
                                                 ))}
@@ -842,6 +888,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                                         setMenuTrigger(null);
                                                     }}
                                                     onUpdateSubtask={updateSubtask}
+                                                    onAddSubtask={(taskId, name) => addSubtask(taskId, { name, status: 'TO DO' })}
                                                     menuTrigger={menuTrigger}
                                                 />
                                             ))}
