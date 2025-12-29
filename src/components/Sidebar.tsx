@@ -164,9 +164,10 @@ const Sidebar: React.FC = () => {
             <nav className="main-nav">
                 {navItems.map((item) => {
                     const Icon = item.icon;
+                    const currentDash = dashboards.find(d => d.id === currentDashboardId);
                     const isGlobalDashboard = item.id === 'dashboards' &&
                         currentView === 'dashboards' &&
-                        (!currentDashboardId || !dashboards.find(d => d.id === currentDashboardId)?.spaceId && !dashboards.find(d => d.id === currentDashboardId)?.listId);
+                        (!currentDashboardId || (!currentDash?.spaceId && !currentDash?.listId));
 
                     const isActive = item.id === 'dashboards' ? isGlobalDashboard : currentView === item.id;
 
@@ -304,6 +305,8 @@ const Sidebar: React.FC = () => {
                                                                             className={`nav-item dashboard-sub-item ${currentDashboardId === dash.id ? 'active' : ''}`}
                                                                             onClick={(e) => {
                                                                                 e.preventDefault();
+                                                                                setCurrentSpaceId(space.id);
+                                                                                setCurrentListId(list.id);
                                                                                 setCurrentDashboardId(dash.id);
                                                                                 setCurrentView('dashboards');
                                                                             }}
@@ -351,6 +354,8 @@ const Sidebar: React.FC = () => {
                                                         className={`nav-item dashboard-sub-item ${currentDashboardId === dash.id ? 'active' : ''}`}
                                                         onClick={(e) => {
                                                             e.preventDefault();
+                                                            setCurrentSpaceId(space.id);
+                                                            setCurrentListId(list.id);
                                                             setCurrentDashboardId(dash.id);
                                                             setCurrentView('dashboards');
                                                         }}
@@ -371,6 +376,8 @@ const Sidebar: React.FC = () => {
                                                 className={`nav-item dashboard-sub-item ${currentDashboardId === dash.id ? 'active' : ''}`}
                                                 onClick={(e) => {
                                                     e.preventDefault();
+                                                    setCurrentSpaceId(space.id);
+                                                    setCurrentListId(null);
                                                     setCurrentDashboardId(dash.id);
                                                     setCurrentView('dashboards');
                                                 }}
