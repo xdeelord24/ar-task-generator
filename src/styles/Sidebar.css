@@ -1,10 +1,11 @@
 .sidebar {
     padding: 16px 12px;
     overflow-y: auto;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: inherit;
     color: var(--text-main);
     background-color: var(--bg-sidebar);
     height: 100%;
+    border-right: 1px solid var(--border);
 }
 
 /* Workspace Selector */
@@ -12,16 +13,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
-    border-radius: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
     cursor: pointer;
-    margin-bottom: 20px;
-    transition: background-color 0.2s;
+    margin-bottom: 24px;
+    transition: var(--transition);
     user-select: none;
+    border: 1px solid transparent;
 }
 
 .workspace-selector:hover {
     background: var(--bg-hover);
+    border-color: var(--border);
 }
 
 .workspace-info {
@@ -54,7 +57,7 @@
 .main-nav {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     margin-bottom: 24px;
 }
 
@@ -62,16 +65,15 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 6px 12px;
-    border-radius: 6px;
+    padding: 8px 12px;
+    border-radius: 8px;
     text-decoration: none;
     color: var(--text-secondary);
     font-size: 14px;
-    transition: all 0.2s;
+    transition: var(--transition);
     font-weight: 400;
     cursor: pointer;
     user-select: none;
-    min-height: 32px;
 }
 
 .nav-item:hover {
@@ -82,7 +84,7 @@
 .nav-item.active {
     background: var(--bg-active);
     color: var(--primary);
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .nav-item svg {
@@ -104,7 +106,7 @@
     font-weight: 700;
     color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
     user-select: none;
 }
 
@@ -126,6 +128,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: var(--transition);
 }
 
 .add-btn:hover {
@@ -157,10 +160,9 @@
     justify-content: center;
     border-radius: 4px;
     cursor: pointer;
-    color: var(--border-strong);
+    color: var(--text-tertiary);
     margin-left: -6px;
-    /* slightly pull back to align */
-    transition: background 0.2s;
+    transition: var(--transition);
 }
 
 .expand-icon-wrapper:hover {
@@ -195,16 +197,13 @@
     color: var(--primary);
 }
 
-/* Hierarchy Children (Indent + Line) */
+/* Hierarchy Children - Subtler Indent lines */
 .space-children {
     display: flex;
     flex-direction: column;
     margin-left: 21px;
-    /* Center of space icon (approx) */
     border-left: 1px solid var(--border);
-    /* The hierarchy line */
-    padding-left: 12px;
-    /* Gap from line to items */
+    padding-left: 8px;
 }
 
 .folder-container {
@@ -215,9 +214,7 @@
 .folder-item {
     gap: 8px;
     padding-left: 0;
-    /* Override nav-item padding */
     margin-left: -4px;
-    /* Align expand icon */
 }
 
 .folder-icon {
@@ -228,9 +225,8 @@
     display: flex;
     flex-direction: column;
     margin-left: 15px;
-    /* Indent from folder */
     border-left: 1px solid var(--border);
-    padding-left: 12px;
+    padding-left: 8px;
 }
 
 
@@ -253,7 +249,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background-color: var(--border-strong);
+    background-color: var(--text-tertiary);
 }
 
 .create-space-btn {
@@ -268,18 +264,18 @@
     display: flex;
     gap: 16px;
     padding: 16px 12px 0 12px;
-    border-top: 1px solid var(--border-light);
+    border-top: 1px solid var(--border);
 }
 
 .sidebar-footer a {
     font-size: 13px;
     color: var(--text-secondary);
     text-decoration: none;
+    transition: var(--transition);
 }
 
 .sidebar-footer a:hover {
     color: var(--text-main);
-    text-decoration: underline;
 }
 
 /* Scrollbar */
