@@ -592,7 +592,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
 
                 {showDeleteConfirm && (
                     <div className="modal-overlay" style={{ zIndex: 3000 }} onClick={() => setShowDeleteConfirm(false)}>
-                        <div className="modal-content confirm-modal" onClick={e => e.stopPropagation()} style={{ width: '400px', height: 'auto', padding: '24px', maxWidth: '90vw' }}>
+                        <div className="modal-content confirm-modal" onClick={e => e.stopPropagation()} style={{ width: '400px', height: 'auto', padding: '24px', maxWidth: '90vw', backgroundColor: 'var(--bg-surface)', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
                             <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '12px', color: 'var(--text-main)' }}>Delete Task?</h3>
                             <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '14px', lineHeight: 1.5 }}>
                                 Are you sure you want to delete <strong>"{task.name}"</strong>? This action cannot be undone.
