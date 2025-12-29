@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { X, FileText, Download } from 'lucide-react';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { saveAs } from 'file-saver';
 import { useAppStore } from '../store/useAppStore';
-import { format, startOfMonth, isWithinInterval, parseISO, addDays } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO, setDate } from 'date-fns';
 import type { Task } from '../types';
 import '../styles/TaskModal.css';
 import '../styles/ReportModal.css';
@@ -13,26 +15,67 @@ interface ReportModalProps {
 const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
     const { tasks, currentSpaceId } = useAppStore();
 
+    const today = new Date();
+    const currentDay = today.getDate();
+    const initialPeriod = currentDay <= 15 ? '1' : '2';
+
+    // Calculate initial dates based on currentPeriod
+    const initialStart = initialPeriod === '1'
+        ? format(startOfMonth(today), 'yyyy-MM-01')
+        : format(setDate(startOfMonth(today), 16), 'yyyy-MM-16');
+    const initialEnd = initialPeriod === '1'
+        ? format(setDate(startOfMonth(today), 15), 'yyyy-MM-15')
+        : format(endOfMonth(today), 'yyyy-MM-dd');
+
     const [formData, setFormData] = useState({
         name: 'Jundee',
         position: 'Software Engineer',
         office: 'Tech Office',
-        year: new Date().getFullYear(),
-        month: new Date().getMonth() + 1,
-        period: '1',
-        dateFrom: format(startOfMonth(new Date()), 'yyyy-MM-01'),
-        dateTo: format(addDays(startOfMonth(new Date()), 14), 'yyyy-MM-15'),
+        year: today.getFullYear(),
+        month: today.getMonth() + 1,
+        period: initialPeriod,
+        dateFrom: initialStart,
+        dateTo: initialEnd,
         includeCompleted: true,
-        includeInProgress: false,
-        includeTodo: false,
+        includeInProgress: true,
+        includeTodo: true,
         reviewedBy: '',
         verifiedBy: '',
         approvedBy: ''
     });
 
+    const updateDateRange = (year: number, month: number, period: string) => {
+        const baseDate = new Date(year, month - 1, 1);
+        let start, end;
+
+        if (period === '1') {
+            start = format(baseDate, 'yyyy-MM-01');
+            end = format(setDate(baseDate, 15), 'yyyy-MM-15');
+        } else {
+            start = format(setDate(baseDate, 16), 'yyyy-MM-16');
+            end = format(endOfMonth(baseDate), 'yyyy-MM-dd');
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            year,
+            month,
+            period,
+            dateFrom: start,
+            dateTo: end
+        }));
+    };
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { id, value, type } = e.target;
-        if (type === 'checkbox') {
+
+        if (id === 'year' || id === 'month' || id === 'period') {
+            const newYear = id === 'year' ? parseInt(value) : formData.year;
+            const newMonth = id === 'month' ? parseInt(value) : formData.month;
+            const newPeriod = id === 'period' ? value : formData.period;
+
+            updateDateRange(newYear, newMonth, newPeriod);
+        } else if (type === 'checkbox') {
             const checked = (e.target as HTMLInputElement).checked;
             setFormData(prev => ({ ...prev, [id]: checked }));
         } else {
@@ -40,7 +83,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
         }
     };
 
-    const generateReport = () => {
+    const generateReport = async () => {
         let reportTasks: Task[] = tasks.filter(t =>
             currentSpaceId === 'everything' || t.spaceId === currentSpaceId
         );
@@ -62,31 +105,96 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
             return false;
         });
 
-        let content = `INDIVIDUAL ACCOMPLISHMENT REPORT\n\n`;
-        content += `Name: ${formData.name}\n`;
-        content += `Position: ${formData.position}\n`;
-        content += `Office: ${formData.office}\n\n`;
-        content += `Period: ${formData.month}/${formData.year} (${formData.period === '1' ? '1st Half' : '2nd Half'})\n\n`;
-        content += `ACCOMPLISHMENTS:\n\n`;
-
-        reportTasks.forEach(t => {
-            content += `[${t.status}] ${t.name}\n`;
-            if (t.description) content += `  - ${t.description}\n`;
+        const doc = new Document({
+            sections: [{
+                properties: {},
+                children: [
+                    new Paragraph({
+                        text: "INDIVIDUAL ACCOMPLISHMENT REPORT",
+                        heading: HeadingLevel.TITLE,
+                        alignment: AlignmentType.CENTER,
+                        spacing: { after: 400 },
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: "Name: ", bold: true }),
+                            new TextRun(formData.name),
+                        ],
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: "Position: ", bold: true }),
+                            new TextRun(formData.position),
+                        ],
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: "Office: ", bold: true }),
+                            new TextRun(formData.office),
+                        ],
+                        spacing: { after: 400 },
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: "Period: ", bold: true }),
+                            new TextRun(`${formData.month}/${formData.year} (${formData.period === '1' ? '1st Half' : '2nd Half'})`),
+                        ],
+                        spacing: { after: 400 },
+                    }),
+                    new Paragraph({
+                        text: "ACCOMPLISHMENTS:",
+                        heading: HeadingLevel.HEADING_2,
+                        spacing: { after: 200 },
+                    }),
+                    ...reportTasks.flatMap(t => [
+                        new Paragraph({
+                            children: [
+                                new TextRun({ text: `[${t.status}] ${t.name}`, bold: true }),
+                            ],
+                            bullet: { level: 0 }
+                        }),
+                        ...(t.description ? [new Paragraph({
+                            text: t.description,
+                            indent: { left: 720 },
+                        })] : [])
+                    ]),
+                    new Paragraph({
+                        text: "",
+                        spacing: { after: 400 },
+                    }),
+                    new Paragraph({
+                        text: "SIGNATURES:",
+                        heading: HeadingLevel.HEADING_2,
+                        spacing: { after: 200 },
+                    }),
+                    ...(formData.reviewedBy ? [new Paragraph({
+                        children: [
+                            new TextRun({ text: "Reviewed by: ", bold: true }),
+                            new TextRun(formData.reviewedBy),
+                        ],
+                        spacing: { before: 200 }
+                    })] : []),
+                    ...(formData.verifiedBy ? [new Paragraph({
+                        children: [
+                            new TextRun({ text: "Verified by: ", bold: true }),
+                            new TextRun(formData.verifiedBy),
+                        ],
+                        spacing: { before: 200 }
+                    })] : []),
+                    ...(formData.approvedBy ? [new Paragraph({
+                        children: [
+                            new TextRun({ text: "Approved by: ", bold: true }),
+                            new TextRun(formData.approvedBy),
+                        ],
+                        spacing: { before: 200 }
+                    })] : [])
+                ],
+            }],
         });
 
-        content += `\n\nSIGNATURES:\n`;
-        if (formData.reviewedBy) content += `Reviewed by: ${formData.reviewedBy}\n`;
-        if (formData.verifiedBy) content += `Verified by: ${formData.verifiedBy}\n`;
-        if (formData.approvedBy) content += `Approved by: ${formData.approvedBy}\n`;
-
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Accomplishment_Report_${formData.year}_${formData.month}.txt`;
-        a.click();
+        const blob = await Packer.toBlob(doc);
+        saveAs(blob, `Accomplishment_Report_${formData.year}_${formData.month}.docx`);
         onClose();
-        URL.revokeObjectURL(url);
     };
 
     return (
