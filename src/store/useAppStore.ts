@@ -460,18 +460,24 @@ export const useAppStore = create<AppStore>()(
                     ...state.clips
                 ]
             })),
-            deleteClip: (id) => set((state) => ({
-                clips: state.clips.filter(c => c.id !== id)
-            })),
+            deleteClip: (id) => set((state) => {
+                console.log('Action: deleteClip', id);
+                return {
+                    clips: state.clips.filter(c => c.id !== id)
+                };
+            }),
             addClipComment: (clipId, comment) => set((state) => ({
                 clips: state.clips.map(c => c.id === clipId ? {
                     ...c,
                     comments: [...(c.comments || []), { ...comment, id: crypto.randomUUID(), createdAt: new Date().toISOString() }]
                 } : c)
             })),
-            renameClip: (id, name) => set((state) => ({
-                clips: state.clips.map(c => c.id === id ? { ...c, name, updatedAt: new Date().toISOString() } : c)
-            })),
+            renameClip: (id, name) => set((state) => {
+                console.log('Action: renameClip', id, name);
+                return {
+                    clips: state.clips.map(c => c.id === id ? { ...c, name, updatedAt: new Date().toISOString() } : c)
+                };
+            }),
         }),
         {
             name: 'ar-generator-app-storage',

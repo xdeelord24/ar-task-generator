@@ -46,10 +46,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
                 top: position.y,
                 left: position.x,
                 zIndex: 9999,
-                background: 'white',
+                background: 'var(--bg-surface)',
                 borderRadius: '8px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                border: '1px solid #e2e8f0',
+                boxShadow: 'var(--shadow-lg)',
+                border: '1px solid var(--border)',
                 padding: '4px',
                 minWidth: '160px',
             }}
@@ -57,9 +57,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
         >
             {items.map((item, index) => (
                 <React.Fragment key={index}>
-                    {item.divider && <div style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }} />}
+                    {item.divider && <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />}
                     <button
-                        onClick={() => {
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('ContextMenu: Item clicked', item.label);
                             item.onClick();
                             onClose();
                         }}
@@ -72,14 +74,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
                             borderRadius: '4px',
                             border: 'none',
                             background: 'transparent',
-                            color: item.danger ? '#ef4444' : '#1e293b',
+                            color: item.danger ? 'var(--error)' : 'var(--text-main)',
                             fontSize: '13px',
                             fontWeight: 500,
                             cursor: 'pointer',
                             textAlign: 'left',
                             transition: 'background 0.2s',
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
                         {item.icon}
