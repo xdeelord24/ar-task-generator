@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
     Calendar as CalendarIcon,
     ChevronLeft,
@@ -29,17 +30,82 @@ interface PremiumDatePickerProps {
     dueDate?: string;
     onSave: (dates: { startDate?: string; dueDate?: string }) => void;
     onClose: () => void;
+    triggerElement?: HTMLElement | null;
 }
 
 type PickerView = 'quick' | 'recurring';
 
-const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDate, onSave, onClose }) => {
+const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDate, onSave, onClose, triggerElement }) => {
     const [view, setView] = useState<PickerView>('quick');
     const [tempStart, setTempStart] = useState(startDate);
     const [tempDue, setTempDue] = useState(dueDate);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [activeInput, setActiveInput] = useState<'start' | 'due'>(dueDate ? 'due' : 'start');
     const [timePickerTarget, setTimePickerTarget] = useState<'start' | 'due' | null>(null);
+    const [startInputRef, setStartInputRef] = useState<HTMLSpanElement | null>(null);
+    const [dueInputRef, setDueInputRef] = useState<HTMLSpanElement | null>(null);
+
+    const pickerRef = useRef<HTMLDivElement>(null);
+    const [style, setStyle] = useState<React.CSSProperties>({ visibility: 'hidden' });
+
+    useLayoutEffect(() => {
+        if (!pickerRef.current) return;
+
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const pickerWidth = pickerRef.current.offsetWidth || 560; // Approximate width if not rendered yet
+        const pickerHeight = pickerRef.current.offsetHeight || 400; // Approximate height
+
+        if (triggerElement) {
+            const rect = triggerElement.getBoundingClientRect();
+
+            const newStyle: React.CSSProperties = {
+                position: 'fixed',
+                zIndex: 10001,
+                visibility: 'visible'
+            };
+
+            // Vertical positioning
+            if (rect.bottom + pickerHeight + 10 > viewportHeight) {
+                // Flip up
+                newStyle.bottom = viewportHeight - rect.top + 5;
+                newStyle.top = 'auto';
+            } else {
+                // Default down
+                newStyle.top = rect.bottom + 5;
+                newStyle.bottom = 'auto';
+            }
+
+            // Horizontal positioning
+            // Try to align left, but flip if it overflows
+            if (rect.left + pickerWidth > viewportWidth) {
+                // Align right edge to trigger right edge
+                newStyle.right = viewportWidth - rect.right;
+                newStyle.left = 'auto';
+            } else {
+                newStyle.left = rect.left;
+                newStyle.right = 'auto';
+            }
+
+            // Check if still overflows left when aligned right
+            if (newStyle.right !== undefined && (viewportWidth - parseFloat(String(newStyle.right))) - pickerWidth < 0) {
+                // Force center or left 0
+                newStyle.left = 10;
+                newStyle.right = 'auto';
+            }
+
+            setStyle(newStyle);
+        } else {
+            setStyle({
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                zIndex: 1000,
+                marginTop: '8px',
+                visibility: 'visible'
+            });
+        }
+    }, [triggerElement, view, currentMonth]); // Re-calc on view change (height might change)
 
     const formatDisplay = (dateStr?: string) => {
         if (!dateStr) return '';
@@ -112,8 +178,8 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
         return day > start && day < end;
     };
 
-    return (
-        <div className="premium-datepicker" onClick={(e) => e.stopPropagation()}>
+    const content = (
+        <div ref={pickerRef} style={style} className="premium-datepicker" onClick={(e) => e.stopPropagation()}>
             <div className="picker-header-inputs">
                 <div
                     className={`date-input-field ${activeInput === 'start' ? 'active' : ''}`}
@@ -128,19 +194,18 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
                         />
                         {tempStart && (
                             <div style={{ position: 'relative' }}>
-                                <span className="sub-action" onClick={(e) => {
+                                <span className="sub-action" ref={setStartInputRef} onClick={(e) => {
                                     e.stopPropagation();
                                     setTimePickerTarget('start');
                                 }}>
                                     {tempStart.includes('T') ? 'Change time' : 'Add time'}
                                 </span>
                                 {timePickerTarget === 'start' && (
-                                    <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 3000 }}>
-                                        <TimePicker
-                                            onSelect={handleTimeSelect}
-                                            onClose={() => setTimePickerTarget(null)}
-                                        />
-                                    </div>
+                                    <TimePicker
+                                        onSelect={handleTimeSelect}
+                                        onClose={() => setTimePickerTarget(null)}
+                                        triggerElement={startInputRef}
+                                    />
                                 )}
                             </div>
                         )}
@@ -159,19 +224,18 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
                         />
                         {tempDue && (
                             <div style={{ position: 'relative' }}>
-                                <span className="sub-action" onClick={(e) => {
+                                <span className="sub-action" ref={setDueInputRef} onClick={(e) => {
                                     e.stopPropagation();
                                     setTimePickerTarget('due');
                                 }}>
                                     {tempDue.includes('T') ? 'Change time' : 'Add time'}
                                 </span>
                                 {timePickerTarget === 'due' && (
-                                    <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 3000 }}>
-                                        <TimePicker
-                                            onSelect={handleTimeSelect}
-                                            onClose={() => setTimePickerTarget(null)}
-                                        />
-                                    </div>
+                                    <TimePicker
+                                        onSelect={handleTimeSelect}
+                                        onClose={() => setTimePickerTarget(null)}
+                                        triggerElement={dueInputRef}
+                                    />
                                 )}
                             </div>
                         )}
@@ -290,6 +354,21 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
             )}
         </div>
     );
+
+    if (triggerElement) {
+        return createPortal(
+            <>
+                <div className="datepicker-backdrop" style={{ position: 'fixed', inset: 0, zIndex: 10000 }} onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                }} />
+                {content}
+            </>,
+            document.body
+        );
+    }
+
+    return content;
 };
 
 export default PremiumDatePicker;

@@ -110,8 +110,13 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [tagPickerTrigger, setTagPickerTrigger] = useState<HTMLElement | null>(null);
     const [isRelationshipPickerOpen, setIsRelationshipPickerOpen] = useState(false);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+    const [datePickerTrigger, setDatePickerTrigger] = useState<HTMLElement | null>(null);
     const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
+    const [timePickerTrigger, setTimePickerTrigger] = useState<HTMLElement | null>(null);
+
     const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
+    const [pastedImages, setPastedImages] = useState<string[]>([]);
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
     const activityFeedRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll activity feed to bottom
@@ -224,12 +229,17 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             alert('Comments on subtasks not supported locally yet.');
             return;
         }
-        if (!commentText.trim()) return;
+        if (!commentText.trim() && pastedImages.length === 0) return;
 
         // Auto-convert plain URLs to markdown links if not already markdown
         let formattedText = commentText;
         const urlRegex = /(?<!\()https?:\/\/[^\s]+(?!\))/g;
         formattedText = formattedText.replace(urlRegex, (url) => `[${url}](${url})`);
+
+        // Append images
+        if (pastedImages.length > 0) {
+            formattedText += '\n\n' + pastedImages.map(img => `![Image](${img})`).join('\n\n');
+        }
 
         addComment(taskId, {
             userId: 'user-1',
@@ -237,6 +247,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             text: formattedText
         });
         setCommentText('');
+        setPastedImages([]);
     };
 
     const handlePaste = (e: React.ClipboardEvent) => {
@@ -249,8 +260,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                     reader.onload = (event) => {
                         const base64 = event.target?.result;
                         if (typeof base64 === 'string') {
-                            // Append markdown image to comment text
-                            setCommentText(prev => prev + (prev.trim() ? '\n' : '') + `![Image](${base64})`);
+                            setPastedImages(prev => [...prev, base64]);
                         }
                     };
                     reader.readAsDataURL(file);
@@ -321,6 +331,17 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                     )}
                 </div>
 
+                {previewImage && (
+                    <div className="image-lightbox-overlay" onClick={() => setPreviewImage(null)}>
+                        <div className="image-lightbox-content" onClick={e => e.stopPropagation()}>
+                            <img src={previewImage} alt="Preview" />
+                            <button className="lightbox-close-btn" onClick={() => setPreviewImage(null)}>
+                                <X size={24} />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 <div className="detail-header">
                     <div className="detail-header-left">
                         <button className="status-badge-detail" style={{ background: task.status === 'COMPLETED' ? '#22c55e' : '#3b82f6' }}>
@@ -390,7 +411,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                     <div className="meta-inline-val">
                                         <div
                                             className="date-range-display-premium"
-                                            onClick={() => setIsDatePickerOpen(true)}
+                                            onClick={(e) => {
+                                                setDatePickerTrigger(e.currentTarget);
+                                                setIsDatePickerOpen(true);
+                                            }}
                                         >
                                             <Calendar size={14} />
                                             <span className="date-text">
@@ -409,21 +433,16 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                         </div>
 
                                         {isDatePickerOpen && (
-                                            <div className="datepicker-popper-wrapper">
-                                                <div className="datepicker-backdrop" onClick={(e) => {
-                                                    e.stopPropagation();
+                                            <PremiumDatePicker
+                                                startDate={task.startDate}
+                                                dueDate={task.dueDate}
+                                                onSave={(dates) => {
+                                                    handleUpdate(dates);
                                                     setIsDatePickerOpen(false);
-                                                }} />
-                                                <PremiumDatePicker
-                                                    startDate={task.startDate}
-                                                    dueDate={task.dueDate}
-                                                    onSave={(dates) => {
-                                                        handleUpdate(dates);
-                                                        setIsDatePickerOpen(false);
-                                                    }}
-                                                    onClose={() => setIsDatePickerOpen(false)}
-                                                />
-                                            </div>
+                                                }}
+                                                onClose={() => setIsDatePickerOpen(false)}
+                                                triggerElement={datePickerTrigger}
+                                            />
                                         )}
                                     </div>
                                 </div>
@@ -432,18 +451,20 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                     <div className="meta-inline-val">
                                         <Clock3 size={14} />
                                         <div style={{ position: 'relative' }}>
-                                            <button className="text-btn-picker" onClick={() => setIsTimePickerOpen(true)}>
+                                            <button className="text-btn-picker" onClick={(e) => {
+                                                setTimePickerTrigger(e.currentTarget);
+                                                setIsTimePickerOpen(true);
+                                            }}>
                                                 {task.timeEntries && task.timeEntries.length > 0
                                                     ? `${task.timeEntries.reduce((acc, curr) => acc + curr.duration, 0)}m tracked`
                                                     : 'Add time'}
                                             </button>
                                             {isTimePickerOpen && (
-                                                <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 2200 }}>
-                                                    <TimePicker
-                                                        onSelect={handleAddTime}
-                                                        onClose={() => setIsTimePickerOpen(false)}
-                                                    />
-                                                </div>
+                                                <TimePicker
+                                                    onSelect={handleAddTime}
+                                                    onClose={() => setIsTimePickerOpen(false)}
+                                                    triggerElement={timePickerTrigger}
+                                                />
                                             )}
                                         </div>
                                     </div>
@@ -682,8 +703,15 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                     <div className="activity-msg-header"><strong>{comment.userName}</strong></div>
                                                     <div className="activity-msg">
                                                         <ReactMarkdown
+                                                            urlTransform={(url) => url}
                                                             components={{
-                                                                img: ({ node, ...props }) => <img {...props} style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px' }} />,
+                                                                img: ({ node, ...props }) => (
+                                                                    <img
+                                                                        {...props}
+                                                                        style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px', cursor: 'pointer' }}
+                                                                        onClick={() => setPreviewImage(props.src || null)}
+                                                                    />
+                                                                ),
                                                                 a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }} />
                                                             }}
                                                         >
@@ -703,6 +731,21 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                         </div>
                                     </div>
                                     <div className="comment-composer">
+                                        {pastedImages.length > 0 && (
+                                            <div className="pasted-images-preview">
+                                                {pastedImages.map((img, index) => (
+                                                    <div key={index} className="preview-image-container">
+                                                        <img src={img} alt="Pasted" className="preview-image" />
+                                                        <button
+                                                            className="remove-image-btn"
+                                                            onClick={() => setPastedImages(prev => prev.filter((_, i) => i !== index))}
+                                                        >
+                                                            <X size={12} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                         <textarea
                                             placeholder="Write a comment..."
                                             value={commentText}
@@ -726,7 +769,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                             <button className="icon-btn-sm" title="Paste Image (Experimental)">
                                                 <ImageIcon size={14} />
                                             </button>
-                                            <button className="icon-btn-sm" onClick={handleAddComment} disabled={!commentText.trim()}>
+                                            <button className="icon-btn-sm" onClick={handleAddComment} disabled={!commentText.trim() && pastedImages.length === 0}>
                                                 <Send size={14} />
                                             </button>
                                         </div>
