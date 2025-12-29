@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { X, FileText, Download } from 'lucide-react';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { Packer } from 'docx';
 import { saveAs } from 'file-saver';
 import { useAppStore } from '../store/useAppStore';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO, setDate } from 'date-fns';
 import type { Task } from '../types';
+import { generateReportDocument } from '../utils/reportTemplates';
 import '../styles/TaskModal.css';
 import '../styles/ReportModal.css';
 
