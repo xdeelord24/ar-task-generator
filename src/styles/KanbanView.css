@@ -5,7 +5,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: #f8fafc;
+    background-color: var(--bg-main);
 }
 
 .kanban-board {
@@ -20,12 +20,12 @@
 .kanban-column {
     width: 320px;
     min-width: 320px;
-    background-color: #f1f5f9;
+    background-color: var(--bg-side);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
     max-height: 100%;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border);
 }
 
 .column-header {
@@ -50,27 +50,27 @@
 .column-title h3 {
     font-size: 13px;
     font-weight: 700;
-    color: #475569;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 
 .column-count {
     font-size: 12px;
-    color: #94a3b8;
-    background: white;
+    color: var(--text-secondary);
+    background: var(--bg-surface);
     padding: 2px 8px;
     border-radius: 999px;
     font-weight: 600;
 }
 
 .kanban-column.drag-over {
-    background-color: #e2e8f0;
+    background-color: var(--bg-hover);
     border: 2px dashed var(--primary);
 }
 
 .status-group.drag-over {
-    background-color: #f1f5f9;
+    background-color: var(--bg-hover);
 }
 
 .column-tasks {
@@ -85,11 +85,11 @@
 }
 
 .kanban-card {
-    background: white;
+    background: var(--bg-surface);
     border-radius: 10px;
     padding: 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid transparent;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
     cursor: grab;
     transition: all 0.2s ease;
     position: relative;
@@ -103,7 +103,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    background: white;
+    background: var(--bg-surface);
     padding: 4px;
     border-radius: 8px;
     opacity: 0;
@@ -111,7 +111,7 @@
     transform: translateY(-2px);
     pointer-events: none;
     z-index: 10;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow);
 }
 
 .kanban-card:hover .card-hover-actions {
@@ -135,7 +135,7 @@
 }
 
 .hover-action-item:hover {
-    background: #f1f5f9;
+    background: var(--bg-hover);
     color: var(--primary);
 }
 
@@ -144,9 +144,9 @@
 }
 
 .kanban-card:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow);
     transform: translateY(-2px);
-    border-color: #e2e8f0;
+    border-color: var(--primary);
 }
 
 .kanban-card.dragging {
@@ -159,7 +159,7 @@
 .card-title {
     font-size: 14px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text-main);
     margin-bottom: 12px;
 }
 
@@ -228,9 +228,9 @@
 }
 
 .btn-add-card:hover {
-    background: #e2e8f0;
+    background: var(--bg-hover);
     border-style: solid;
-    color: #1e293b;
+    color: var(--text-main);
 }
 
 .icon-btn-ghost {
@@ -271,7 +271,7 @@
 }
 
 .add-column-btn:hover {
-    background: #f1f5f9;
-    border-color: #cbd5e1;
-    color: #64748b;
+    background: var(--bg-hover);
+    border-color: var(--primary);
+    color: var(--text-secondary);
 }

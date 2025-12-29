@@ -7,15 +7,15 @@
     flex: 1;
     overflow: auto;
     padding: 24px;
-    background: #f8fafc;
+    background: var(--bg-main);
 }
 
 /* Header Styles */
 .list-table-header {
     display: flex;
     align-items: center;
-    background: white;
-    border: 1px solid #e2e8f0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
     border-radius: 8px 8px 0 0;
     position: sticky;
     top: 0;
@@ -26,17 +26,17 @@
     padding: 12px 16px;
     font-size: 13px;
     font-weight: 700;
-    color: #64748b;
-    border-right: 1px solid #f1f5f9;
+    color: var(--text-secondary);
+    border-right: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     cursor: grab;
-    background: white;
+    background: var(--bg-surface);
 }
 
 .column-header-cell:hover {
-    background: #f1f5f9;
+    background: var(--bg-hover);
 }
 
 .sort-icon {
@@ -57,9 +57,9 @@
 .list-body {
     display: flex;
     flex-direction: column;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border);
     border-top: none;
-    background: white;
+    background: var(--bg-surface);
     border-radius: 0 0 8px 8px;
 }
 
@@ -73,15 +73,16 @@
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    background: #f1f5f9;
-    border-bottom: 1px solid #e2e8f0;
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border);
     cursor: pointer;
     user-select: none;
     transition: background 0.2s;
 }
 
 .status-header:hover {
-    background: #e2e8f0;
+    background: var(--bg-hover);
+    filter: brightness(0.95);
 }
 
 .status-header .expand-icon {
@@ -106,13 +107,13 @@
 .task-item-row {
     display: flex;
     align-items: center;
-    background: white;
-    border-bottom: 1px solid #f1f5f9;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
     transition: background 0.2s;
 }
 
 .task-item-row:hover {
-    background: #f8fafc;
+    background: var(--bg-hover);
 }
 
 .drag-handle {
@@ -148,7 +149,7 @@
 
 .name-cell .task-name {
     font-weight: 500;
-    color: #1e293b;
+    color: var(--text-main);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -162,8 +163,8 @@
     font-size: 11px;
     font-weight: 700;
     padding: 2px 8px;
-    background: #f1f5f9;
-    color: #475569;
+    background: var(--bg-hover);
+    color: var(--text-secondary);
     border-radius: 999px;
     text-transform: uppercase;
 }

@@ -96,6 +96,8 @@ export interface List {
 
 export type ViewType = 'home' | 'list' | 'kanban' | 'calendar' | 'gantt' | 'timesheet' | 'dashboards' | 'docs' | 'pulse' | 'forms' | 'inbox' | 'teams' | 'whiteboards' | 'clips' | 'goals';
 
+export type ThemeMode = 'light' | 'dark' | 'system';
+
 export interface ColumnSetting {
   id: string;
   name: string;
@@ -113,4 +115,6 @@ export interface AppState {
   currentListId: string | null;
   currentView: ViewType;
   columnSettings: Record<string, ColumnSetting[]>; // keyed by spaceId or listId
+  theme: ThemeMode;
+  accentColor: string;
 }

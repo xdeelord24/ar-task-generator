@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import HomeView from './views/HomeView';
 import ListView from './views/ListView';
@@ -12,14 +12,39 @@ import TaskModal from './components/TaskModal';
 import TaskDetailModal from './components/TaskDetailModal';
 import ReportModal from './components/ReportModal';
 import AIModal from './components/AIModal';
+import SettingsModal from './components/SettingsModal';
 import { useAppStore } from './store/useAppStore';
 
 function App() {
-  const { currentView } = useAppStore();
+  const { currentView, theme, accentColor } = useAppStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isAIOpen, setIsAIOpen] = useState(false);
+  const [settingsState, setSettingsState] = useState<{ open: boolean; tab?: string }>({ open: false });
+
+  const openSettings = (tab?: string) => {
+    setSettingsState({ open: true, tab });
+  };
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+
+    // Apply theme
+    root.classList.remove('light', 'dark');
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.classList.add(systemTheme);
+      root.setAttribute('data-theme', systemTheme);
+    } else {
+      root.classList.add(theme);
+      root.setAttribute('data-theme', theme);
+    }
+
+    // Apply accent color
+    root.style.setProperty('--primary', accentColor);
+    root.style.setProperty('--primary-hover', accentColor + 'ee');
+  }, [theme, accentColor]);
 
   const renderView = () => {
     switch (currentView) {
@@ -48,12 +73,19 @@ function App() {
       onAddTask={() => setIsModalOpen(true)}
       onOpenReport={() => setIsReportOpen(true)}
       onOpenAI={() => setIsAIOpen(true)}
+      onOpenSettings={openSettings}
     >
       {renderView()}
       {isModalOpen && <TaskModal onClose={() => setIsModalOpen(false)} />}
       {selectedTaskId && <TaskDetailModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />}
       {isReportOpen && <ReportModal onClose={() => setIsReportOpen(false)} />}
       {isAIOpen && <AIModal onClose={() => setIsAIOpen(false)} />}
+      {settingsState.open && (
+        <SettingsModal
+          onClose={() => setSettingsState({ open: false })}
+          initialTab={settingsState.tab}
+        />
+      )}
     </Layout>
   );
 }

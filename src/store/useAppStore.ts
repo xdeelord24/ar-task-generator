@@ -32,6 +32,8 @@ interface AppStore extends AppState {
     addDoc: (doc: Omit<Doc, 'id' | 'updatedAt'>) => string;
     updateDoc: (docId: string, updates: Partial<Doc>) => void;
     addStatus: (targetId: string, isSpace: boolean, status: Omit<Status, 'id'>) => void;
+    setTheme: (theme: AppState['theme']) => void;
+    setAccentColor: (color: string) => void;
 }
 
 const DEFAULT_STATUSES: Status[] = [
@@ -101,6 +103,8 @@ export const useAppStore = create<AppStore>()(
                     { id: 'status', name: 'Status', visible: true, width: 120 },
                 ]
             },
+            theme: 'system',
+            accentColor: '#2563eb',
 
             setTasks: (tasks) => set({ tasks }),
             addTask: (task) => set((state) => ({
@@ -238,6 +242,8 @@ export const useAppStore = create<AppStore>()(
                     return { lists: newLists };
                 }
             }),
+            setTheme: (theme) => set({ theme }),
+            setAccentColor: (accentColor) => set({ accentColor }),
         }),
         {
             name: 'ar-generator-app-storage',

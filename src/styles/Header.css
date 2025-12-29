@@ -3,7 +3,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    background: #ffffff;
+    background: var(--bg-header);
     border-bottom: 1px solid var(--border);
     position: relative;
 }
@@ -49,14 +49,14 @@
 }
 
 .icon-btn:hover {
-    background: #f3f4f6;
+    background: var(--bg-hover);
     color: var(--text-main);
 }
 
 .search-bar {
     display: flex;
     align-items: center;
-    background: #f3f4f6;
+    background: var(--bg-hover);
     border-radius: 6px;
     padding: 0 10px;
     min-width: 140px;
@@ -105,7 +105,7 @@
 }
 
 .btn-new {
-    background: #f3f4f6;
+    background: var(--bg-hover);
     border: 1px solid var(--border);
     color: var(--text-main);
     border-radius: 6px;

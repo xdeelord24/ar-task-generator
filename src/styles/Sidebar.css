@@ -15,7 +15,7 @@
 }
 
 .workspace-selector:hover {
-    background: #f3f4f6;
+    background: var(--bg-hover);
 }
 
 .workspace-info {
@@ -63,12 +63,12 @@
 }
 
 .nav-item:hover {
-    background: #f3f4f6;
+    background: var(--bg-hover);
     color: var(--text-main);
 }
 
 .nav-item.active {
-    background: #eff6ff;
+    background: var(--bg-active);
     color: var(--primary);
 }
 
@@ -137,7 +137,7 @@
     display: flex;
     flex-direction: column;
     margin-left: 24px;
-    border-left: 1px solid #f1f5f9;
+    border-left: 1px solid var(--border);
 }
 
 .list-item {

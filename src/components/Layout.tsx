@@ -8,12 +8,18 @@ interface LayoutProps {
     onAddTask: () => void;
     onOpenReport: () => void;
     onOpenAI: () => void;
+    onOpenSettings: (tab?: string) => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, onAddTask, onOpenReport, onOpenAI }) => {
+const Layout: React.FC<LayoutProps> = ({ children, onAddTask, onOpenReport, onOpenAI, onOpenSettings }) => {
     return (
         <div className="app-container">
-            <Header onAddTask={onAddTask} onOpenReport={onOpenReport} onOpenAI={onOpenAI} />
+            <Header
+                onAddTask={onAddTask}
+                onOpenReport={onOpenReport}
+                onOpenAI={onOpenAI}
+                onOpenSettings={onOpenSettings}
+            />
             <div className="main-layout">
                 <Sidebar />
                 <main className="content-area">

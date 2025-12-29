@@ -7,9 +7,10 @@ interface HeaderProps {
     onAddTask: () => void;
     onOpenReport: () => void;
     onOpenAI: () => void;
+    onOpenSettings: (tab?: string) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI }) => {
+const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI, onOpenSettings }) => {
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState<'left' | 'right'>('right');
 
@@ -75,7 +76,10 @@ const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI }) =>
 
             {showProfileDropdown && (
                 <ProfileDropdown
-                    onClose={() => setShowProfileDropdown(false)}
+                    onOpenSettings={(tab) => {
+                        setShowProfileDropdown(false);
+                        onOpenSettings(tab);
+                    }}
                     position={dropdownPosition}
                 />
             )}
