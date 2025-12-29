@@ -1,45 +1,41 @@
 # AR Generator / Task Management App
 
-A modern, high-performance task management application built with React, TypeScript, and Vite. This application features a beautiful, responsive UI with light and dark mode support, Kanban boards, list views, and a robust settings system.
+A modern, high-performance task management and report generation application built with React, TypeScript, and Vite. This application features a premium UI with AI-powered assistance, multi-view task management, and professional document generation.
 
-## 🚀 Features
+## 🚀 Key Features
 
-*   **Task Management**: Create, edit, reorganize, and track tasks with ease.
-*   **Multiple Views**:
-    *   **List View**: A detailed spreadsheet-like view for managing tasks.
-    *   **Kanban Board**: Drag-and-drop board for visualized workflow management.
-    *   **Calendar**: View tasks by due date.
-*   **Theme System**:
-    *   Fully integrated Dark Mode.
-    *   Customizable accent colors.
-    *   System theme synchronization.
-*   **Modern UI/UX**:
-    *   Responsive Sidebar navigation.
-    *   Interactive Task Modals.
-    *   Polished animations and transitions.
-*   **Productivity Tools**:
-    *   Rich text descriptions.
-    *   Subtasks and checklists.
-    *   Time tracking.
-
-## 📸 Screenshots
-
-### Dark Mode & Settings
-The application features a comprehensive settings modal where you can customize your experience, including switching between Light and Dark themes.
-
-![Dark Mode Settings](/screenshots/settings-dark.png)
-
-*(More screenshots coming soon)*
+*   **🤖 AI-Powered Workflow**: 
+    *   Integrated Google Gemini AI for smart task assistance.
+    *   Rich Markdown support for AI responses, including tables and formatted text.
+*   **📋 Multi-View Task Management**:
+    *   **List View**: Spreadsheet-like efficiency for bulk task management.
+    *   **Kanban Board**: Drag-and-drop workflow visualization with customizable status columns.
+    *   **Calendar**: Track deadlines and schedule tasks visually.
+    *   **Gantt Chart**: Visual project timeline and dependency management.
+    *   **Timesheet**: Professional time tracking and log management with daily totals.
+*   **📄 Professional Report Generation**:
+    *   Generate official reports (AR/Work Logs) directly from your tasks.
+    *   Export high-quality `.docx` documents with automated formatting.
+    *   Template-based generation for consistent document standards.
+*   **⏱️ Advanced Productivity Tools**:
+    *   **Stopwatch/Timer**: Integrated time tracking with active timers in the application header.
+    *   **Clickable Subtasks**: Deep task nesting with detailed views for every sub-level.
+    *   **Dynamic Statuses**: Rename, color-code, and reorder status groups to fit your workflow.
+*   **✨ Premium UI/UX**:
+    *   **Collapsible Sidebar**: Maximize your workspace with a responsive, icon-retaining sidebar.
+    *   **Theme System**: Fully integrated Dark/Light mode with custom accent colors.
+    *   **Modern Aesthetics**: Glassmorphism, smooth animations, and a refined "Premium" date picker.
 
 ## 🛠️ Technology Stack
 
-*   **Frontend Framework**: React 18
-*   **Build Tool**: Vite
-*   **Language**: TypeScript
-*   **Styling**: Vanilla CSS with CSS Variables (Theming)
+*   **Core**: React 19, Vite, TypeScript
+*   **AI Integration**: @google/generative-ai
 *   **State Management**: Zustand
+*   **Styling**: Vanilla CSS with Design Tokens & CSS Variables
+*   **Document Generation**: docx, file-saver
 *   **Icons**: Lucide React
-*   **Drag & Drop**: @dnd-kit/core
+*   **Drag & Drop**: @dnd-kit (Core, Sortable, Modifiers)
+*   **Markdown**: react-markdown, remark-gfm
 
 ## 🏃‍♂️ Getting Started
 
@@ -53,14 +49,15 @@ The application features a comprehensive settings modal where you can customize 
     npm install
     ```
 
-3.  **Run the development server**
-    ```bash
-    npm run dev
+3.  **Configure environment**
+    Create a `.env` file based on `.env.example` and add your Gemini API key:
+    ```env
+    VITE_GEMINI_API_KEY=your_api_key_here
     ```
 
-4.  **Build for production**
+4.  **Run the development server**
     ```bash
-    npm run build
+    npm run dev
     ```
 
 ## ☕ Support
@@ -76,3 +73,4 @@ Your support helps keep this project maintained and actively developed. Thank yo
 ## 📝 License
 
 This project is licensed under the MIT License.
+
