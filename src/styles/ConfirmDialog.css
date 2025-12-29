@@ -4,7 +4,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     z-index: 10003;
     animation: fadeIn 0.15s ease;
     pointer-events: auto;
@@ -16,12 +18,13 @@
     left: 50%;
     transform: translate(-50%, -50%);
     background: var(--bg-surface);
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border-radius: 16px;
+    box-shadow: var(--shadow-xl);
     z-index: 10004;
     min-width: 400px;
     max-width: 500px;
-    animation: slideUp 0.2s ease;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid var(--border);
 }
 
 .confirm-header {
@@ -35,24 +38,24 @@
 .confirm-header h3 {
     margin: 0;
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-main);
 }
 
 .confirm-icon-danger {
-    color: #ef4444;
+    color: var(--error);
     flex-shrink: 0;
 }
 
 .confirm-body {
-    padding: 20px 24px;
+    padding: 24px;
 }
 
 .confirm-body p {
     margin: 0;
     font-size: 14px;
     color: var(--text-secondary);
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 .confirm-footer {
@@ -62,17 +65,16 @@
     gap: 12px;
     padding: 16px 24px;
     border-top: 1px solid var(--border);
-    background: var(--bg-hover);
+    background: var(--bg-side);
 }
 
 .confirm-btn {
-    padding: 8px 16px;
+    padding: 10px 20px;
     font-size: 14px;
-    font-weight: 500;
-    border-radius: 6px;
+    font-weight: 600;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.15s ease;
-    border: none;
+    transition: var(--transition);
 }
 
 .confirm-btn-cancel {
@@ -82,7 +84,7 @@
 }
 
 .confirm-btn-cancel:hover {
-    background: var(--bg-main);
+    background: var(--bg-hover);
 }
 
 .confirm-btn-confirm {
@@ -91,15 +93,16 @@
 }
 
 .confirm-btn-confirm:hover {
-    opacity: 0.9;
+    background: var(--primary-hover);
+    transform: translateY(-1px);
 }
 
 .confirm-btn-confirm.danger {
-    background: #ef4444;
+    background: var(--error);
 }
 
 .confirm-btn-confirm.danger:hover {
-    background: #dc2626;
+    filter: brightness(0.9);
 }
 
 @keyframes fadeIn {
@@ -115,7 +118,7 @@
 @keyframes slideUp {
     from {
         opacity: 0;
-        transform: translate(-50%, -45%);
+        transform: translate(-50%, -40%);
     }
 
     to {

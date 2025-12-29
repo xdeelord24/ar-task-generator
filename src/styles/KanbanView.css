@@ -1,5 +1,3 @@
-/* ... existing styles ... */
-
 .kanban-view {
     flex: 1;
     display: flex;
@@ -26,6 +24,7 @@
     flex-direction: column;
     max-height: 100%;
     border: 1px solid var(--border);
+    transition: var(--transition);
 }
 
 .column-header {
@@ -48,29 +47,26 @@
 }
 
 .column-title h3 {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
 }
 
 .column-count {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
     background: var(--bg-surface);
-    padding: 2px 8px;
+    padding: 2px 10px;
     border-radius: 999px;
-    font-weight: 600;
+    font-weight: 700;
+    border: 1px solid var(--border);
 }
 
 .kanban-column.drag-over {
     background-color: var(--bg-hover);
     border: 2px dashed var(--primary);
-}
-
-.status-group.drag-over {
-    background-color: var(--bg-hover);
 }
 
 .column-tasks {
@@ -81,78 +77,34 @@
     overflow-y: auto;
     flex: 1;
     min-height: 100px;
-    /* Important for droppable area */
 }
 
 .kanban-card {
     background: var(--bg-surface);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 16px;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border);
     cursor: grab;
-    transition: all 0.2s ease;
+    transition: var(--transition);
     position: relative;
     overflow: visible;
 }
 
-.card-hover-actions {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: var(--bg-surface);
-    padding: 4px;
-    border-radius: 8px;
-    opacity: 0;
-    transition: opacity 0.2s ease, transform 0.15s ease;
+.kanban-card:hover {
+    box-shadow: var(--shadow-md);
     transform: translateY(-2px);
-    pointer-events: none;
-    z-index: 10;
-    box-shadow: var(--shadow);
-}
-
-.kanban-card:hover .card-hover-actions {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-}
-
-.hover-action-item {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 6px;
-    color: #475569;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.hover-action-item:hover {
-    background: var(--bg-hover);
-    color: var(--primary);
+    border-color: var(--primary);
 }
 
 .kanban-card:active {
     cursor: grabbing;
 }
 
-.kanban-card:hover {
-    box-shadow: var(--shadow);
-    transform: translateY(-2px);
-    border-color: var(--primary);
-}
-
 .kanban-card.dragging {
     cursor: grabbing;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    transform: rotate(3deg) scale(1.05);
+    box-shadow: var(--shadow-xl);
+    transform: rotate(2deg) scale(1.02);
     z-index: 1000;
 }
 
@@ -161,6 +113,7 @@
     font-weight: 600;
     color: var(--text-main);
     margin-bottom: 12px;
+    line-height: 1.5;
 }
 
 .card-meta {
@@ -174,7 +127,7 @@
     align-items: center;
     gap: 6px;
     font-size: 11px;
-    color: #64748b;
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
@@ -188,7 +141,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    color: #94a3b8;
+    color: var(--text-tertiary);
     font-size: 12px;
 }
 
@@ -202,7 +155,7 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background-color: #3b82f6;
+    background-color: var(--primary);
     color: white;
     font-size: 11px;
     font-weight: 700;
@@ -215,36 +168,22 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px;
+    padding: 12px;
     width: 100%;
     background: transparent;
-    border: 1px dashed #cbd5e1;
-    border-radius: 8px;
-    color: #64748b;
+    border: 1px dashed var(--border-strong);
+    border-radius: 10px;
+    color: var(--text-secondary);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: var(--transition);
 }
 
 .btn-add-card:hover {
-    background: var(--bg-hover);
-    border-style: solid;
-    color: var(--text-main);
-}
-
-.icon-btn-ghost {
-    background: transparent;
-    border: none;
-    padding: 6px;
-    border-radius: 4px;
-    color: #94a3b8;
-    cursor: pointer;
-}
-
-.icon-btn-ghost:hover {
-    background: #e2e8f0;
-    color: #475569;
+    background: var(--bg-surface);
+    border-color: var(--primary);
+    color: var(--primary);
 }
 
 .add-column-container {
@@ -258,22 +197,23 @@
 .add-column-btn {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 12px;
     padding: 16px;
     background: transparent;
-    border: 2px dashed #e2e8f0;
+    border: 2px dashed var(--border);
     border-radius: 12px;
-    color: #94a3b8;
+    color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: var(--transition);
     font-size: 14px;
     font-weight: 600;
 }
 
 .add-column-btn:hover {
-    background: var(--bg-hover);
+    background: var(--bg-side);
     border-color: var(--primary);
-    color: var(--text-secondary);
+    color: var(--primary);
 }
 
 /* Subtask Styles */
@@ -281,22 +221,22 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 8px;
+    padding: 8px 10px;
     margin-top: 12px;
-    background-color: #f1f5f9;
-    /* Light gray background like image */
-    border-radius: 6px;
+    background-color: var(--bg-side);
+    border: 1px solid var(--border);
+    border-radius: 8px;
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;
-    color: #64748b;
-    transition: background-color 0.2s;
+    color: var(--text-secondary);
+    transition: var(--transition);
     user-select: none;
 }
 
 .subtask-toggle-bar:hover {
-    background-color: #e2e8f0;
-    color: #475569;
+    background-color: var(--bg-hover);
+    color: var(--text-main);
 }
 
 .subtasks-list {
@@ -304,7 +244,6 @@
     flex-direction: column;
     gap: 8px;
     margin-top: 8px;
-    padding-left: 0;
 }
 
 .subtask-card {
@@ -312,8 +251,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px 12px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    cursor: default;
+    box-shadow: var(--shadow-sm);
 }
 
 .subtask-header {
@@ -327,7 +265,7 @@
     font-size: 13px;
     font-weight: 500;
     color: var(--text-main);
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
 .subtask-footer {
@@ -337,27 +275,25 @@
     flex-wrap: wrap;
 }
 
-/* Subtask Options Styles */
 .subtask-option-pill {
     display: flex;
     align-items: center;
     gap: 6px;
     padding: 2px 8px;
     background: transparent;
-    border: 1px solid #e2e8f0;
-    border-radius: 4px;
-    color: #64748b;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: var(--transition);
 }
 
 .subtask-option-pill:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
-    color: #475569;
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
 
 .subtask-option-icon {
@@ -367,75 +303,25 @@
     width: 24px;
     height: 24px;
     border: 1px solid transparent;
-    border-radius: 4px;
-    color: #94a3b8;
+    border-radius: 6px;
+    color: var(--text-tertiary);
     cursor: pointer;
-    transition: all 0.2s;
-    background: transparent;
+    transition: var(--transition);
 }
 
 .subtask-option-icon:hover {
-    background: #f1f5f9;
-    color: #475569;
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
-
-.subtask-option-icon.has-priority {
-    border-color: #e2e8f0;
-}
-
-.option-text-xs {
-    font-size: 10px;
-    margin-left: 4px;
-    font-weight: 500;
-}
-
-.text-priority-urgent {
-    color: #ef4444;
-}
-
-.text-priority-high {
-    color: #f97316;
-}
-
-.text-priority-medium {
-    color: #f59e0b;
-}
-
-.text-priority-low {
-    color: #10b981;
-}
-
-.status-spinner-icon {
-    color: #94a3b8;
-}
-
-.assignee-avatar-xs {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background-color: #3b82f6;
-    color: white;
-    font-size: 10px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.priority-flag-low {
-    color: #10b981;
-}
-
 
 /* Quick Add Subtask Styles */
 .quick-add-subtask {
     margin-top: 8px;
     background: var(--bg-surface);
-    border: 1px solid #3b82f6;
-    /* Blue border as requested */
-    border-radius: 8px;
-    padding: 8px 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--primary);
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: var(--shadow-lg);
     animation: slideDown 0.2s ease-out;
     position: relative;
     z-index: 100;
@@ -457,7 +343,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 }
 
 .quick-add-input {
@@ -470,27 +356,23 @@
     padding: 4px 0;
 }
 
-.quick-add-input::placeholder {
-    color: var(--text-secondary);
-}
-
 .quick-add-save-btn {
     display: flex;
     align-items: center;
     gap: 6px;
-    background-color: #3b82f6;
+    background-color: var(--primary);
     color: white;
     border: none;
-    padding: 4px 10px;
-    border-radius: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: var(--transition);
 }
 
 .quick-add-save-btn:hover {
-    background-color: #2563eb;
+    background-color: var(--primary-hover);
 }
 
 .quick-add-save-btn:disabled {
@@ -509,14 +391,14 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 8px;
+    padding: 4px 10px;
     background: transparent;
-    border: 1px solid transparent;
-    border-radius: 4px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
     color: var(--text-secondary);
     font-size: 12px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: var(--transition);
 }
 
 .action-pill:hover {
@@ -525,13 +407,13 @@
 }
 
 .action-pill.active {
-    background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
-    border-color: rgba(59, 130, 246, 0.2);
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary);
 }
 
 .action-pill.priority-high {
-    color: #ef4444;
+    color: var(--error);
     background: rgba(239, 68, 68, 0.1);
 }
 
@@ -540,7 +422,46 @@
     background: rgba(185, 28, 28, 0.1);
 }
 
-.action-pill.priority-medium {
-    color: #f59e0b;
-    background: rgba(245, 158, 11, 0.1);
+.card-hover-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-surface);
+    padding: 4px;
+    border-radius: 8px;
+    opacity: 0;
+    transition: all 0.2s ease;
+    transform: translateY(-2px);
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+}
+
+.kanban-card:hover .card-hover-actions {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.hover-action-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    color: var(--text-tertiary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.hover-action-item:hover {
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
