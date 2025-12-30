@@ -2,7 +2,8 @@
     background: var(--bg-surface);
     color: var(--text-main);
     max-width: 95vw;
-    width: 650px;
+    width: 580px;
+    /* Reduced from 650px */
     border-radius: 12px;
     border: 1px solid var(--border);
     overflow: hidden;
@@ -16,7 +17,8 @@
 }
 
 .picker-header-inputs {
-    padding: 16px;
+    padding: 12px;
+    /* Reduced from 16px */
     display: flex;
     gap: 12px;
     border-bottom: 1px solid var(--border);
@@ -26,9 +28,11 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    /* Reduced from 10px */
     background: var(--bg-main);
-    padding: 10px 14px;
+    padding: 8px 12px;
+    /* Reduced from 10px 14px */
     border-radius: 8px;
     border: 1px solid var(--border);
     cursor: pointer;
@@ -50,9 +54,11 @@
     border: none;
     outline: none;
     color: var(--text-main);
-    font-size: 14px;
+    font-size: 13px;
+    /* Reduced from 14px */
     font-weight: 600;
-    width: 140px;
+    width: 130px;
+    /* Reduced from 140px */
     /* Increased to fit date+time */
     cursor: pointer;
 }
@@ -60,16 +66,18 @@
 .input-group-premium {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    /* Reduced from 12px */
     flex: 1;
 }
 
 .sub-action {
-    font-size: 12px;
+    font-size: 11px;
+    /* Reduced from 12px */
     color: var(--text-tertiary);
     margin-left: auto;
     background: var(--bg-hover);
-    padding: 2px 8px;
+    padding: 2px 6px;
     border-radius: 4px;
     white-space: nowrap;
 }
@@ -81,12 +89,14 @@
 
 .picker-body {
     display: flex;
-    min-height: 400px;
+    min-height: 340px;
+    /* Reduced from 400px */
 }
 
 /* Sidebar */
 .picker-sidebar {
-    width: 200px;
+    width: 160px;
+    /* Reduced from 200px */
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -95,14 +105,16 @@
 
 .quick-options-list {
     flex: 1;
-    padding: 8px;
+    padding: 6px;
+    /* Reduced from 8px */
 }
 
 .quick-opt-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
+    padding: 10px 12px;
+    /* Reduced from 12px 16px */
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.2s;
@@ -114,22 +126,26 @@
 }
 
 .opt-label {
-    font-size: 14px;
+    font-size: 13px;
+    /* Reduced from 14px */
     font-weight: 500;
 }
 
 .opt-sub {
-    font-size: 12px;
+    font-size: 11px;
+    /* Reduced from 12px */
     color: var(--text-tertiary);
 }
 
 .sidebar-footer-btn {
-    padding: 16px;
+    padding: 12px;
+    /* Reduced from 16px */
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 14px;
+    font-size: 13px;
+    /* Reduced from 14px */
     font-weight: 500;
     cursor: pointer;
     color: var(--text-tertiary);
@@ -144,7 +160,8 @@
 /* Calendar */
 .picker-calendar {
     flex: 1;
-    padding: 20px;
+    padding: 16px;
+    /* Reduced from 20px */
     background: var(--bg-surface);
 }
 

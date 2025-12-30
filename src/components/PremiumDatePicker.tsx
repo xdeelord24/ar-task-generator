@@ -53,8 +53,8 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
 
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
-        const pickerWidth = pickerRef.current.offsetWidth || 650; // Match CSS width
-        const pickerHeight = pickerRef.current.offsetHeight || 420; // Approximate height
+        const pickerWidth = pickerRef.current.offsetWidth || 580; // Match CSS width
+        const pickerHeight = pickerRef.current.offsetHeight || 380; // Approximate height
 
         if (triggerElement) {
             const rect = triggerElement.getBoundingClientRect();
@@ -80,7 +80,6 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
             // Horizontal positioning
             if (rect.left + pickerWidth > viewportWidth - 20) { // Add padding margin
                 // overflow right, align to right edge of viewport or trigger
-                const rightOverflow = (rect.left + pickerWidth) - viewportWidth;
 
                 // If aligning right to trigger works, do that
                 if (viewportWidth - rect.right + pickerWidth <= viewportWidth) {
