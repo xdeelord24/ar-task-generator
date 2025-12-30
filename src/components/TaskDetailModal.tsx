@@ -11,7 +11,6 @@ import {
     Link2,
     Clock3,
     AlertCircle,
-    Send,
     Check,
     ChevronRight,
     ExternalLink,
@@ -24,7 +23,6 @@ import {
     MinusCircle,
     Search,
     Circle,
-    Image as ImageIcon,
     Sparkles,
     ArrowUpDown
 } from 'lucide-react';
@@ -32,14 +30,13 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore } from '../store/useAppStore';
 import { format, parseISO } from 'date-fns';
 import type { Task, Subtask } from '../types';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import PremiumDatePicker from './PremiumDatePicker';
 import TimePicker from './TimePicker';
 import RichTextEditor from './RichTextEditor';
 import TaskOptionsMenu from './TaskOptionsMenu';
 import RelationshipMenu from './RelationshipMenu';
 import TagMenu from './TagMenu';
+import ActivityPanel from './ActivityPanel';
 import '../styles/TaskDetailModal.css';
 
 interface TaskDetailModalProps {
@@ -110,7 +107,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [newSubtaskName, setNewSubtaskName] = useState('');
     const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
     const [optionsMenuTrigger, setOptionsMenuTrigger] = useState<HTMLElement | null>(null);
-    const [commentText, setCommentText] = useState('');
     const [isTagPickerOpen, setIsTagPickerOpen] = useState(false);
     const [tagPickerTrigger, setTagPickerTrigger] = useState<HTMLElement | null>(null);
     const [isRelationshipPickerOpen, setIsRelationshipPickerOpen] = useState(false);
@@ -120,16 +116,15 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [timePickerTrigger, setTimePickerTrigger] = useState<HTMLElement | null>(null);
 
     const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
-    const [pastedImages, setPastedImages] = useState<string[]>([]);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false);
+
     const [suggestedSubtasks, setSuggestedSubtasks] = useState<string[]>([]);
     const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set());
     const [isEnhancingTitle, setIsEnhancingTitle] = useState(false);
     const [suggestedTitle, setSuggestedTitle] = useState<string | null>(null);
     const [isPriorityPickerOpen, setIsPriorityPickerOpen] = useState(false);
-    const activityFeedRef = useRef<HTMLDivElement>(null);
-
+    const activityFeedRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
     // Auto-scroll activity feed to bottom
     useEffect(() => {
         if (activityFeedRef.current) {
@@ -416,58 +411,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             });
         } finally {
             setIsGeneratingAIComment(false);
-        }
-    };
-
-    const handleAddComment = () => {
-        if (isSubtask) {
-            alert('Comments on subtasks not supported locally yet.');
-            return;
-        }
-        if (!commentText.trim() && pastedImages.length === 0) return;
-
-        // Auto-convert plain URLs to markdown links if not already markdown
-        let formattedText = commentText;
-        const urlRegex = /(?<!\()https?:\/\/[^\s]+(?!\))/g;
-        formattedText = formattedText.replace(urlRegex, (url) => `[${url}](${url})`);
-
-        // Append images
-        if (pastedImages.length > 0) {
-            formattedText += '\n\n' + pastedImages.map(img => `![Image](${img})`).join('\n\n');
-        }
-
-        addComment(taskId, {
-            userId: 'user-1',
-            userName: 'Jundee',
-            text: formattedText
-        });
-
-        // AI Logic
-        if (commentText.includes('@AI')) {
-            const query = commentText.replace(/@AI/g, '').trim();
-            handleAIResponse(query);
-        }
-
-        setCommentText('');
-        setPastedImages([]);
-    };
-
-    const handlePaste = (e: React.ClipboardEvent) => {
-        const items = e.clipboardData.items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf('image') !== -1) {
-                const file = items[i].getAsFile();
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        const base64 = event.target?.result;
-                        if (typeof base64 === 'string') {
-                            setPastedImages(prev => [...prev, base64]);
-                        }
-                    };
-                    reader.readAsDataURL(file);
-                }
-            }
         }
     };
 
@@ -1151,113 +1094,15 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                         {/* Content Area */}
                         <div className="sidebar-content-area">
                             {sidebarTab === 'activity' && (
-                                <div className="activity-panel">
-                                    <div className="panel-header">Activity</div>
-                                    <div className="activity-feed" ref={activityFeedRef}>
-                                        {task.comments && task.comments.map(comment => (
-                                            <div key={comment.id} className="activity-row" style={{ marginBottom: '16px' }}>
-                                                <div className="activity-avatar">{comment.userName[0]}</div>
-                                                <div className="activity-info">
-                                                    <div className="activity-msg-header"><strong>{comment.userName}</strong></div>
-                                                    <div className="activity-msg">
-                                                        <ReactMarkdown
-                                                            remarkPlugins={[remarkGfm]}
-                                                            urlTransform={(url) => url}
-                                                            components={{
-                                                                img: ({ node, ...props }) => (
-                                                                    <img
-                                                                        {...props}
-                                                                        style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px', cursor: 'pointer' }}
-                                                                        onClick={() => setPreviewImage(props.src || null)}
-                                                                    />
-                                                                ),
-                                                                a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }} />
-                                                            }}
-                                                        >
-                                                            {comment.text}
-                                                        </ReactMarkdown>
-                                                    </div>
-                                                    <div className="activity-time">{format(parseISO(comment.createdAt), 'MMM d, h:mm a')}</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {isGeneratingAIComment && (
-                                            <div className="activity-row" style={{ marginBottom: '16px' }}>
-                                                <div className="activity-avatar" style={{ backgroundColor: '#a855f7', color: 'white' }}>
-                                                    <Sparkles size={12} fill="currentColor" />
-                                                </div>
-                                                <div className="activity-info">
-                                                    <div className="activity-msg-header">
-                                                        <span style={{ fontWeight: 700 }}>AI Assistant</span>
-                                                    </div>
-                                                    <div className="activity-msg" style={{ fontStyle: 'italic', color: '#64748b' }}>
-                                                        <Sparkles size={12} className="animate-spin" style={{ marginRight: '6px', display: 'inline-block' }} />
-                                                        Thinking...
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <div className="activity-row">
-                                            <div className="activity-avatar">J</div>
-                                            <div className="activity-info">
-                                                <div className="activity-msg"><strong>Jundee</strong> created this task</div>
-                                                <div className="activity-time">{format(parseISO(task.createdAt), 'MMM d, h:mm a')}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="comment-composer">
-                                        {pastedImages.length > 0 && (
-                                            <div className="pasted-images-preview">
-                                                {pastedImages.map((img, index) => (
-                                                    <div key={index} className="preview-image-container">
-                                                        <img src={img} alt="Pasted" className="preview-image" />
-                                                        <button
-                                                            className="remove-image-btn"
-                                                            onClick={() => setPastedImages(prev => prev.filter((_, i) => i !== index))}
-                                                        >
-                                                            <X size={12} />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                        <textarea
-                                            placeholder="Write a comment... use @AI to ask AI"
-                                            value={commentText}
-                                            onChange={(e) => setCommentText(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' && !e.shiftKey) {
-                                                    e.preventDefault();
-                                                    handleAddComment();
-                                                }
-                                            }}
-                                            onPaste={handlePaste}
-                                            rows={1}
-                                            style={{
-                                                height: 'auto',
-                                                minHeight: '40px',
-                                                maxHeight: '120px',
-                                                resize: 'none'
-                                            }}
-                                        />
-                                        <div className="composer-actions">
-                                            <button className="icon-btn-sm" title="Paste Image (Experimental)">
-                                                <ImageIcon size={14} />
-                                            </button>
-                                            <button
-                                                className="icon-btn-sm"
-                                                title="Ask AI"
-                                                onClick={() => setCommentText(prev => prev.includes('@AI') ? prev : prev + '@AI ')}
-                                                style={{ color: '#a855f7' }}
-                                            >
-                                                <Sparkles size={14} />
-                                            </button>
-                                            <button className="icon-btn-sm" onClick={handleAddComment} disabled={!commentText.trim() && pastedImages.length === 0}>
-                                                <Send size={14} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                                <ActivityPanel
+                                    task={task}
+                                    isSubtask={isSubtask}
+                                    isGeneratingAIComment={isGeneratingAIComment}
+                                    onImageClick={(src) => setPreviewImage(src)}
+                                    onAIRequest={handleAIResponse}
+                                    activityFeedRef={activityFeedRef}
+                                    currentUserName="Jundee"
+                                />
                             )}
 
                             {(sidebarTab === 'links' || sidebarTab === 'blocking' || sidebarTab === 'waiting') && (
