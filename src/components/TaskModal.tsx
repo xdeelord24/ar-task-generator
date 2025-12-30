@@ -338,7 +338,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
     }, [showTitleSuggestions]);
 
     const handleSlashKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!showSlashMenu) return;
+        if (!showSlashMenu) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSubmit();
+            }
+            return;
+        }
 
         if (e.key === 'ArrowDown') {
             e.preventDefault();
