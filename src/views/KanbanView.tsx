@@ -234,10 +234,13 @@ const SortableCard: React.FC<SortableCardProps> = ({
                 )}
                 <div className="card-footer">
                     <div className="card-icons">
+                        <div className={`priority-icon ${task.priority ? 'has-priority' : ''}`} title={`Priority: ${task.priority || 'None'}`}>
+                            <Flag size={14} className={task.priority ? `text-priority-${task.priority}` : 'text-priority-none'} />
+                        </div>
                         {task.subtasks && task.subtasks.length > 0 && (
-                            <span><CheckSquare size={12} /> {task.subtasks.length}</span>
+                            <span><CheckSquare size={14} /> {task.subtasks.length}</span>
                         )}
-                        <span><MessageSquare size={12} /> 2</span>
+                        <span><MessageSquare size={14} /> 2</span>
                     </div>
                     <div className="assignee-avatar-small">
                         {task.assignee?.[0] || '?'}
@@ -368,10 +371,9 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
 
     return (
         <div ref={setNodeRef} className={`kanban-column ${isOver ? 'drag-over' : ''}`}>
-            <div className="column-header">
+            <div className="column-header" style={{ borderTop: `3px solid ${color}`, backgroundColor: 'var(--bg-side)', borderTopLeftRadius: '8px', borderTopRightRadius: '8px' }}>
                 <div className="column-title">
-                    <span className="column-dot" style={{ backgroundColor: color }}></span>
-                    <h3>{status}</h3>
+                    <h3 style={{ color: color }}>{status}</h3>
                     <span className="column-count">{tasks.length}</span>
                 </div>
                 <div className="column-actions">
@@ -615,7 +617,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                         {!isAddingColumn ? (
                             <div className="add-column-btn" onClick={() => setIsAddingColumn(true)}>
                                 <Plus size={18} />
-                                <span>Add Column</span>
+                                <span>Add Group</span>
                             </div>
                         ) : (
                             <div className="add-column-form" style={{
