@@ -40,14 +40,14 @@ const CreateFolderModal: React.FC<CreateFolderModalProps> = ({ spaceId, onClose,
                 </div>
                 <form onSubmit={handleSubmit} className="task-form">
                     <div className="form-group">
-                        <label style={{ fontWeight: 600, color: '#475569', marginBottom: '8px', display: 'block' }}>Folder Name</label>
+                        <label style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Folder Name</label>
                         <input
                             autoFocus
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g. Development, Marketing, Sprints"
-                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none' }}
+                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none', background: 'var(--bg-main)', color: 'var(--text-main)' }}
                         />
                     </div>
 

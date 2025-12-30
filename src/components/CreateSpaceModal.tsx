@@ -72,19 +72,19 @@ const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({ onClose, editingSpa
                 </div>
                 <form onSubmit={handleSubmit} className="task-form">
                     <div className="form-group">
-                        <label style={{ fontWeight: 600, color: '#475569', marginBottom: '8px', display: 'block' }}>Space Name</label>
+                        <label style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Space Name</label>
                         <input
                             type="text"
                             placeholder="e.g. Marketing, Development..."
                             value={name}
                             onChange={e => setName(e.target.value)}
                             autoFocus
-                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none' }}
+                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none', background: 'var(--bg-main)', color: 'var(--text-main)' }}
                         />
                     </div>
 
                     <div className="form-group">
-                        <label style={{ fontWeight: 600, color: '#475569', marginBottom: '8px', display: 'block' }}>Icon & Color</label>
+                        <label style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Icon & Color</label>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '8px', marginTop: '8px' }}>
                             {icons.map(item => {
                                 const Icon = item.icon;
@@ -100,7 +100,7 @@ const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({ onClose, editingSpa
                                             borderRadius: '8px',
                                             border: '2px solid',
                                             borderColor: isActive ? color : 'transparent',
-                                            background: isActive ? `${color}15` : '#f8fafc',
+                                            background: isActive ? `${color}15` : 'var(--bg-side)',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',

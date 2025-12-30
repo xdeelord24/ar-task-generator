@@ -39,7 +39,7 @@ const CreateDocModal: React.FC<CreateDocModalProps> = ({ spaceId, onClose }) => 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div style={{
                             padding: '6px',
-                            background: '#eff6ff',
+                            background: 'var(--info-light)',
                             borderRadius: '6px',
                             display: 'flex',
                             alignItems: 'center',
@@ -53,14 +53,14 @@ const CreateDocModal: React.FC<CreateDocModalProps> = ({ spaceId, onClose }) => 
                 </div>
                 <form onSubmit={handleSubmit} className="task-form">
                     <div className="form-group">
-                        <label style={{ fontWeight: 600, color: '#475569', marginBottom: '8px', display: 'block' }}>Doc Name</label>
+                        <label style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Doc Name</label>
                         <input
                             autoFocus
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g. Project Specs, Meeting Notes"
-                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none' }}
+                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none', background: 'var(--bg-main)', color: 'var(--text-main)' }}
                         />
                     </div>
 
