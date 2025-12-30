@@ -23,8 +23,8 @@ import {
     startOfMonth,
     differenceInMinutes,
     addMonths,
-    subMonths,
-    eachDayOfInterval,
+    addHours,
+    getWeek,
     endOfMonth,
     addDays,
     parseISO,
@@ -37,10 +37,7 @@ import {
     addWeeks,
     addYears,
     isSameMonth,
-    isSameYear,
-    addHours,
-    getWeek,
-    isSameDay
+    isSameYear
 } from 'date-fns';
 import type { Task } from '../types';
 import ViewHeader from '../components/ViewHeader';
@@ -48,6 +45,7 @@ import TaskOptionsMenu from '../components/TaskOptionsMenu';
 import '../styles/GanttView.css';
 import '../styles/ListView.css';
 import '../styles/TaskOptionsMenu.css';
+import '../styles/GanttViewExtra.css';
 
 interface GanttViewProps {
     onAddTask: () => void;
@@ -59,14 +57,13 @@ type TimeUnit = 'hour' | 'day' | 'week' | 'month';
 interface DraggableGanttBarProps {
     task: Task;
     viewStart: Date;
-    zoom: number;
     onTaskClick: (taskId: string) => void;
     onContextMenu: (taskId: string, trigger: HTMLElement) => void;
     unit: TimeUnit;
     colWidth: number;
 }
 
-const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, viewStart, zoom, onTaskClick, onContextMenu, unit, colWidth }) => {
+const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, viewStart, onTaskClick, onContextMenu, unit, colWidth }) => {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
     });
@@ -144,11 +141,22 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
             case 'Day':
                 return { start: viewDate, end: addDays(viewDate, 1) }; // Show 24h+
             case 'Week':
-                return { start: startOfWeek(viewDate, { weekStartsOn: 1 }), end: endOfWeek(viewDate, { weekStartsOn: 1 }) };
+                // Show current week and next week (2 weeks total) to prevent "cut off" feeling
+                const startW = startOfWeek(viewDate, { weekStartsOn: 1 });
+                const endW = endOfWeek(addWeeks(viewDate, 1), { weekStartsOn: 1 });
+                return { start: startW, end: endW };
             case 'Month':
-                return { start: startOfMonth(viewDate), end: endOfMonth(viewDate) };
+                // Show full weeks covering the month
+                return {
+                    start: startOfWeek(startOfMonth(viewDate), { weekStartsOn: 1 }),
+                    end: endOfWeek(endOfMonth(viewDate), { weekStartsOn: 1 })
+                };
             case 'Quarter':
-                return { start: startOfQuarter(viewDate), end: endOfQuarter(viewDate) };
+                // Show full weeks covering the quarter
+                return {
+                    start: startOfWeek(startOfQuarter(viewDate), { weekStartsOn: 1 }),
+                    end: endOfWeek(endOfQuarter(viewDate), { weekStartsOn: 1 })
+                };
             case 'Year':
                 return { start: startOfYear(viewDate), end: endOfYear(viewDate) };
             case 'Flexible':
@@ -201,12 +209,12 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
                 // "Fr 11"
                 label = `${format(iter, 'EE')} ${format(iter, 'd')}`;
                 // Group by Week: "W28 Jul 13 - 19"
-                const wNum = getWeek(iter);
+                const wNum = getWeek(iter, { weekStartsOn: 1 });
                 const wStart = startOfWeek(iter, { weekStartsOn: 1 });
                 const wEnd = endOfWeek(iter, { weekStartsOn: 1 });
                 groupLabel = `W${wNum} ${format(wStart, 'MMM d')} - ${format(wEnd, 'd')}`;
             } else if (unit === 'week') {
-                const wNum = getWeek(iter);
+                const wNum = getWeek(iter, { weekStartsOn: 1 });
                 groupLabel = format(iter, 'MMMM yyyy');
                 label = `W${wNum}`;
                 const wStart = startOfWeek(iter, { weekStartsOn: 1 });
@@ -216,6 +224,19 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
                 label = format(iter, 'MMM');
                 subLabel = format(iter, 'yyyy');
                 groupLabel = format(iter, 'yyyy');
+            }
+
+            // Determine if out of range
+            let isOutOfRange = false;
+            if (timePeriod === 'Month') {
+                isOutOfRange = !isSameMonth(iter, viewDate);
+            } else if (timePeriod === 'Year') {
+                isOutOfRange = !isSameYear(iter, viewDate);
+            } else if (timePeriod === 'Week') {
+                // Primary week is the one containing viewDate
+                const primaryStart = startOfWeek(viewDate, { weekStartsOn: 1 });
+                const primaryEnd = endOfWeek(viewDate, { weekStartsOn: 1 });
+                isOutOfRange = iter < primaryStart || iter > primaryEnd;
             }
 
             // Group Logic
@@ -230,7 +251,13 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
                 currentGroupCount++;
             }
 
-            cols.push({ date: new Date(iter), label, subLabel, id: iter.toISOString() });
+            cols.push({
+                date: new Date(iter),
+                label,
+                subLabel,
+                id: iter.toISOString(),
+                isOutOfRange
+            });
 
             if (unit === 'hour') iter = addHours(iter, 1);
             else if (unit === 'day') iter = addDays(iter, 1);
@@ -247,7 +274,7 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
 
         // If empty
         if (cols.length === 0) {
-            cols.push({ date: viewStart, label: 'Now', subLabel: '', id: viewStart.toISOString() });
+            cols.push({ date: viewStart, label: 'Now', subLabel: '', id: viewStart.toISOString(), isOutOfRange: false });
             groups.push({ label: format(viewStart, 'MMMM yyyy'), startIndex: 0, count: 1 });
         }
         return { columns: cols, groups };
@@ -452,7 +479,11 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
                             {/* Base Header Row */}
                             <div className="gantt-header-row bottom">
                                 {columns.map(col => (
-                                    <div key={col.id} className="gantt-day-header" style={{ width: `${colWidth}px` }}>
+                                    <div
+                                        key={col.id}
+                                        className={`gantt-day-header ${col.isOutOfRange ? 'out-of-range' : ''}`}
+                                        style={{ width: `${colWidth}px` }}
+                                    >
                                         <div className="day-name">{col.label}</div>
                                         {col.subLabel && <div className="day-num" style={{ fontSize: '10px' }}>{col.subLabel}</div>}
                                     </div>
@@ -472,12 +503,15 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
                             {filteredTasks.map(task => (
                                 <div key={task.id} className="gantt-row">
                                     {columns.map(col => (
-                                        <div key={col.id} className="gantt-cell" style={{ width: `${colWidth}px` }}></div>
+                                        <div
+                                            key={col.id}
+                                            className={`gantt-cell ${col.isOutOfRange ? 'out-of-range' : ''}`}
+                                            style={{ width: `${colWidth}px` }}
+                                        ></div>
                                     ))}
                                     <DraggableGanttBar
                                         task={task}
                                         viewStart={viewStart}
-                                        zoom={zoom}
                                         onTaskClick={onTaskClick}
                                         onContextMenu={handleOpenMenu}
                                         unit={unit}
