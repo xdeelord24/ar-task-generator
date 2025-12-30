@@ -10,6 +10,7 @@ import {
     MessageSquare,
     Link2,
     Clock3,
+
     AlertCircle,
     Check,
     ChevronRight,
@@ -34,6 +35,7 @@ import { format, parseISO } from 'date-fns';
 import type { Task, Subtask } from '../types';
 import PremiumDatePicker from './PremiumDatePicker';
 import TimePicker from './TimePicker';
+
 import RichTextEditor from './RichTextEditor';
 import TaskOptionsMenu from './TaskOptionsMenu';
 import RelationshipMenu from './RelationshipMenu';
@@ -64,6 +66,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         setCurrentView,
         addComment,
         addTimeEntry,
+
         duplicateTask,
         archiveTask,
         addTag,
@@ -116,6 +119,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [datePickerTrigger, setDatePickerTrigger] = useState<HTMLElement | null>(null);
     const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
     const [timePickerTrigger, setTimePickerTrigger] = useState<HTMLElement | null>(null);
+
 
     const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -437,6 +441,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             setIsGeneratingAIComment(false);
         }
     };
+
+
 
     const handleAddTime = (time: string) => {
         // Log the time entry with the selected slot name

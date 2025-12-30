@@ -1173,3 +1173,18 @@
     color: var(--text-tertiary);
     text-align: center;
 }
+
+/* Fix for Create Task Modal horizontal layout */
+.task-properties .dropdown-container {
+    width: fit-content;
+    display: inline-block;
+}
+
+.task-properties .prop-btn {
+    width: fit-content;
+    white-space: nowrap;
+}
+
+.task-properties .status-btn select {
+    cursor: pointer;
+}
