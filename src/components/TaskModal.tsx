@@ -9,6 +9,7 @@ import {
     UserPlus, Eye, CalendarDays, Inbox, CircleDot, GitMerge, Hash, Box, RotateCw
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import PremiumDatePicker from './PremiumDatePicker';
 import { useAppStore, DEFAULT_STATUSES } from '../store/useAppStore';
 import type { Priority, Task, TaskType } from '../types';
 import RichTextEditor from './RichTextEditor';
@@ -42,20 +43,14 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
     const [status, setStatus] = useState<Task['status']>(initialStatus || activeStatuses[0]?.name || 'TO DO');
     const [priority, setPriority] = useState<Priority>('medium');
 
-    // Format initialDate to YYYY-MM-DD and HH:mm
-    const initialDateStr = initialDate ? format(initialDate, 'yyyy-MM-dd') : '';
-    // Only set time if it's not midnight (00:00) OR if we specifically want to capture time. 
-    // Since request says "automatically input the time", we should capture it if present.
-    // However, clicking "Month View" day passes 00:00. We don't want to force 00:00 time on Month View clicks unless necessary.
-    // But since "Time Grid" also can be 00:00 (first slot), it's ambiguous.
-    // I'll default to setting time if initialDate is provided. The user can clear it.
-    // Actually, Month View "Day" click usually implies All Day (no time).
-    // I can check if initialDate hours/mins are 0.
-    const hasTime = initialDate && (initialDate.getHours() !== 0 || initialDate.getMinutes() !== 0);
-    const initialTimeStr = hasTime ? format(initialDate, 'HH:mm') : '';
+    const [startDate, setStartDate] = useState<string | undefined>(undefined);
+    const [dueDate, setDueDate] = useState<string | undefined>(
+        initialDate ? initialDate.toISOString() : undefined
+    );
 
-    const [dueDate, setDueDate] = useState(initialDateStr);
-    const [dueTime, setDueTime] = useState(initialTimeStr);
+    // Date picker state
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+    const [datePickerTrigger, setDatePickerTrigger] = useState<HTMLElement | null>(null);
     const [activeTab, setActiveTab] = useState('task');
     const [isMaximized, setIsMaximized] = useState(false);
     const [isPrivate, setIsPrivate] = useState(false);
@@ -218,7 +213,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
             priority,
             taskType,
             assignee,
-            dueDate: dueDate ? (dueTime ? new Date(`${dueDate}T${dueTime}`).toISOString() : dueDate) : undefined,
+            dueDate,
+            startDate,
             tags: selectedTags
         });
         onClose();
@@ -732,24 +728,34 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
                         )}
                     </div>
 
-                    <div className="prop-btn date-btn-group">
+                    <div className="prop-btn date-btn-group" onClick={(e) => {
+                        setDatePickerTrigger(e.currentTarget);
+                        setIsDatePickerOpen(true);
+                    }}>
                         <Calendar size={14} />
-                        <input
-                            type="date"
-                            value={dueDate}
-                            onChange={e => setDueDate(e.target.value)}
-                            className="date-input-hidden"
-                        />
-                        <span className="date-display">{dueDate ? format(new Date(dueDate), 'MMM d') : 'dd/mm/yyyy'}</span>
-                        {dueDate && (
-                            <input
-                                type="time"
-                                value={dueTime}
-                                onChange={e => setDueTime(e.target.value)}
-                                className="time-input-hidden"
-                            />
-                        )}
+                        <span className="date-display">
+                            {startDate || dueDate ? (
+                                <>
+                                    {startDate ? format(new Date(startDate), 'MMM d') : ''}
+                                    {startDate && dueDate ? ' - ' : ''}
+                                    {dueDate ? format(new Date(dueDate), 'MMM d') : ''}
+                                </>
+                            ) : 'Dates'}
+                        </span>
                     </div>
+                    {isDatePickerOpen && (
+                        <PremiumDatePicker
+                            startDate={startDate}
+                            dueDate={dueDate}
+                            onSave={(dates) => {
+                                setStartDate(dates.startDate);
+                                setDueDate(dates.dueDate);
+                                setIsDatePickerOpen(false);
+                            }}
+                            onClose={() => setIsDatePickerOpen(false)}
+                            triggerElement={datePickerTrigger}
+                        />
+                    )}
 
                     <div className="dropdown-container">
                         <div className="prop-btn" onClick={() => setShowPriorityMenu(!showPriorityMenu)}>

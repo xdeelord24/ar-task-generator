@@ -1,6 +1,7 @@
 .premium-datepicker {
     background: #1e293b;
     color: #f8fafc;
+    max-width: 95vw;
     width: 650px;
     border-radius: 12px;
     border: 1px solid #334155;

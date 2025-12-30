@@ -53,8 +53,8 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
 
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
-        const pickerWidth = pickerRef.current.offsetWidth || 560; // Approximate width if not rendered yet
-        const pickerHeight = pickerRef.current.offsetHeight || 400; // Approximate height
+        const pickerWidth = pickerRef.current.offsetWidth || 650; // Match CSS width
+        const pickerHeight = pickerRef.current.offsetHeight || 420; // Approximate height
 
         if (triggerElement) {
             const rect = triggerElement.getBoundingClientRect();
@@ -62,7 +62,8 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
             const newStyle: React.CSSProperties = {
                 position: 'fixed',
                 zIndex: 10001,
-                visibility: 'visible'
+                visibility: 'visible',
+                maxWidth: '95vw' // Ensure it doesn't exceed viewport width
             };
 
             // Vertical positioning
@@ -77,20 +78,21 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
             }
 
             // Horizontal positioning
-            // Try to align left, but flip if it overflows
-            if (rect.left + pickerWidth > viewportWidth) {
-                // Align right edge to trigger right edge
-                newStyle.right = viewportWidth - rect.right;
-                newStyle.left = 'auto';
+            if (rect.left + pickerWidth > viewportWidth - 20) { // Add padding margin
+                // overflow right, align to right edge of viewport or trigger
+                const rightOverflow = (rect.left + pickerWidth) - viewportWidth;
+
+                // If aligning right to trigger works, do that
+                if (viewportWidth - rect.right + pickerWidth <= viewportWidth) {
+                    newStyle.right = viewportWidth - rect.right;
+                    newStyle.left = 'auto';
+                } else {
+                    // Otherwise force stick to right edge of screen
+                    newStyle.right = 10;
+                    newStyle.left = 'auto';
+                }
             } else {
                 newStyle.left = rect.left;
-                newStyle.right = 'auto';
-            }
-
-            // Check if still overflows left when aligned right
-            if (newStyle.right !== undefined && (viewportWidth - parseFloat(String(newStyle.right))) - pickerWidth < 0) {
-                // Force center or left 0
-                newStyle.left = 10;
                 newStyle.right = 'auto';
             }
 
