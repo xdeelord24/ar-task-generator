@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard, Clip, Notification, NotificationSettings } from '../types';
+import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard, Clip, Notification, NotificationSettings, Agent } from '../types';
 
 interface AppStore extends AppState {
     setTasks: (tasks: Task[]) => void;
@@ -68,6 +68,9 @@ interface AppStore extends AppState {
     clearAllNotifications: () => void;
     updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
     checkDueDates: () => void;
+    addAgent: (agent: Omit<Agent, 'id' | 'createdAt' | 'updatedAt' | 'creatorId' | 'creatorName'>) => void;
+    updateAgent: (id: string, updates: Partial<Agent>) => void;
+    deleteAgent: (id: string) => void;
 }
 
 export const DEFAULT_STATUSES: Status[] = [
@@ -141,6 +144,7 @@ export const useAppStore = create<AppStore>()(
             theme: 'system',
             accentColor: '#2563eb',
             activeTimer: null,
+            agents: [],
             savedViews: [
                 { id: 'default-list', name: 'List', viewType: 'list', isPinned: true, isPrivate: false, createdAt: new Date().toISOString() },
                 { id: 'default-kanban', name: 'Board', viewType: 'kanban', isPinned: true, isPrivate: false, createdAt: new Date().toISOString() },
@@ -199,26 +203,85 @@ export const useAppStore = create<AppStore>()(
             },
 
             setTasks: (tasks) => set({ tasks }),
-            addTask: (task) => set((state) => ({
-                tasks: [
-                    {
-                        ...task,
-                        id: crypto.randomUUID(),
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                        subtasks: [],
-                        tags: task.tags || []
-                    },
-                    ...state.tasks
-                ]
-            })),
+            addTask: (task) => set((state) => {
+                const newTask = {
+                    ...task,
+                    id: crypto.randomUUID(),
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    subtasks: [],
+                    tags: task.tags || []
+                };
+
+                // Helper to process agents
+                let updatedTasks = [newTask, ...state.tasks];
+                const activeAgents = state.agents.filter(a => a.isEnabled && a.trigger.type === 'task_created');
+
+                activeAgents.forEach(agent => {
+                    // Check conditions (simple check for now)
+                    if (agent.trigger.conditions) {
+                        const condition = agent.trigger.conditions.toLowerCase();
+                        const taskText = (newTask.name + ' ' + (newTask.description || '')).toLowerCase();
+                        if (!taskText.includes(condition)) return;
+                    }
+
+                    // Execute Action
+                    if (agent.action.type === 'launch_autopilot') {
+                        // Simulate Autopilot: Add a comment processing the task
+                        const commentId = crypto.randomUUID();
+                        updatedTasks = updatedTasks.map(t => t.id === newTask.id ? {
+                            ...t,
+                            comments: [...(t.comments || []), {
+                                id: commentId,
+                                userId: 'agent-bot',
+                                userName: 'Autopilot Agent',
+                                text: `🤖 **Autopilot Activated**\n\nI am processing this task based on your instructions: "${agent.action.instructions}"\n\nI have analyzed the task details and will update you shortly.`,
+                                createdAt: new Date().toISOString()
+                            }]
+                        } : t);
+                    } else if (agent.action.type === 'send_notification') {
+                        // We can't easily call other actions from here without recursion issues in some setups,
+                        // so we'll just push to the notification array directly if needed, or use a separate effect.
+                        // For simplicity in this demo, we'll assume the notification relies on an external watcher or just skip it for now.
+                    }
+                });
+
+                return { tasks: updatedTasks };
+            }),
             updateTask: (taskId, updates) => set((state) => {
                 console.log(`Updating task ${taskId}`, updates);
-                return {
-                    tasks: state.tasks.map((task) =>
-                        task.id === taskId ? { ...task, ...updates, updatedAt: new Date().toISOString() } : task
-                    )
-                };
+                let newTasks = state.tasks.map((task) =>
+                    task.id === taskId ? { ...task, ...updates, updatedAt: new Date().toISOString() } : task
+                );
+
+                const updatedTask = newTasks.find(t => t.id === taskId);
+                if (updatedTask) {
+                    const activeAgents = state.agents.filter(a => a.isEnabled && a.trigger.type === 'task_updated');
+                    activeAgents.forEach(agent => {
+                        // Check conditions
+                        if (agent.trigger.conditions) {
+                            const condition = agent.trigger.conditions.toLowerCase();
+                            const taskText = (updatedTask.name + ' ' + (updatedTask.description || '')).toLowerCase();
+                            if (!taskText.includes(condition)) return;
+                        }
+
+                        if (agent.action.type === 'launch_autopilot') {
+                            // Add comment
+                            newTasks = newTasks.map(t => t.id === taskId ? {
+                                ...t,
+                                comments: [...(t.comments || []), {
+                                    id: crypto.randomUUID(),
+                                    userId: 'agent-bot',
+                                    userName: 'Autopilot Agent',
+                                    text: `🤖 **Autopilot Update**\n\nTask detected update. Re-evaluating based on instructions: "${agent.action.instructions}"`,
+                                    createdAt: new Date().toISOString()
+                                }]
+                            } : t);
+                        }
+                    });
+                }
+
+                return { tasks: newTasks };
             }),
             deleteTask: (taskId) => set((state) => ({
                 tasks: state.tasks.filter((task) => task.id !== taskId)
@@ -606,6 +669,26 @@ export const useAppStore = create<AppStore>()(
                     }
                 });
             },
+
+            addAgent: (agent) => set((state) => ({
+                agents: [
+                    ...state.agents,
+                    {
+                        ...agent,
+                        id: crypto.randomUUID(),
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        creatorId: 'user-1',
+                        creatorName: 'Jundee'
+                    }
+                ]
+            })),
+            updateAgent: (id, updates) => set((state) => ({
+                agents: state.agents.map(a => a.id === id ? { ...a, ...updates, updatedAt: new Date().toISOString() } : a)
+            })),
+            deleteAgent: (id) => set((state) => ({
+                agents: state.agents.filter(a => a.id !== id)
+            })),
         }),
         {
             name: 'ar-generator-app-storage',

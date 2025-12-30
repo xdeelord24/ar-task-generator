@@ -1,3 +1,5 @@
+import type { Agent } from './agent';
+
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Tag {
@@ -108,7 +110,7 @@ export interface List {
   statuses?: Status[];
 }
 
-export type ViewType = 'home' | 'list' | 'kanban' | 'calendar' | 'gantt' | 'timesheet' | 'dashboards' | 'docs' | 'pulse' | 'forms' | 'inbox' | 'teams' | 'whiteboards' | 'clips' | 'goals' | 'space_overview';
+export type ViewType = 'home' | 'list' | 'kanban' | 'calendar' | 'gantt' | 'timesheet' | 'dashboards' | 'docs' | 'pulse' | 'forms' | 'inbox' | 'teams' | 'whiteboards' | 'clips' | 'goals' | 'space_overview' | 'agents';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -164,6 +166,8 @@ export interface Dashboard {
   lastViewed?: string;
 }
 
+export * from './agent';
+
 export interface Clip {
   id: string;
   name: string;
@@ -185,6 +189,7 @@ export interface AppState {
   lists: List[];
   tags: Tag[];
   docs: Doc[];
+  agents: Agent[];
   currentSpaceId: string;
   currentListId: string | null;
   currentView: ViewType;
@@ -233,3 +238,5 @@ export interface NotificationSettings {
   notifyOnDueSoon: boolean;
   notifyOnAssignment: boolean;
 }
+
+// Ensure types are exported

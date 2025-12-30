@@ -10,6 +10,7 @@ import DashboardView from './views/DashboardView';
 import DocsView from './views/DocsView';
 import SpaceOverview from './views/SpaceOverview';
 import ClipsView from './views/ClipsView';
+import AgentsView from './views/AgentsView';
 import TaskModal from './components/TaskModal';
 import TaskDetailModal from './components/TaskDetailModal';
 import ReportModal from './components/ReportModal';
@@ -78,6 +79,8 @@ function App() {
         return <ClipsView />;
       case 'space_overview':
         return <SpaceOverview />;
+      case 'agents':
+        return <AgentsView />;
       case 'kanban':
         return <KanbanView
           onAddTask={(status) => {
