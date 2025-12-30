@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Plus, Search, Bot, Zap, ArrowRight, X, Save } from 'lucide-react';
+import { Plus, Search, Bot, Zap, ArrowRight, X, Save, Edit2 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
-import type { AgentTriggerType, AgentActionType } from '../types/agent';
+import type { Agent, AgentTriggerType, AgentActionType } from '../types/agent';
 import '../styles/AgentsView.css';
 
 const AgentsView: React.FC = () => {
     const { agents, addAgent, updateAgent, deleteAgent } = useAppStore();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
 
     // New Agent State
     const [newAgentName, setNewAgentName] = useState('');
@@ -19,7 +20,7 @@ const AgentsView: React.FC = () => {
     const handleCreateAgent = () => {
         if (!newAgentName.trim()) return;
 
-        addAgent({
+        const agentData = {
             name: newAgentName,
             description: 'Automated agent',
             isEnabled: true,
@@ -31,13 +32,30 @@ const AgentsView: React.FC = () => {
                 type: actionType,
                 instructions: instructions
             }
-        });
+        };
+
+        if (editingAgentId) {
+            updateAgent(editingAgentId, agentData);
+        } else {
+            addAgent(agentData);
+        }
 
         setIsCreateOpen(false);
         resetForm();
     };
 
+    const handleEditAgent = (agent: Agent) => {
+        setEditingAgentId(agent.id);
+        setNewAgentName(agent.name);
+        setTriggerType(agent.trigger.type);
+        setTriggerConditions(agent.trigger.conditions || '');
+        setActionType(agent.action.type);
+        setInstructions(agent.action.instructions || '');
+        setIsCreateOpen(true);
+    };
+
     const resetForm = () => {
+        setEditingAgentId(null);
         setNewAgentName('');
         setTriggerType('task_created');
         setActionType('launch_autopilot');
@@ -122,9 +140,14 @@ const AgentsView: React.FC = () => {
                                 </div>
                                 <div className="agent-footer">
                                     <span className="agent-author">Created by {agent.creatorName}</span>
-                                    <button className="icon-btn" onClick={() => deleteAgent(agent.id)}>
-                                        <X size={14} />
-                                    </button>
+                                    <div className="agent-actions">
+                                        <button className="icon-btn" onClick={() => handleEditAgent(agent)}>
+                                            <Edit2 size={14} />
+                                        </button>
+                                        <button className="icon-btn" onClick={() => deleteAgent(agent.id)}>
+                                            <X size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -136,8 +159,8 @@ const AgentsView: React.FC = () => {
                 <div className="modal-overlay">
                     <div className="modal-content agent-modal">
                         <div className="modal-header">
-                            <h2>New Agent Automation</h2>
-                            <button className="close-btn" onClick={() => setIsCreateOpen(false)}>
+                            <h2>{editingAgentId ? 'Edit Agent' : 'New Agent Automation'}</h2>
+                            <button className="close-btn" onClick={() => { setIsCreateOpen(false); resetForm(); }}>
                                 <X size={20} />
                             </button>
                         </div>
@@ -217,10 +240,10 @@ const AgentsView: React.FC = () => {
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button className="cancel-btn" onClick={() => setIsCreateOpen(false)}>Cancel</button>
+                            <button className="cancel-btn" onClick={() => { setIsCreateOpen(false); resetForm(); }}>Cancel</button>
                             <button className="create-btn" onClick={handleCreateAgent} disabled={!newAgentName}>
                                 <Save size={16} />
-                                Create & Save
+                                {editingAgentId ? 'Save Changes' : 'Create & Save'}
                             </button>
                         </div>
                     </div>
