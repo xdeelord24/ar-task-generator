@@ -51,6 +51,29 @@ interface TaskDetailModalProps {
 
 type SidebarTab = 'activity' | 'blocking' | 'waiting' | 'links' | 'more';
 
+const SubtaskInput: React.FC<{ onAdd: (name: string) => void }> = ({ onAdd }) => {
+    const [name, setName] = useState('');
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (name.trim()) {
+            onAdd(name);
+            setName('');
+        }
+    };
+    return (
+        <form onSubmit={handleSubmit} className="subtask-add-row">
+            <div className="st-cell-name">
+                <Plus size={14} className="plus-icon-st" />
+                <input
+                    placeholder="Add Task"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                />
+            </div>
+        </form>
+    );
+};
+
 const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTaskClick }) => {
     const {
         tasks,
@@ -109,7 +132,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
 
     const [activeTab, setActiveTab] = useState<'details' | 'subtasks'>('details');
     const [sidebarTab, setSidebarTab] = useState<SidebarTab>('activity');
-    const [newSubtaskName, setNewSubtaskName] = useState('');
+    // newSubtaskName state moved to SubtaskInput component
     const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
     const [optionsMenuTrigger, setOptionsMenuTrigger] = useState<HTMLElement | null>(null);
     const [isTagPickerOpen, setIsTagPickerOpen] = useState(false);
@@ -376,15 +399,13 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         onClose();
     };
 
-    const handleAddSubtask = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleAddSubtask = (name: string) => {
         if (isSubtask) return; // Prevent adding subtasks to subtasks
-        if (!newSubtaskName.trim()) return;
+        if (!name.trim()) return;
         addSubtask(taskId, {
-            name: newSubtaskName,
+            name: name,
             status: 'TO DO'
         });
-        setNewSubtaskName('');
     };
 
     const [isGeneratingAIComment, setIsGeneratingAIComment] = useState(false);
@@ -1064,16 +1085,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                             </div>
                                         )}
 
-                                        <form onSubmit={handleAddSubtask} className="subtask-add-row">
-                                            <div className="st-cell-name">
-                                                <Plus size={14} className="plus-icon-st" />
-                                                <input
-                                                    placeholder="Add Task"
-                                                    value={newSubtaskName}
-                                                    onChange={(e) => setNewSubtaskName(e.target.value)}
-                                                />
-                                            </div>
-                                        </form>
+                                        <SubtaskInput onAdd={handleAddSubtask} />
                                     </div>
                                 </div>
                             )}
