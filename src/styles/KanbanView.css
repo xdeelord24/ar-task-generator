@@ -122,6 +122,14 @@
     gap: 12px;
 }
 
+.tag-pill-small {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
 .card-date {
     display: flex;
     align-items: center;
@@ -428,16 +436,16 @@
     right: 8px;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     background: var(--bg-surface);
-    padding: 4px;
-    border-radius: 8px;
+    padding: 6px;
+    border-radius: 10px;
     opacity: 0;
-    transition: all 0.2s ease;
-    transform: translateY(-2px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(-4px);
     pointer-events: none;
-    z-index: 10;
-    box-shadow: var(--shadow-md);
+    z-index: 20;
+    box-shadow: var(--shadow-lg);
     border: 1px solid var(--border);
 }
 
@@ -451,17 +459,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    color: var(--text-tertiary);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: var(--text-secondary);
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     cursor: pointer;
     transition: var(--transition);
 }
 
 .hover-action-item:hover {
     background: var(--bg-hover);
-    color: var(--text-main);
+    color: var(--primary);
+    border-color: var(--border);
+    transform: translateY(-1px);
+}
+
+.hover-action-item svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2.5px;
 }

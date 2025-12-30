@@ -506,19 +506,19 @@
 }
 
 .row-action-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--bg-surface);
-    color: #64748b !important;
-    /* Force color slate-500 */
+    color: var(--text-secondary) !important;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
 }
 
 .row-action-btn:hover {
@@ -530,8 +530,7 @@
 }
 
 .row-action-btn svg {
-    /* Ensure icons size correctly */
-    width: 14px;
-    height: 14px;
-    stroke-width: 2px;
+    width: 18px;
+    height: 18px;
+    stroke-width: 2.5px;
 }

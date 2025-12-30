@@ -17,7 +17,8 @@ import {
     ChevronDown,
     User,
     CircleDashed,
-    Flag
+    Flag,
+    Tag as TagIcon
 } from 'lucide-react';
 import {
     DndContext,
@@ -45,11 +46,18 @@ import ViewHeader from '../components/ViewHeader';
 import '../styles/KanbanView.css';
 import '../styles/TaskOptionsMenu.css';
 import QuickAddSubtask from '../components/QuickAddSubtask';
+import TagMenu from '../components/TagMenu';
 import type { Subtask } from '../types';
 
 interface KanbanViewProps {
     onAddTask: (status?: string) => void;
     onTaskClick: (taskId: string) => void;
+}
+
+interface ActivePopover {
+    taskId: string;
+    field: 'priority' | 'date' | 'tags';
+    element: HTMLElement;
 }
 
 interface SortableCardProps {
@@ -68,6 +76,12 @@ interface SortableCardProps {
     onStartAddSubtask: (taskId: string) => void;
     onCancelAddSubtask: () => void;
     onAddSubtask: (subtask: Omit<Subtask, 'id' | 'createdAt' | 'updatedAt'>) => void;
+    onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
+    onAddTag: (tag: Omit<Tag, 'id'>) => void;
+    onUpdateTag: (tagId: string, updates: Partial<Tag>) => void;
+    onDeleteTag: (tagId: string) => void;
+    activePopover: ActivePopover | null;
+    setActivePopover: (popover: ActivePopover | null) => void;
 }
 
 const SortableCard: React.FC<SortableCardProps> = ({
@@ -85,6 +99,12 @@ const SortableCard: React.FC<SortableCardProps> = ({
     onStartAddSubtask,
     onCancelAddSubtask,
     onAddSubtask,
+    onUpdateTask,
+    onAddTag,
+    onUpdateTag,
+    onDeleteTag,
+    activePopover,
+    setActivePopover,
     menuTrigger
 }) => {
     const {
@@ -135,14 +155,24 @@ const SortableCard: React.FC<SortableCardProps> = ({
                         onClick={(e) => { e.stopPropagation(); onStartAddSubtask(task.id); }}
                         title="Add subtask"
                     >
-                        <PlusCircle size={20} />
+                        <PlusCircle size={18} />
+                    </button>
+                    <button
+                        className="hover-action-item"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setActivePopover({ taskId: task.id, field: 'tags', element: e.currentTarget });
+                        }}
+                        title="Edit tags"
+                    >
+                        <TagIcon size={18} />
                     </button>
                     <button
                         className="hover-action-item"
                         onClick={(e) => { e.stopPropagation(); onTaskClick(task.id); }}
                         title="Rename"
                     >
-                        <Pencil size={20} />
+                        <Pencil size={18} />
                     </button>
                     <div style={{ position: 'relative', overflow: 'visible' }}>
                         <button
@@ -157,8 +187,28 @@ const SortableCard: React.FC<SortableCardProps> = ({
                             }}
                             title="More actions"
                         >
-                            <MoreHorizontal size={20} />
+                            <MoreHorizontal size={18} />
                         </button>
+                        {activePopover?.taskId === task.id && activePopover?.field === 'tags' && (
+                            <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 100 }}>
+                                <TagMenu
+                                    tags={tags}
+                                    selectedTagIds={task.tags || []}
+                                    onToggleTag={(tagId) => {
+                                        const currentTags = task.tags || [];
+                                        const newTags = currentTags.includes(tagId)
+                                            ? currentTags.filter(t => t !== tagId)
+                                            : [...currentTags, tagId];
+                                        onUpdateTask(task.id, { tags: newTags });
+                                    }}
+                                    onCreateTag={onAddTag}
+                                    onUpdateTag={onUpdateTag}
+                                    onDeleteTag={onDeleteTag}
+                                    onClose={() => setActivePopover(null)}
+                                    triggerElement={activePopover.element}
+                                />
+                            </div>
+                        )}
                         {isMenuOpen && (
                             <TaskOptionsMenu
                                 taskId={task.id}
@@ -278,6 +328,12 @@ interface KanbanColumnProps {
     onDuplicate: (taskId: string) => void;
     onArchive: (taskId: string) => void;
     onDelete: (taskId: string) => void;
+    onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
+    onAddTag: (tag: Omit<Tag, 'id'>) => void;
+    onUpdateTag: (tagId: string, updates: Partial<Tag>) => void;
+    onDeleteTag: (tagId: string) => void;
+    activePopover: ActivePopover | null;
+    setActivePopover: (popover: ActivePopover | null) => void;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -298,7 +354,13 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     addSubtaskTaskId,
     onStartAddSubtask,
     onCancelAddSubtask,
-    onAddSubtask
+    onAddSubtask,
+    onUpdateTask,
+    onAddTag,
+    onUpdateTag,
+    onDeleteTag,
+    activePopover,
+    setActivePopover
 }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: status,
@@ -329,18 +391,24 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                             task={task}
                             onTaskClick={onTaskClick}
                             tags={tags}
-                            onOpenMenu={onOpenMenu}
-                            isMenuOpen={openMenuTaskId === task.id}
-                            onCloseMenu={onCloseMenu}
-                            menuTrigger={menuTrigger}
-                            onDuplicate={onDuplicate}
-                            onArchive={onArchive}
-                            onDelete={onDelete}
-                            onConvertToDoc={onConvertToDoc}
                             isAddingSubtask={addSubtaskTaskId === task.id}
                             onStartAddSubtask={onStartAddSubtask}
                             onCancelAddSubtask={onCancelAddSubtask}
                             onAddSubtask={(subtask) => onAddSubtask(task.id, subtask)}
+                            onUpdateTask={onUpdateTask}
+                            onAddTag={onAddTag}
+                            onUpdateTag={onUpdateTag}
+                            onDeleteTag={onDeleteTag}
+                            activePopover={activePopover}
+                            setActivePopover={setActivePopover}
+                            onDuplicate={onDuplicate}
+                            onArchive={onArchive}
+                            onDelete={onDelete}
+                            onConvertToDoc={onConvertToDoc}
+                            onOpenMenu={onOpenMenu}
+                            isMenuOpen={openMenuTaskId === task.id}
+                            onCloseMenu={onCloseMenu}
+                            menuTrigger={menuTrigger}
                         />
                     ))}
                     <button className="btn-add-card" onClick={() => onAddTask(status)}>
@@ -365,9 +433,13 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         addStatus,
         addSubtask,
         tags,
+        addTag,
+        updateTag,
+        deleteTag,
         spaces,
         lists,
     } = useAppStore();
+    const [activePopover, setActivePopover] = React.useState<ActivePopover | null>(null);
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
     const [menuTrigger, setMenuTrigger] = React.useState<HTMLElement | null>(null);
@@ -535,6 +607,12 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                                 addSubtask(taskId, subtask);
                                 setAddSubtaskTaskId(null);
                             }}
+                            onUpdateTask={updateTask}
+                            onAddTag={addTag}
+                            onUpdateTag={updateTag}
+                            onDeleteTag={deleteTag}
+                            activePopover={activePopover}
+                            setActivePopover={setActivePopover}
                         />
                     ))}
                     <div className="add-column-container">

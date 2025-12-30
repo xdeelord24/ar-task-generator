@@ -559,7 +559,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                         setIsExpanded(true);
                                     }}
                                 >
-                                    <Plus size={14} />
+                                    <Plus size={18} />
                                 </button>
                                 <button
                                     className="row-action-btn"
@@ -569,7 +569,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                         setActivePopover({ taskId: task.id, field: 'tags', element: e.currentTarget });
                                     }}
                                 >
-                                    <TagIcon size={14} />
+                                    <TagIcon size={18} />
                                 </button>
                                 <button
                                     className="row-action-btn"
@@ -580,7 +580,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                         setIsRenaming(true);
                                     }}
                                 >
-                                    <Pencil size={14} />
+                                    <Pencil size={18} />
                                 </button>
                             </div>
 
@@ -673,7 +673,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 onClick={() => onTaskClick(task.id)}
             >
                 <div className="drag-handle" {...attributes} {...listeners}>
-                    <GripVertical size={14} />
+                    <GripVertical size={16} />
                 </div>
                 {columns.filter(c => c.visible).map(col => (
                     <React.Fragment key={col.id}>
