@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore, DEFAULT_STATUSES } from '../store/useAppStore';
-import type { Priority, Task } from '../types';
+import type { Priority, Task, TaskType } from '../types';
 import RichTextEditor from './RichTextEditor';
 import { markdownToHtml } from '../utils/markdownConverter';
 import { format } from 'date-fns';
@@ -59,6 +59,34 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
     const [activeTab, setActiveTab] = useState('task');
     const [isMaximized, setIsMaximized] = useState(false);
     const [isPrivate, setIsPrivate] = useState(false);
+    const [taskType, setTaskType] = useState<TaskType>('task');
+    const [selectedSpaceId, setSelectedSpaceId] = useState(currentSpaceId === 'everything' ? 'team-space' : currentSpaceId);
+    const [selectedListId, setSelectedListId] = useState(currentListId || undefined);
+    const [assignee, setAssignee] = useState<string | undefined>(undefined);
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+    // Dropdown visibility states
+    const [showSpaceMenu, setShowSpaceMenu] = useState(false);
+    const [showTypeMenu, setShowTypeMenu] = useState(false);
+    const [showAssigneeMenu, setShowAssigneeMenu] = useState(false);
+    const [showPriorityMenu, setShowPriorityMenu] = useState(false);
+    const [showTagMenu, setShowTagMenu] = useState(false);
+
+    const mockUsers = ['Jundee', 'Alice', 'Bob', 'Charlie'];
+    const availableTags = useAppStore(state => state.tags);
+    const allSpaces = spaces.filter(s => s.id !== 'everything');
+
+    const handleSpaceSelect = (spaceId: string, listId?: string) => {
+        setSelectedSpaceId(spaceId);
+        setSelectedListId(listId);
+        setShowSpaceMenu(false);
+    };
+
+    const toggleTag = (tagId: string) => {
+        setSelectedTags(prev =>
+            prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
+        );
+    };
 
     // AI Popup State
     const [showAI, setShowAI] = useState(false);
@@ -184,11 +212,14 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
         addTask({
             name,
             description,
-            spaceId: currentSpaceId === 'everything' ? 'team-space' : currentSpaceId,
-            listId: currentListId || undefined,
+            spaceId: selectedSpaceId,
+            listId: selectedListId,
             status,
             priority,
+            taskType,
+            assignee,
             dueDate: dueDate ? (dueTime ? new Date(`${dueDate}T${dueTime}`).toISOString() : dueDate) : undefined,
+            tags: selectedTags
         });
         onClose();
     };
@@ -289,6 +320,15 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
             if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
                 setShowTitleSuggestions(false);
             }
+            // Close other menus
+            const target = e.target as HTMLElement;
+            if (!target.closest('.dropdown-container')) {
+                setShowSpaceMenu(false);
+                setShowTypeMenu(false);
+                setShowAssigneeMenu(false);
+                setShowPriorityMenu(false);
+                setShowTagMenu(false);
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('mousedown', handleClickOutside);
@@ -362,16 +402,75 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
         <>
             {/* Sub-Header Toolbar */}
             <div className="task-toolbar">
-                <button className="toolbar-btn">
-                    <ListTodo size={14} />
-                    Objectives
-                    <ChevronDown size={14} />
-                </button>
-                <button className="toolbar-btn">
-                    <Square size={14} />
-                    Task
-                    <ChevronDown size={14} />
-                </button>
+                <div className="dropdown-container">
+                    <button className="toolbar-btn" onClick={() => setShowSpaceMenu(!showSpaceMenu)}>
+                        <ListTodo size={14} />
+                        {lists.find(l => l.id === selectedListId)?.name || spaces.find(s => s.id === selectedSpaceId)?.name || 'Objectives'}
+                        <ChevronDown size={14} />
+                    </button>
+                    {showSpaceMenu && (
+                        <div className="property-dropdown space-dropdown">
+                            <div className="dropdown-section">Spaces</div>
+                            {allSpaces.map(space => (
+                                <React.Fragment key={space.id}>
+                                    <div
+                                        className={`dropdown-item ${selectedSpaceId === space.id && !selectedListId ? 'active' : ''}`}
+                                        onClick={() => handleSpaceSelect(space.id)}
+                                    >
+                                        <div className="item-icon" style={{ color: space.color || 'inherit' }}>
+                                            <Box size={14} />
+                                        </div>
+                                        {space.name}
+                                    </div>
+                                    {lists.filter(l => l.spaceId === space.id).map(list => (
+                                        <div
+                                            key={list.id}
+                                            className={`dropdown-item list-item-nested ${selectedListId === list.id ? 'active' : ''}`}
+                                            onClick={() => handleSpaceSelect(space.id, list.id)}
+                                        >
+                                            <List size={14} />
+                                            {list.name}
+                                        </div>
+                                    ))}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="dropdown-container">
+                    <button className="toolbar-btn" onClick={() => setShowTypeMenu(!showTypeMenu)}>
+                        <Square size={14} />
+                        {taskType === 'task' ? 'Task' :
+                            taskType === 'milestone' ? 'Milestone' :
+                                taskType === 'form_response' ? 'Form Response' : 'Meeting Note'}
+                        <ChevronDown size={14} />
+                    </button>
+                    {showTypeMenu && (
+                        <div className="property-dropdown type-dropdown">
+                            <div className="dropdown-header-type">
+                                <span>Task Types</span>
+                                <button className="edit-link">Edit</button>
+                            </div>
+                            <div className={`dropdown-item ${taskType === 'task' ? 'active' : ''}`} onClick={() => { setTaskType('task'); setShowTypeMenu(false); }}>
+                                <CircleDot size={14} /> Task <span className="default-label">(default)</span>
+                                {taskType === 'task' && <CornerDownLeft size={12} className="check-icon" />}
+                            </div>
+                            <div className={`dropdown-item ${taskType === 'milestone' ? 'active' : ''}`} onClick={() => { setTaskType('milestone'); setShowTypeMenu(false); }}>
+                                <GitMerge size={14} /> Milestone
+                                {taskType === 'milestone' && <CornerDownLeft size={12} className="check-icon" />}
+                            </div>
+                            <div className={`dropdown-item ${taskType === 'form_response' ? 'active' : ''}`} onClick={() => { setTaskType('form_response'); setShowTypeMenu(false); }}>
+                                <FileText size={14} /> Form Response
+                                {taskType === 'form_response' && <CornerDownLeft size={12} className="check-icon" />}
+                            </div>
+                            <div className={`dropdown-item ${taskType === 'meeting_note' ? 'active' : ''}`} onClick={() => { setTaskType('meeting_note'); setShowTypeMenu(false); }}>
+                                <MessageSquare size={14} /> Meeting Note
+                                {taskType === 'meeting_note' && <CornerDownLeft size={12} className="check-icon" />}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Main Form */}
@@ -608,47 +707,94 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
                         </select>
                     </div>
 
-                    <button className="prop-btn">
-                        <Users size={14} />
-                        Assignee
-                    </button>
+                    <div className="dropdown-container">
+                        <button className="prop-btn" onClick={() => setShowAssigneeMenu(!showAssigneeMenu)}>
+                            <Users size={14} />
+                            {assignee || 'Assignee'}
+                        </button>
+                        {showAssigneeMenu && (
+                            <div className="property-dropdown assignee-dropdown">
+                                {mockUsers.map(user => (
+                                    <div
+                                        key={user}
+                                        className={`dropdown-item ${assignee === user ? 'active' : ''}`}
+                                        onClick={() => { setAssignee(user); setShowAssigneeMenu(false); }}
+                                    >
+                                        <div className="user-avatar-mini">{user[0]}</div>
+                                        {user}
+                                    </div>
+                                ))}
+                                <div className="dropdown-divider"></div>
+                                <div className="dropdown-item" onClick={() => { setAssignee(undefined); setShowAssigneeMenu(false); }}>
+                                    Unassign
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
-                    <div className="prop-btn">
+                    <div className="prop-btn date-btn-group">
                         <Calendar size={14} />
                         <input
                             type="date"
                             value={dueDate}
                             onChange={e => setDueDate(e.target.value)}
-                            style={{ background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer', width: dueDate ? 'auto' : '65px' }}
+                            className="date-input-hidden"
                         />
+                        <span className="date-display">{dueDate ? format(new Date(dueDate), 'MMM d') : 'dd/mm/yyyy'}</span>
                         {dueDate && (
                             <input
                                 type="time"
                                 value={dueTime}
                                 onChange={e => setDueTime(e.target.value)}
-                                style={{ background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer', marginLeft: '4px' }}
+                                className="time-input-hidden"
                             />
                         )}
                     </div>
 
-                    <div className="prop-btn">
-                        <Flag size={14} />
-                        <select
-                            value={priority}
-                            onChange={e => setPriority(e.target.value as Priority)}
-                            style={{ background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer', appearance: 'none' }}
-                        >
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                            <option value="urgent">Urgent</option>
-                        </select>
+                    <div className="dropdown-container">
+                        <div className="prop-btn" onClick={() => setShowPriorityMenu(!showPriorityMenu)}>
+                            <Flag size={14} className={`priority-icon-${priority}`} />
+                            <span style={{ textTransform: 'capitalize' }}>{priority}</span>
+                        </div>
+                        {showPriorityMenu && (
+                            <div className="property-dropdown priority-dropdown">
+                                {(['urgent', 'high', 'medium', 'low'] as Priority[]).map(p => (
+                                    <div
+                                        key={p}
+                                        className={`dropdown-item priority-item-${p} ${priority === p ? 'active' : ''}`}
+                                        onClick={() => { setPriority(p); setShowPriorityMenu(false); }}
+                                    >
+                                        <Flag size={14} />
+                                        <span style={{ textTransform: 'capitalize' }}>{p}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    <button className="prop-btn">
-                        <Tag size={14} />
-                        Tags
-                    </button>
+                    <div className="dropdown-container">
+                        <button className="prop-btn" onClick={() => setShowTagMenu(!showTagMenu)}>
+                            <Tag size={14} />
+                            {selectedTags.length > 0 ? `${selectedTags.length} Tags` : 'Tags'}
+                        </button>
+                        {showTagMenu && (
+                            <div className="property-dropdown tag-dropdown">
+                                <div className="dropdown-header-sm">Select Tags</div>
+                                {availableTags.map(tag => (
+                                    <div
+                                        key={tag.id}
+                                        className={`dropdown-item tag-item ${selectedTags.includes(tag.id) ? 'active' : ''}`}
+                                        onClick={() => toggleTag(tag.id)}
+                                    >
+                                        <div className="tag-color-dot" style={{ backgroundColor: tag.color }}></div>
+                                        {tag.name}
+                                        {selectedTags.includes(tag.id) && <CornerDownLeft size={10} className="check-icon" />}
+                                    </div>
+                                ))}
+                                {availableTags.length === 0 && <div className="dropdown-empty">No tags found</div>}
+                            </div>
+                        )}
+                    </div>
 
                     <button className="prop-btn">
                         <MoreHorizontal size={14} />

@@ -57,12 +57,15 @@ export interface Doc {
   updatedAt: string;
 }
 
+export type TaskType = 'task' | 'milestone' | 'form_response' | 'meeting_note';
+
 export interface Task {
   id: string;
   name: string;
   description?: string;
   status: string;
   priority: Priority;
+  taskType?: TaskType;
   spaceId: string;
   listId?: string;
   assignee?: string;

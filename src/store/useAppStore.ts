@@ -4,7 +4,7 @@ import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, Colum
 
 interface AppStore extends AppState {
     setTasks: (tasks: Task[]) => void;
-    addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'subtasks' | 'tags'>) => void;
+    addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'subtasks'>) => void;
     updateTask: (taskId: string, updates: Partial<Task>) => void;
     deleteTask: (taskId: string) => void;
     duplicateTask: (taskId: string) => void;
@@ -207,7 +207,7 @@ export const useAppStore = create<AppStore>()(
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
                         subtasks: [],
-                        tags: []
+                        tags: task.tags || []
                     },
                     ...state.tasks
                 ]
