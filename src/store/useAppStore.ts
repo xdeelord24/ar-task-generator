@@ -250,8 +250,23 @@ export const useAppStore = create<AppStore>()(
                                 // check for 'tag it as X'
                                 const tagCandidates = words.slice(tagIndex + 1).filter(w => !['as', 'it', 'is', 'a', 'the'].includes(w));
                                 if (tagCandidates.length > 0) {
-                                    const newTag = tagCandidates[0].replace(/[^a-z0-9]/g, ''); // clean tag
-                                    if (newTag) updates.tags = [...(newTask.tags || []), newTag];
+                                    const newTagText = tagCandidates[0].replace(/[^a-z0-9]/g, ''); // clean tag
+                                    if (newTagText) {
+                                        // Check if tag exists
+                                        let tagId = state.tags.find(t => t.name.toLowerCase() === newTagText.toLowerCase())?.id;
+
+                                        // Create if not exists
+                                        if (!tagId) {
+                                            tagId = crypto.randomUUID();
+                                            const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16);
+                                            // We need to update state.tags too, not just locally
+                                            set(s => ({ tags: [...s.tags, { id: tagId!, name: newTagText, color: randomColor, spaceId: newTask.spaceId }] }));
+                                        }
+
+                                        updates.tags = [...(newTask.tags || []), tagId];
+                                        // Store tag name for comment
+                                        updates._tagName = newTagText;
+                                    }
                                 }
                             }
                         }
@@ -264,7 +279,7 @@ export const useAppStore = create<AppStore>()(
                                 id: crypto.randomUUID(),
                                 userId: 'agent-bot',
                                 userName: 'Autopilot Agent',
-                                text: `🤖 **Autopilot Executed**\n\nI have updated this task based on your instructions:\n${updates.priority ? `- Set priority to **${updates.priority}**\n` : ''}${updates.tags ? `- Added tag **${updates.tags[updates.tags.length - 1]}**` : ''}`,
+                                text: `🤖 **Autopilot Executed**\n\nI have updated this task based on your instructions:\n${updates.priority ? `- Set priority to **${updates.priority}**\n` : ''}${updates._tagName ? `- Added tag **${updates._tagName}**` : ''}`,
                                 createdAt: new Date().toISOString()
                             }]
                         } : t);
