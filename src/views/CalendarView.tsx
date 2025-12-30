@@ -37,8 +37,10 @@ import {
     differenceInMinutes
 } from 'date-fns';
 import type { Task } from '../types';
+import TaskOptionsMenu from '../components/TaskOptionsMenu';
 import '../styles/CalendarView.css';
 import '../styles/ListView.css';
+import '../styles/TaskOptionsMenu.css';
 
 interface CalendarViewProps {
     onAddTask: (startDate?: Date, dueDate?: Date) => void;
@@ -48,9 +50,10 @@ interface CalendarViewProps {
 interface DraggableTaskProps {
     task: Task;
     onTaskClick: (taskId: string) => void;
+    onContextMenu: (taskId: string, trigger: HTMLElement) => void;
 }
 
-const DraggableCalendarTask: React.FC<DraggableTaskProps> = ({ task, onTaskClick }) => {
+const DraggableCalendarTask: React.FC<DraggableTaskProps> = ({ task, onTaskClick, onContextMenu }) => {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
     });
@@ -70,6 +73,11 @@ const DraggableCalendarTask: React.FC<DraggableTaskProps> = ({ task, onTaskClick
             onClick={(e) => {
                 e.stopPropagation();
                 onTaskClick(task.id);
+            }}
+            onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onContextMenu(task.id, e.currentTarget);
             }}
         >
             {task.name}
@@ -136,7 +144,8 @@ const DroppableTimeColumn: React.FC<{
     tasks: Task[];
     onTaskClick: (taskId: string) => void;
     onAddTask: (startDate?: Date, dueDate?: Date) => void;
-}> = ({ day, currentTime, tasks, onTaskClick, onAddTask }) => {
+    onContextMenu: (taskId: string, trigger: HTMLElement) => void;
+}> = ({ day, currentTime, tasks, onTaskClick, onAddTask, onContextMenu }) => {
     const hours = Array.from({ length: 24 }, (_, i) => i);
     const { updateTask } = useAppStore();
     const { setNodeRef } = useDroppable({
@@ -360,7 +369,11 @@ const DroppableTimeColumn: React.FC<{
                                     zIndex: 5
                                 }}
                             >
-                                <DraggableCalendarTask task={task} onTaskClick={onTaskClick} />
+                                <DraggableCalendarTask
+                                    task={task}
+                                    onTaskClick={onTaskClick}
+                                    onContextMenu={onContextMenu}
+                                />
                                 <div
                                     className="resize-handle-bottom"
                                     onMouseDown={(e) => handleResizeStart(e, task.id, height)}
@@ -378,7 +391,8 @@ const TimeGrid: React.FC<{
     tasks: Task[],
     onTaskClick: (taskId: string) => void;
     onAddTask: (startDate?: Date, dueDate?: Date) => void;
-}> = ({ days, tasks, onTaskClick, onAddTask }) => {
+    onContextMenu: (taskId: string, trigger: HTMLElement) => void;
+}> = ({ days, tasks, onTaskClick, onAddTask, onContextMenu }) => {
     const hours = Array.from({ length: 24 }, (_, i) => i);
     const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -411,7 +425,12 @@ const TimeGrid: React.FC<{
                             const isAllDay = !t.dueDate.includes('T') && (!t.startDate || !t.startDate.includes('T'));
                             return isAllDay && format(new Date(t.dueDate), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
                         }).map(task => (
-                            <DraggableCalendarTask key={task.id} task={task} onTaskClick={onTaskClick} />
+                            <DraggableCalendarTask
+                                key={task.id}
+                                task={task}
+                                onTaskClick={onTaskClick}
+                                onContextMenu={onContextMenu}
+                            />
                         ))}
                     </div>
                 ))}
@@ -437,6 +456,7 @@ const TimeGrid: React.FC<{
                             tasks={tasks}
                             onTaskClick={onTaskClick}
                             onAddTask={onAddTask}
+                            onContextMenu={onContextMenu}
                         />
                     ))}
                 </div>
@@ -450,9 +470,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
         tasks,
         currentSpaceId,
         updateTask,
+        duplicateTask,
+        archiveTask,
+        deleteTask,
+        addDoc
     } = useAppStore();
     const [viewDate, setViewDate] = useState(new Date());
     const [calendarMode, setCalendarMode] = useState<CalendarMode>('month');
+    const [openMenuTaskId, setOpenMenuTaskId] = useState<string | null>(null);
+    const [menuTrigger, setMenuTrigger] = useState<HTMLElement | null>(null);
+
+    const handleOpenMenu = (taskId: string, trigger: HTMLElement) => {
+        setOpenMenuTaskId(taskId);
+        setMenuTrigger(trigger);
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -561,6 +592,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
         return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
     };
 
+    const handleConvertToDoc = (task: Task) => {
+        // Placeholder
+        alert("Convert to Doc logic here");
+    };
+
     return (
         <div className="view-container calendar-view">
             <ViewHeader />
@@ -613,7 +649,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
                                 return (
                                     <DroppableCalendarDay key={day.toISOString()} day={day} monthStart={monthStart} onClick={() => onAddTask(day)}>
                                         {dayTasks.map(task => (
-                                            <DraggableCalendarTask key={task.id} task={task} onTaskClick={onTaskClick} />
+                                            <DraggableCalendarTask
+                                                key={task.id}
+                                                task={task}
+                                                onTaskClick={onTaskClick}
+                                                onContextMenu={handleOpenMenu}
+                                            />
                                         ))}
                                     </DroppableCalendarDay>
                                 );
@@ -621,10 +662,28 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
                         </div>
                     </div>
                 ) : (
-                    <TimeGrid days={days} tasks={filteredTasks} onTaskClick={onTaskClick} onAddTask={onAddTask} />
+                    <TimeGrid
+                        days={days}
+                        tasks={filteredTasks}
+                        onTaskClick={onTaskClick}
+                        onAddTask={onAddTask}
+                        onContextMenu={handleOpenMenu}
+                    />
                 )}
             </DndContext>
 
+            {openMenuTaskId && (
+                <TaskOptionsMenu
+                    taskId={openMenuTaskId}
+                    onClose={() => setOpenMenuTaskId(null)}
+                    onRename={() => { onTaskClick(openMenuTaskId); setOpenMenuTaskId(null); }}
+                    onDuplicate={() => duplicateTask(openMenuTaskId)}
+                    onArchive={() => archiveTask(openMenuTaskId)}
+                    onDelete={() => deleteTask(openMenuTaskId)}
+                    onConvertToDoc={() => { }}
+                    triggerElement={menuTrigger}
+                />
+            )}
         </div>
     );
 };

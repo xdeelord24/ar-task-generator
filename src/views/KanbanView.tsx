@@ -132,6 +132,10 @@ const SortableCard: React.FC<SortableCardProps> = ({
             {...listeners}
             className="kanban-card"
             onClick={() => onTaskClick(task.id)}
+            onContextMenu={(e) => {
+                e.preventDefault();
+                onOpenMenu(task.id, e.currentTarget);
+            }}
         >
             <div className="card-tags">
                 {task.tags?.map(tagId => {

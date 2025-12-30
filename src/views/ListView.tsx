@@ -318,7 +318,10 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
     };
 
     return (
-        <div className="task-item-row subtask-item-row" onClick={() => onTaskClick(task.id)}>
+        <div className="task-item-row subtask-item-row" onClick={() => onTaskClick(task.id)} onContextMenu={(e) => {
+            e.preventDefault();
+            onOpenMenu(task.id, e.currentTarget);
+        }}>
             <div className="drag-handle-placeholder" style={{ width: 30 }}></div>
             {columns.filter(c => c.visible).map(col => (
                 <React.Fragment key={col.id}>
@@ -671,6 +674,10 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
             <div
                 className="task-item-row"
                 onClick={() => onTaskClick(task.id)}
+                onContextMenu={(e) => {
+                    e.preventDefault();
+                    onOpenMenu(task.id, e.currentTarget);
+                }}
             >
                 <div className="drag-handle" {...attributes} {...listeners}>
                     <GripVertical size={16} />

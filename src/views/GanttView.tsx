@@ -29,8 +29,10 @@ import {
 } from 'date-fns';
 import type { Task } from '../types';
 import ViewHeader from '../components/ViewHeader';
+import TaskOptionsMenu from '../components/TaskOptionsMenu';
 import '../styles/GanttView.css';
 import '../styles/ListView.css';
+import '../styles/TaskOptionsMenu.css';
 
 interface GanttViewProps {
     onAddTask: () => void;
@@ -42,9 +44,10 @@ interface DraggableGanttBarProps {
     monthStart: Date;
     zoom: number;
     onTaskClick: (taskId: string) => void;
+    onContextMenu: (taskId: string, trigger: HTMLElement) => void;
 }
 
-const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, monthStart, zoom, onTaskClick }) => {
+const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, monthStart, zoom, onTaskClick, onContextMenu }) => {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
     });
@@ -88,6 +91,10 @@ const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, monthStart,
             {...attributes}
             className={`gantt-bar ${task.status.toLowerCase().replace(' ', '-')} ${isDragging ? 'dragging' : ''}`}
             onClick={() => onTaskClick(task.id)}
+            onContextMenu={(e) => {
+                e.preventDefault();
+                onContextMenu(task.id, e.currentTarget);
+            }}
         >
             <span className="gantt-bar-label">{task.name}</span>
         </div>
@@ -95,9 +102,16 @@ const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, monthStart,
 };
 
 const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
-    const { tasks, currentSpaceId, updateTask } = useAppStore();
+    const { tasks, currentSpaceId, updateTask, duplicateTask, archiveTask, deleteTask, addDoc } = useAppStore();
     const [viewDate, setViewDate] = useState(new Date());
     const [zoom, setZoom] = useState(1);
+    const [openMenuTaskId, setOpenMenuTaskId] = useState<string | null>(null);
+    const [menuTrigger, setMenuTrigger] = useState<HTMLElement | null>(null);
+
+    const handleOpenMenu = (taskId: string, trigger: HTMLElement) => {
+        setOpenMenuTaskId(taskId);
+        setMenuTrigger(trigger);
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -143,6 +157,12 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
         }
     };
 
+    const handleConvertToDoc = (task: Task) => {
+        // Placeholder
+        alert("Convert to Doc logic here");
+    };
+
+
     return (
         <div className="view-container gantt-view">
             <ViewHeader />
@@ -173,7 +193,15 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
                         <div className="gantt-sidebar-header">Task Name</div>
                         <div className="gantt-sidebar-content">
                             {filteredTasks.map(task => (
-                                <div key={task.id} className="gantt-row-label" onClick={() => onTaskClick(task.id)}>
+                                <div
+                                    key={task.id}
+                                    className="gantt-row-label"
+                                    onClick={() => onTaskClick(task.id)}
+                                    onContextMenu={(e) => {
+                                        e.preventDefault();
+                                        handleOpenMenu(task.id, e.currentTarget);
+                                    }}
+                                >
                                     <span className={`priority-indicator ${task.priority}`}></span>
                                     {task.name}
                                 </div>
@@ -202,12 +230,25 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
                                         monthStart={monthStart}
                                         zoom={zoom}
                                         onTaskClick={onTaskClick}
+                                        onContextMenu={handleOpenMenu}
                                     />
                                 </div>
                             ))}
                         </div>
                     </div>
                 </div>
+                {openMenuTaskId && (
+                    <TaskOptionsMenu
+                        taskId={openMenuTaskId}
+                        onClose={() => setOpenMenuTaskId(null)}
+                        onRename={() => { onTaskClick(openMenuTaskId); setOpenMenuTaskId(null); }}
+                        onDuplicate={() => duplicateTask(openMenuTaskId)}
+                        onArchive={() => archiveTask(openMenuTaskId)}
+                        onDelete={() => deleteTask(openMenuTaskId)}
+                        onConvertToDoc={() => { }}
+                        triggerElement={menuTrigger}
+                    />
+                )}
             </DndContext>
 
         </div>
