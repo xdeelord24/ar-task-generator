@@ -89,8 +89,11 @@
 
 .picker-body {
     display: flex;
-    min-height: 340px;
-    /* Reduced from 400px */
+    flex: 1;
+    min-height: 0;
+    /* Allow shrinking */
+    overflow-y: auto;
+    /* Allow scrolling on short screens */
 }
 
 /* Sidebar */

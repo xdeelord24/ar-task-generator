@@ -59,34 +59,54 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
         if (triggerElement) {
             const rect = triggerElement.getBoundingClientRect();
 
+            // Dimensions
+            const spaceBelow = viewportHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            const idealHeight = pickerHeight; // approx 380-400px
+
             const newStyle: React.CSSProperties = {
                 position: 'fixed',
                 zIndex: 10001,
                 visibility: 'visible',
-                maxWidth: '95vw' // Ensure it doesn't exceed viewport width
+                maxWidth: '95vw',
+                width: pickerWidth,
             };
 
-            // Vertical positioning
-            if (rect.bottom + pickerHeight + 10 > viewportHeight) {
-                // Flip up
-                newStyle.bottom = viewportHeight - rect.top + 5;
-                newStyle.top = 'auto';
-            } else {
-                // Default down
+            // Vertical Positioning Logic
+            // 1. Try Below
+            if (spaceBelow >= idealHeight + 10) {
                 newStyle.top = rect.bottom + 5;
                 newStyle.bottom = 'auto';
+                newStyle.maxHeight = spaceBelow - 20;
+            }
+            // 2. Try Above
+            else if (spaceAbove >= idealHeight + 10) {
+                newStyle.bottom = viewportHeight - rect.top + 5;
+                newStyle.top = 'auto';
+                newStyle.maxHeight = spaceAbove - 20;
+            }
+            // 3. Constrained: Pick side with MORE space
+            else {
+                if (spaceBelow > spaceAbove) {
+                    newStyle.top = rect.bottom + 5;
+                    newStyle.bottom = 'auto';
+                    newStyle.maxHeight = spaceBelow - 20;
+                } else {
+                    newStyle.bottom = viewportHeight - rect.top + 5;
+                    newStyle.top = 'auto';
+                    newStyle.maxHeight = spaceAbove - 20;
+                }
             }
 
             // Horizontal positioning
-            if (rect.left + pickerWidth > viewportWidth - 20) { // Add padding margin
-                // overflow right, align to right edge of viewport or trigger
-
-                // If aligning right to trigger works, do that
-                if (viewportWidth - rect.right + pickerWidth <= viewportWidth) {
+            if (rect.left + pickerWidth > viewportWidth - 20) {
+                const rightSpace = viewportWidth - rect.right;
+                // If aligning right to trigger works (trigger is wide enough or close to right edge)
+                if (rect.right >= pickerWidth) {
                     newStyle.right = viewportWidth - rect.right;
                     newStyle.left = 'auto';
                 } else {
-                    // Otherwise force stick to right edge of screen
+                    // Force stick to right edge
                     newStyle.right = 10;
                     newStyle.left = 'auto';
                 }

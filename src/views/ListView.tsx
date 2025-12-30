@@ -1015,6 +1015,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
 
 
 
+                            if (statusTasks.length === 0) return null;
+
                             return (
                                 <div key={statusObj.id} className="status-group-container">
                                     <DroppableStatusHeader
