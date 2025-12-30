@@ -173,17 +173,36 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState<Date | null>(null);
 
+    // Store original times to preserve them during drag
+    const activeTimes = useRef<{ start?: string, due?: string }>({});
+
+    // Helper to apply time from an ISO string to a new Date
+    const applyTime = (targetDate: Date, sourceIso?: string) => {
+        if (sourceIso && sourceIso.includes('T')) {
+            const old = new Date(sourceIso);
+            const copy = new Date(targetDate);
+            copy.setHours(old.getHours(), old.getMinutes(), 0, 0);
+            return copy.toISOString();
+        }
+        return format(targetDate, 'yyyy-MM-dd');
+    };
+
     const handleMouseDown = (day: Date) => {
         setIsDragging(true);
-        const dateStr = format(day, 'yyyy-MM-dd');
 
         // Start new selection if:
         // 1. We have both start and due dates
         // 2. We are focused on start input
         // 3. We don't have a start date yet
         if ((tempStart && tempDue) || activeInput === 'start' || !tempStart) {
+            // Capture times before resetting
+            activeTimes.current = {
+                start: tempStart,
+                due: tempDue
+            };
+
             setDragStart(day);
-            setTempStart(dateStr);
+            setTempStart(applyTime(day, tempStart));
             setTempDue(undefined);
             setActiveInput('due');
         } else {
@@ -192,29 +211,42 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
             const anchor = new Date(tempStart);
             setDragStart(anchor);
 
+            // Allow preserving time even if we are appending to an existing start
+            if (!activeTimes.current.start) {
+                activeTimes.current = {
+                    start: tempStart,
+                    due: tempDue
+                };
+            }
+
+            const startTime = activeTimes.current.start;
+            const dueTime = activeTimes.current.due || startTime;
+
             if (day < anchor) {
-                setTempStart(dateStr);
-                setTempDue(tempStart);
+                setTempStart(applyTime(day, startTime));
+                setTempDue(applyTime(anchor, dueTime));
             } else {
-                setTempDue(dateStr);
+                setTempDue(applyTime(day, dueTime));
             }
         }
     };
 
     const handleMouseEnter = (day: Date) => {
         if (isDragging && dragStart) {
-            const anchorStr = format(dragStart, 'yyyy-MM-dd');
-            const currentStr = format(day, 'yyyy-MM-dd');
+            const startTime = activeTimes.current.start;
+            const dueTime = activeTimes.current.due || startTime;
 
             if (day < dragStart) {
-                setTempStart(currentStr);
-                setTempDue(anchorStr);
+                setTempStart(applyTime(day, startTime));
+                setTempDue(applyTime(dragStart, dueTime));
             } else {
-                setTempStart(anchorStr);
-                setTempDue(currentStr);
+                setTempStart(applyTime(dragStart, startTime));
+                setTempDue(applyTime(day, dueTime));
             }
         }
     };
+
+
 
     const handleMouseUp = () => {
         setIsDragging(false);
@@ -222,12 +254,13 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
     };
 
     const handleQuickSelect = (day: Date) => {
-        const dateStr = format(day, 'yyyy-MM-dd');
+
+
         if (activeInput === 'start') {
-            setTempStart(dateStr);
+            setTempStart(applyTime(day, tempStart));
             setActiveInput('due');
         } else {
-            setTempDue(dateStr);
+            setTempDue(applyTime(day, tempDue));
         }
     };
 

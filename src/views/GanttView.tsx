@@ -19,7 +19,7 @@ import { useAppStore } from '../store/useAppStore';
 import {
     format,
     startOfMonth,
-    differenceInDays,
+    differenceInMinutes,
     addMonths,
     subMonths,
     eachDayOfInterval,
@@ -52,13 +52,29 @@ const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, monthStart,
     const taskStart = task.startDate ? parseISO(task.startDate) : (task.dueDate ? parseISO(task.dueDate) : new Date());
     const taskEnd = task.dueDate ? parseISO(task.dueDate) : taskStart;
 
-    const duration = Math.max(1, differenceInDays(taskEnd, taskStart) + 1);
-    const dayIndex = differenceInDays(taskStart, monthStart);
+    // Use minutes for precise positioning (fractional days)
+    const minutesPerDay = 24 * 60;
+
+    // Calculate start offset
+    const startDiffMinutes = differenceInMinutes(taskStart, monthStart);
+    const dayIndex = startDiffMinutes / minutesPerDay;
+
+    // Calculate duration
+    const durationMinutes = differenceInMinutes(taskEnd, taskStart);
+    // If duration is 0 (exactly same timestamps) or negative, default to 1 day if it looks like "all day" (no time diff logic implies usually strict dates)
+    // Actually, distinct timestamps:
+    // If duration > 0, use it.
+    // If 0 (e.g. YYYY-MM-DD to YYYY-MM-DD), default to 1 day.
+    let durationDays = durationMinutes / minutesPerDay;
+    if (durationMinutes <= 0) {
+        durationDays = 1;
+    }
+
     const dayWidth = 40 * zoom;
 
     const style = {
         left: `${dayIndex * dayWidth + (transform?.x || 0)}px`,
-        width: `${duration * dayWidth}px`,
+        width: `${Math.max(2, durationDays * dayWidth)}px`, // Min width 2px for visibility
         top: transform ? `${transform.y}px` : undefined,
         zIndex: isDragging ? 100 : 1,
         opacity: isDragging ? 0.8 : 1,

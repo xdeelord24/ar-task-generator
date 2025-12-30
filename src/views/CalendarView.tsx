@@ -152,6 +152,9 @@ const DroppableTimeColumn: React.FC<{
     const [selectionStart, setSelectionStart] = useState<number | null>(null); // Minutes from midnight
     const [selectionEnd, setSelectionEnd] = useState<number | null>(null); // Minutes from midnight
 
+    // Refs to track selection values without re-binding listeners
+    const selectionRef = useRef<{ start: number | null, end: number | null }>({ start: null, end: null });
+
     const getTimePosition = (date: Date) => {
         const mins = date.getHours() * 60 + date.getMinutes();
         return (mins / (24 * 60)) * 100;
@@ -169,8 +172,12 @@ const DroppableTimeColumn: React.FC<{
             // Snap to 15 min
             const snapped = Math.floor(mins / 15) * 15;
 
-            setSelectionStart(snapped);
-            setSelectionEnd(snapped + 30); // Default 30 min duration visual
+            const start = snapped;
+            const end = snapped + 30; // Default 30 min duration visual
+
+            setSelectionStart(start);
+            setSelectionEnd(end);
+            selectionRef.current = { start, end };
             setIsSelecting(true);
         }
     };
@@ -179,18 +186,22 @@ const DroppableTimeColumn: React.FC<{
         if (!isSelecting) return;
 
         const handleMouseMove = (e: MouseEvent) => {
-            if (columnRef.current && selectionStart !== null) {
+            if (columnRef.current && selectionRef.current.start !== null) {
                 const rect = columnRef.current.getBoundingClientRect();
                 const mins = getTimeFromY(e.clientY, rect);
                 const snapped = Math.floor(mins / 15) * 15;
+
                 setSelectionEnd(snapped);
+                selectionRef.current.end = snapped;
             }
         };
 
         const handleMouseUp = () => {
-            if (selectionStart !== null && selectionEnd !== null) {
-                const startMins = Math.min(selectionStart, selectionEnd);
-                const endMins = Math.max(selectionStart, selectionEnd);
+            const { start, end } = selectionRef.current;
+
+            if (start !== null && end !== null) {
+                const startMins = Math.min(start, end);
+                const endMins = Math.max(start, end);
                 // Ensure at least 30 mins
                 const duration = Math.max(30, endMins - startMins);
                 const finalEndMins = startMins + duration;
@@ -206,6 +217,7 @@ const DroppableTimeColumn: React.FC<{
             setIsSelecting(false);
             setSelectionStart(null);
             setSelectionEnd(null);
+            selectionRef.current = { start: null, end: null };
         };
 
         window.addEventListener('mousemove', handleMouseMove);
@@ -215,7 +227,7 @@ const DroppableTimeColumn: React.FC<{
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isSelecting, selectionStart, day, onAddTask]);
+    }, [isSelecting, day, onAddTask]);
 
     const handleResizeStart = (e: React.MouseEvent, taskId: string, initialHeight: number) => {
         e.preventDefault();
