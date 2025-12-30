@@ -25,7 +25,8 @@ import {
     Circle,
     Sparkles,
     ArrowUpDown,
-    RotateCw
+    RotateCw,
+    CornerDownLeft
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore } from '../store/useAppStore';
@@ -123,7 +124,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [suggestedSubtasks, setSuggestedSubtasks] = useState<string[]>([]);
     const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set());
     const [isEnhancingTitle, setIsEnhancingTitle] = useState(false);
-    const [suggestedTitle, setSuggestedTitle] = useState<string | null>(null);
+    const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
     const [isPriorityPickerOpen, setIsPriorityPickerOpen] = useState(false);
     const activityFeedRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
     const titleSuggestionRef = useRef<HTMLDivElement>(null);
@@ -135,13 +136,13 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && suggestedTitle) {
-                setSuggestedTitle(null);
+            if (e.key === 'Escape' && suggestedTitles.length > 0) {
+                setSuggestedTitles([]);
             }
         };
         const handleClickOutside = (e: MouseEvent) => {
             if (titleSuggestionRef.current && !titleSuggestionRef.current.contains(e.target as Node)) {
-                setSuggestedTitle(null);
+                setSuggestedTitles([]);
             }
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -150,7 +151,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [suggestedTitle]);
+    }, [suggestedTitles]);
     if (!task) return null;
 
     const handleSuggestSubtasks = async () => {
@@ -206,12 +207,12 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const handleEnhanceTitle = async () => {
         if (!task) return;
         setIsEnhancingTitle(true);
-        setSuggestedTitle(null);
+        setSuggestedTitles([]);
 
         const prompt = `Enhance the task title: "${task.name}".
         Description: ${task.description || 'No description'}.
-        Make it more professional, concise, and action-oriented.
-        Return ONLY the enhanced title string. 
+        Suggest exactly 3 improved, professional, and concise task titles.
+        Return ONLY the 3 titles, one per line, without numbering or extra text.
         IMPORTANT: Do NOT use markdown (no asterisks), do NOT use quotes, and do NOT use commas.`;
 
         try {
@@ -238,14 +239,18 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                 responseText = result.response.text();
             }
 
-            const cleaned = responseText.trim()
-                .replace(/\*/g, '') // Remove asterisks
-                .replace(/^"(.*)"$/, '$1') // Remove leading/trailing quotes
-                .replace(/^'(.*)'$/, '$1') // Remove leading/trailing single quotes
-                .replace(/,/g, '') // Remove commas as requested
-                .trim();
+            const titles = responseText.split('\n')
+                .map(s => s.trim()
+                    .replace(/\*/g, '') // Remove asterisks
+                    .replace(/^"(.*)"$/, '$1') // Remove leading/trailing quotes
+                    .replace(/^'(.*)'$/, '$1') // Remove leading/trailing single quotes
+                    .replace(/,/g, '') // Remove commas
+                    .trim()
+                )
+                .filter(s => s.length > 0)
+                .slice(0, 3);
 
-            setSuggestedTitle(cleaned);
+            setSuggestedTitles(titles);
         } catch (error) {
             console.error("AI Enhance Title Error:", error);
             alert("Failed to enhance title. Check AI settings.");
@@ -614,46 +619,45 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                 </button>
                             )}
 
-                            {suggestedTitle && (
+                            {suggestedTitles.length > 0 && (
                                 <div className="title-suggestion-popover" ref={titleSuggestionRef}>
                                     <div className="suggestion-header-content">
                                         <span className="suggestion-label">
                                             <Sparkles size={12} style={{ marginRight: '6px' }} />
-                                            AI Suggestion
+                                            AI Suggestions
                                         </span>
-                                        <button
-                                            className="btn-close-popover"
-                                            onClick={() => setSuggestedTitle(null)}
-                                            title="Dismiss"
-                                        >
-                                            <X size={14} />
-                                        </button>
+                                        <div className="suggestion-header-actions">
+                                            <button
+                                                className="btn-refresh-suggestion-icon"
+                                                onClick={handleEnhanceTitle}
+                                                disabled={isEnhancingTitle}
+                                                title="Regenerate"
+                                            >
+                                                <RotateCw size={14} className={isEnhancingTitle ? 'animate-spin' : ''} />
+                                            </button>
+                                            <button
+                                                className="btn-close-popover"
+                                                onClick={() => setSuggestedTitles([])}
+                                                title="Dismiss"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="suggested-title-text">{suggestedTitle}</div>
-                                    <div className="suggestion-actions">
-                                        <button
-                                            className="btn-accept-suggestion"
-                                            onClick={() => {
-                                                handleUpdate({ name: suggestedTitle });
-                                                setSuggestedTitle(null);
-                                            }}
-                                        >
-                                            Accept
-                                        </button>
-                                        <button
-                                            className="btn-refresh-suggestion"
-                                            onClick={handleEnhanceTitle}
-                                            disabled={isEnhancingTitle}
-                                            title="Regenerate"
-                                        >
-                                            <RotateCw size={14} className={isEnhancingTitle ? 'animate-spin' : ''} />
-                                        </button>
-                                        <button
-                                            className="btn-decline-suggestion"
-                                            onClick={() => setSuggestedTitle(null)}
-                                        >
-                                            Decline
-                                        </button>
+                                    <div className="suggested-titles-list">
+                                        {suggestedTitles.map((title, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="suggested-title-item"
+                                                onClick={() => {
+                                                    handleUpdate({ name: title });
+                                                    setSuggestedTitles([]);
+                                                }}
+                                            >
+                                                <div className="suggested-title-text-main">{title}</div>
+                                                <CornerDownLeft size={14} className="enter-icon-suggestion" />
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}

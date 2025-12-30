@@ -311,7 +311,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(168, 85, 247, 0.1);
 }
 
 .suggestion-label {
@@ -324,54 +326,69 @@
     letter-spacing: 0.05em;
 }
 
+.suggestion-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-refresh-suggestion-icon,
 .btn-close-popover {
     background: transparent;
     border: none;
     color: var(--text-tertiary);
     cursor: pointer;
-    padding: 4px;
+    padding: 6px;
     display: flex;
-    border-radius: 4px;
+    border-radius: 6px;
     transition: all 0.2s;
 }
 
+.btn-refresh-suggestion-icon:hover,
 .btn-close-popover:hover {
     background: var(--bg-hover);
-    color: var(--text-main);
+    color: #a855f7;
 }
 
-.suggested-title-text {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-main);
-    margin-bottom: 20px;
-    line-height: 1.4;
-    padding: 12px;
-    background: var(--bg-hover);
-    border-radius: 8px;
-    border-left: 4px solid #a855f7;
-}
-
-.suggestion-actions {
+.suggested-titles-list {
     display: flex;
+    flex-direction: column;
     gap: 12px;
 }
 
-.btn-accept-suggestion {
-    padding: 10px 24px;
-    background: #a855f7;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
+.suggested-title-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--bg-hover);
+    border-radius: 12px;
+    border: 1px solid transparent;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.btn-accept-suggestion:hover {
-    background: #9333ea;
-    box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
+.suggested-title-item:hover {
+    background: var(--bg-surface);
+    border-color: #a855f7;
+    box-shadow: 0 4px 15px rgba(168, 85, 247, 0.1);
+    transform: translateX(4px);
+}
+
+.suggested-title-text-main {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.enter-icon-suggestion {
+    color: #a855f7;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.suggested-title-item:hover .enter-icon-suggestion {
+    opacity: 1;
 }
 
 .btn-decline-suggestion {
