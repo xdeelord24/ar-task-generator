@@ -1,12 +1,12 @@
 .premium-datepicker {
-    background: #1e293b;
-    color: #f8fafc;
+    background: var(--bg-surface);
+    color: var(--text-main);
     max-width: 95vw;
     width: 650px;
     border-radius: 12px;
-    border: 1px solid #334155;
+    border: 1px solid var(--border);
     overflow: hidden;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-xl);
     display: flex;
     flex-direction: column;
     font-family: 'Inter', sans-serif;
@@ -19,7 +19,7 @@
     padding: 16px;
     display: flex;
     gap: 12px;
-    border-bottom: 1px solid #334155;
+    border-bottom: 1px solid var(--border);
 }
 
 .date-input-field {
@@ -27,29 +27,29 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #0f172a;
+    background: var(--bg-main);
     padding: 10px 14px;
     border-radius: 8px;
-    border: 1px solid #334155;
+    border: 1px solid var(--border);
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .date-input-field:hover {
-    border-color: #475569;
+    border-color: var(--text-secondary);
 }
 
 .date-input-field.active {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-    background: #0f172a;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+    background: var(--bg-main);
 }
 
 .date-input-field input {
     background: transparent;
     border: none;
     outline: none;
-    color: #f8fafc;
+    color: var(--text-main);
     font-size: 14px;
     font-weight: 600;
     width: 140px;
@@ -66,17 +66,17 @@
 
 .sub-action {
     font-size: 12px;
-    color: #94a3b8;
+    color: var(--text-tertiary);
     margin-left: auto;
-    background: #334155;
+    background: var(--bg-hover);
     padding: 2px 8px;
     border-radius: 4px;
     white-space: nowrap;
 }
 
 .sub-action:hover {
-    color: #f8fafc;
-    background: #475569;
+    color: var(--text-main);
+    background: var(--bg-active);
 }
 
 .picker-body {
@@ -87,10 +87,10 @@
 /* Sidebar */
 .picker-sidebar {
     width: 200px;
-    border-right: 1px solid #334155;
+    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    background: #1e293b;
+    background: var(--bg-surface);
 }
 
 .quick-options-list {
@@ -106,11 +106,11 @@
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.2s;
-    color: #e2e8f0;
+    color: var(--text-secondary);
 }
 
 .quick-opt-item:hover {
-    background: #334155;
+    background: var(--bg-hover);
 }
 
 .opt-label {
@@ -120,32 +120,32 @@
 
 .opt-sub {
     font-size: 12px;
-    color: #94a3b8;
+    color: var(--text-tertiary);
 }
 
 .sidebar-footer-btn {
     padding: 16px;
-    border-top: 1px solid #334155;
+    border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    color: #94a3b8;
+    color: var(--text-tertiary);
     transition: all 0.2s;
 }
 
 .sidebar-footer-btn:hover {
-    background: #334155;
-    color: #f8fafc;
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
 
 /* Calendar */
 .picker-calendar {
     flex: 1;
     padding: 20px;
-    background: #1e293b;
+    background: var(--bg-surface);
 }
 
 .cal-header {
@@ -158,7 +158,7 @@
 .month-label {
     font-size: 16px;
     font-weight: 700;
-    color: #f8fafc;
+    color: var(--text-main);
 }
 
 .cal-nav {
@@ -170,7 +170,7 @@
 .today-btn {
     font-size: 13px;
     font-weight: 600;
-    color: #94a3b8;
+    color: var(--text-tertiary);
     cursor: pointer;
     margin-right: 8px;
     background: transparent;
@@ -179,13 +179,13 @@
 }
 
 .today-btn:hover {
-    color: #f8fafc;
+    color: var(--text-main);
 }
 
 .cal-nav button {
     background: transparent;
     border: none;
-    color: #94a3b8;
+    color: var(--text-tertiary);
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
@@ -193,8 +193,8 @@
 }
 
 .cal-nav button:hover {
-    background: #334155;
-    color: #f8fafc;
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
 
 .cal-grid-header {
@@ -203,7 +203,7 @@
     text-align: center;
     font-size: 12px;
     font-weight: 700;
-    color: #64748b;
+    color: var(--text-tertiary);
     margin-bottom: 8px;
 }
 
@@ -223,35 +223,37 @@
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.2s;
-    color: #e2e8f0;
+    color: var(--text-secondary);
 }
 
 .cal-day:hover {
-    background: #334155;
+    background: var(--bg-hover);
 }
 
 .cal-day.other-month {
-    color: #475569;
+    color: var(--text-tertiary);
+    opacity: 0.5;
 }
 
 .cal-day.today {
-    color: #3b82f6;
+    color: var(--primary);
     font-weight: 700;
 }
 
 .cal-day.selected {
-    background: #3b82f6 !important;
+    background: var(--primary) !important;
     color: white !important;
 }
 
 .cal-day.in-range {
-    background: rgba(59, 130, 246, 0.15);
+    background: var(--primary-light);
     border-radius: 0;
-    color: #e2e8f0;
+    color: var(--text-main);
 }
 
 .cal-day.in-range:hover {
-    background: rgba(59, 130, 246, 0.25);
+    background: var(--primary-light);
+    opacity: 0.8;
 }
 
 /* Recurring View */
@@ -261,7 +263,7 @@
     flex-direction: column;
     gap: 16px;
     height: 100%;
-    background: #1e293b;
+    background: var(--bg-surface);
 }
 
 .rec-header {
@@ -270,31 +272,31 @@
     align-items: center;
     font-size: 14px;
     font-weight: 700;
-    color: #f8fafc;
+    color: var(--text-main);
 }
 
 .rec-icons {
     display: flex;
     gap: 12px;
-    color: #94a3b8;
+    color: var(--text-tertiary);
 }
 
 .rec-select {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #0f172a;
+    background: var(--bg-main);
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid #334155;
+    border: 1px solid var(--border);
     font-size: 13px;
     cursor: pointer;
     margin-bottom: 8px;
-    color: #e2e8f0;
+    color: var(--text-secondary);
 }
 
 .rec-select:hover {
-    border-color: #475569;
+    border-color: var(--text-secondary);
 }
 
 .rec-checkboxes {
@@ -308,33 +310,33 @@
     align-items: center;
     gap: 10px;
     font-size: 13px;
-    color: #94a3b8;
+    color: var(--text-tertiary);
     cursor: pointer;
 }
 
 .rec-check-item input[type="checkbox"] {
-    accent-color: #3b82f6;
-    background: #0f172a;
-    border-color: #334155;
+    accent-color: var(--primary);
+    background: var(--bg-main);
+    border-color: var(--border);
 }
 
 .rec-status-picker {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #0f172a;
+    background: var(--bg-main);
     padding: 10px 12px;
     border-radius: 8px;
     font-size: 12px;
     font-weight: 700;
-    color: #94a3b8;
-    border: 1px solid #334155;
+    color: var(--text-tertiary);
+    border: 1px solid var(--border);
 }
 
 .status-dot-gray {
     width: 8px;
     height: 8px;
-    background: #475569;
+    background: var(--text-secondary);
     border-radius: 2px;
 }
 
@@ -347,17 +349,17 @@
 /* Global Footer */
 .picker-global-footer {
     padding: 16px;
-    border-top: 1px solid #334155;
+    border-top: 1px solid var(--border);
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    background: #1e293b;
+    background: var(--bg-surface);
 }
 
 .btn-secondary {
     background: transparent;
-    border: 1px solid #334155;
-    color: #94a3b8;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -367,12 +369,12 @@
 }
 
 .btn-secondary:hover {
-    background: #334155;
-    color: #f8fafc;
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
 
 .btn-primary {
-    background: #3b82f6;
+    background: var(--primary);
     border: none;
     color: white;
     padding: 8px 16px;
@@ -384,5 +386,5 @@
 }
 
 .btn-primary:hover {
-    background: #2563eb;
+    background: var(--primary-hover);
 }
