@@ -38,6 +38,17 @@ export class DatabaseHandler {
                     avatar_url TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
+
+                CREATE TABLE IF NOT EXISTS shared_resources (
+                    id TEXT PRIMARY KEY,
+                    resource_type TEXT NOT NULL, -- 'space', 'list', 'folder', 'task'
+                    resource_id TEXT NOT NULL,
+                    owner_id TEXT NOT NULL,
+                    invited_email TEXT NOT NULL,
+                    status TEXT DEFAULT 'pending', -- 'pending', 'accepted'
+                    permission TEXT DEFAULT 'view', -- 'view', 'edit'
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
             `);
 
             console.log('Database schema initialized: tables ready.');

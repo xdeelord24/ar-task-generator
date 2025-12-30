@@ -45,6 +45,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
             login(data.user, data.token);
             if (onClose) onClose();
+
+            // Force reload to ensure fresh store state is fetched from server
+            setTimeout(() => {
+                window.location.reload();
+            }, 100);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -79,6 +84,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
             login(data.user, data.token);
             if (onClose) onClose();
+
+            // Force reload
+            setTimeout(() => {
+                window.location.reload();
+            }, 100);
         } catch (err: any) {
             setError(err.message);
         } finally {

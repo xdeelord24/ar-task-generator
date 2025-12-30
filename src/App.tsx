@@ -11,6 +11,7 @@ import DocsView from './views/DocsView';
 import SpaceOverview from './views/SpaceOverview';
 import ClipsView from './views/ClipsView';
 import AgentsView from './views/AgentsView';
+import InboxView from './views/InboxView';
 import TaskModal from './components/TaskModal';
 import TaskDetailModal from './components/TaskDetailModal';
 import ReportModal from './components/ReportModal';
@@ -79,6 +80,8 @@ function App() {
     switch (currentView) {
       case 'home':
         return <HomeView onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
+      case 'inbox':
+        return <InboxView />;
       case 'timesheet':
         return <TimesheetView />;
       case 'dashboards':

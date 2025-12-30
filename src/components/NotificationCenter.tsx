@@ -45,18 +45,12 @@ const NotificationCenter = ({ onTaskClick }: NotificationCenterProps) => {
 
     const getNotificationIcon = (type: string) => {
         switch (type) {
-            case 'overdue':
-                return '⚠️';
-            case 'due_soon':
-                return '⏰';
-            case 'task_assigned':
-                return '👤';
-            case 'task_completed':
-                return '✅';
-            case 'comment_added':
-                return '💬';
-            default:
-                return '🔔';
+            case 'overdue': return '⚠️';
+            case 'due_soon': return '⏰';
+            case 'task_assigned': return '👤';
+            case 'task_completed': return '✅';
+            case 'comment_added': return '💬';
+            default: return '🔔';
         }
     };
 

@@ -99,6 +99,53 @@ export const serverStorage: StateStorage = {
             }
 
             if (serverData) {
+                // Determine if we need to fetch shared data
+                if (token && name.includes('app-storage')) {
+                    try {
+                        const sharedRes = await fetch('http://localhost:3001/api/shared', { headers });
+                        if (sharedRes.ok) {
+                            const sharedData = await sharedRes.json();
+                            const currentState = serverData.state || serverData;
+
+                            // Merge shared spaces - Check if they exist to prevent duplicates if logic changes
+                            if (sharedData.spaces && sharedData.spaces.length > 0) {
+                                if (!currentState.spaces) currentState.spaces = [];
+                                const existingSpaceIds = new Set(currentState.spaces.map((s: any) => s.id));
+                                sharedData.spaces.forEach((s: any) => {
+                                    if (!existingSpaceIds.has(s.id)) {
+                                        // s.name should already have (Shared) from server, but nice to ensure
+                                        currentState.spaces.push(s);
+                                    }
+                                });
+                            }
+
+                            if (sharedData.folders && sharedData.folders.length > 0) {
+                                if (!currentState.folders) currentState.folders = [];
+                                const existingIds = new Set(currentState.folders.map((f: any) => f.id));
+                                sharedData.folders.forEach((f: any) => {
+                                    if (!existingIds.has(f.id)) currentState.folders.push(f);
+                                });
+                            }
+
+                            if (sharedData.lists && sharedData.lists.length > 0) {
+                                if (!currentState.lists) currentState.lists = [];
+                                const existingIds = new Set(currentState.lists.map((l: any) => l.id));
+                                sharedData.lists.forEach((l: any) => {
+                                    if (!existingIds.has(l.id)) currentState.lists.push(l);
+                                });
+                            }
+
+                            if (sharedData.tasks && sharedData.tasks.length > 0) {
+                                if (!currentState.tasks) currentState.tasks = [];
+                                const existingIds = new Set(currentState.tasks.map((t: any) => t.id));
+                                sharedData.tasks.forEach((t: any) => {
+                                    if (!existingIds.has(t.id)) currentState.tasks.push(t);
+                                });
+                            }
+                        }
+                    } catch (e) { console.error('Failed to merge shared data', e); }
+                }
+
                 const dataStr = JSON.stringify(serverData);
                 // Sync to local DB for offline backup
                 await browserDb.set(name, dataStr);

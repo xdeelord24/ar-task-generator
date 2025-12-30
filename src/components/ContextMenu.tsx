@@ -7,6 +7,8 @@ export interface ContextMenuItem {
     onClick: () => void;
     danger?: boolean;
     divider?: boolean;
+    className?: string;
+    rightContent?: React.ReactNode;
 }
 
 interface ContextMenuProps {
@@ -51,7 +53,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
                 boxShadow: 'var(--shadow-lg)',
                 border: '1px solid var(--border)',
                 padding: '4px',
-                minWidth: '160px',
+                minWidth: '220px',
             }}
             onClick={(e) => e.stopPropagation()}
         >
@@ -59,6 +61,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
                 <React.Fragment key={index}>
                     {item.divider && <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />}
                     <button
+                        className={item.className}
                         onClick={(e) => {
                             e.stopPropagation();
                             console.log('ContextMenu: Item clicked', item.label);
@@ -68,6 +71,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
                         style={{
                             display: 'flex',
                             alignItems: 'center',
+                            justifyContent: 'space-between',
                             gap: '8px',
                             width: '100%',
                             padding: '8px 12px',
@@ -81,11 +85,22 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
                             textAlign: 'left',
                             transition: 'background 0.2s',
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                        onMouseEnter={(e) => {
+                            if (!item.className?.includes('btn-primary')) {
+                                e.currentTarget.style.background = 'var(--bg-hover)'
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!item.className?.includes('btn-primary')) {
+                                e.currentTarget.style.background = 'transparent'
+                            }
+                        }}
                     >
-                        {item.icon}
-                        {item.label}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {item.icon}
+                            {item.label}
+                        </div>
+                        {item.rightContent}
                     </button>
                 </React.Fragment>
             ))}

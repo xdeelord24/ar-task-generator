@@ -8,7 +8,6 @@ import {
     Plus,
     ChevronRight,
     ChevronLeft,
-    Settings,
     Edit2,
     Trash2,
     Star as StarIcon,
@@ -35,13 +34,24 @@ import {
     Hash,
     Folder,
     Video,
-    Bot
+    Bot,
+    Link,
+    Droplet,
+    Wand2,
+    FileEdit,
+    Disc,
+    Tag,
+    MoreHorizontal,
+    EyeOff,
+    Copy,
+    Archive
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import ContextMenu, { useContextMenu } from './ContextMenu';
 import CreateSpaceModal from './CreateSpaceModal';
 import CreateListModal from './CreateListModal';
 import CreateFolderModal from './CreateFolderModal';
+import ShareSpaceModal from './ShareSpaceModal';
 import '../styles/Sidebar.css';
 
 const IconMap: Record<string, any> = {
@@ -106,6 +116,7 @@ const Sidebar: React.FC = () => {
     const [editingSpace, setEditingSpace] = React.useState<any>(null);
     const [editingFolder, setEditingFolder] = React.useState<any>(null);
     const [editingList, setEditingList] = React.useState<any>(null);
+    const [sharingSpace, setSharingSpace] = React.useState<any>(null);
     const [renamingDashboardId, setRenamingDashboardId] = React.useState<string | null>(null);
     const [dashboardNewName, setDashboardNewName] = React.useState('');
     const [createListSpaceId, setCreateListSpaceId] = React.useState<string | null>(null);
@@ -237,11 +248,30 @@ const Sidebar: React.FC = () => {
                                         handleSpaceClick(space.id);
                                     }}
                                     onContextMenu={(e) => showContextMenu(e, [
-                                        { label: 'Create List', icon: <Plus size={14} />, onClick: () => setCreateListSpaceId(space.id) },
-                                        { label: 'Create Folder', icon: <Folder size={14} />, onClick: () => setCreateFolderSpaceId(space.id) },
-                                        { label: 'Space Settings', icon: <Settings size={14} />, onClick: () => setEditingSpace(space) },
                                         { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingSpace(space) },
+                                        { label: 'Copy link', icon: <Link size={14} />, onClick: () => console.log('Copy link') },
+                                        { divider: true, label: '', onClick: () => { } },
+                                        { label: 'Create new', icon: <Plus size={14} />, onClick: () => setCreateListSpaceId(space.id) },
+                                        { label: 'Color & Icon', icon: <Droplet size={14} />, onClick: () => setEditingSpace(space) },
+                                        { label: 'Templates', icon: <Wand2 size={14} />, onClick: () => { } },
+                                        { label: 'Automations', icon: <Zap size={14} />, onClick: () => { } },
+                                        { label: 'Custom Fields', icon: <FileEdit size={14} />, onClick: () => { } },
+                                        { label: 'Task statuses', icon: <Disc size={14} />, onClick: () => { } },
+                                        { label: 'Tags', icon: <Tag size={14} />, onClick: () => { } },
+                                        { label: 'More', icon: <MoreHorizontal size={14} />, onClick: () => { } },
+                                        { divider: true, label: '', onClick: () => { } },
+                                        { label: 'Add to Favorites', icon: <StarIcon size={14} />, onClick: () => { } },
+                                        { label: 'Hide Space', icon: <EyeOff size={14} />, onClick: () => { } },
+                                        { divider: true, label: '', onClick: () => { } },
+                                        { label: 'Duplicate', icon: <Copy size={14} />, onClick: () => { } },
+                                        { label: 'Archive', icon: <Archive size={14} />, onClick: () => { } },
                                         { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteSpace(space.id), danger: true },
+                                        {
+                                            label: 'Sharing & Permissions',
+                                            icon: null,
+                                            onClick: () => setSharingSpace(space),
+                                            className: 'context-menu-share-btn'
+                                        },
                                     ])}
                                 >
                                     <div
@@ -532,6 +562,13 @@ const Sidebar: React.FC = () => {
                     editingFolder={editingFolder}
                     onUpdate={updateFolder}
                     onClose={() => setEditingFolder(null)}
+                />
+            )}
+            {sharingSpace && (
+                <ShareSpaceModal
+                    spaceId={sharingSpace.id}
+                    spaceName={sharingSpace.name}
+                    onClose={() => setSharingSpace(null)}
                 />
             )}
             {contextMenuProps.visible && (
