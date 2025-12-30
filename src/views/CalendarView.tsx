@@ -162,7 +162,8 @@ const DroppableTimeColumn: React.FC<{
 
     const handleMouseDown = (e: React.MouseEvent) => {
         // Only trigger if clicking directly on the column/slots, not on a task
-        if ((e.target as HTMLElement).closest('.draggable-calendar-task')) return;
+        if ((e.target as HTMLElement).closest('.calendar-task-tag')) return;
+        if ((e.target as HTMLElement).closest('.draggable-task-wrapper')) return;
         if ((e.target as HTMLElement).closest('.resize-handle-bottom')) return;
 
         if (columnRef.current) {
