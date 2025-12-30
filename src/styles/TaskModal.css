@@ -924,6 +924,38 @@
     color: var(--text-secondary);
 }
 
+.suggestions-actions-header {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-refresh-titles,
+.btn-close-suggestions {
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-refresh-titles:hover,
+.btn-close-suggestions:hover {
+    color: var(--primary);
+    background: var(--bg-active);
+}
+
+.btn-refresh-titles:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .suggestions-loading {
     margin-left: auto;
     color: var(--text-tertiary);

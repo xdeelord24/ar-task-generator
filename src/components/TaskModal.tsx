@@ -6,7 +6,7 @@ import {
     FileText, LayoutDashboard, Square, ListTodo, Plus,
     Table, Columns, List, File, User, MessageSquare, PenTool,
     AtSign, ArrowRight, CornerDownLeft, Copy, RotateCcw, ThumbsUp, ThumbsDown, ChevronLeft,
-    UserPlus, Eye, CalendarDays, Inbox, CircleDot, GitMerge, Hash, Box
+    UserPlus, Eye, CalendarDays, Inbox, CircleDot, GitMerge, Hash, Box, RotateCw
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore } from '../store/useAppStore';
@@ -72,6 +72,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
     const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
     const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
     const suggestionTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const suggestionsRef = React.useRef<HTMLDivElement>(null);
 
     const handleGenerateAI = async (overridePrompt?: string) => {
         const query = overridePrompt || aiInput;
@@ -278,6 +279,25 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
         }, 800);
     };
 
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && showTitleSuggestions) {
+                setShowTitleSuggestions(false);
+            }
+        };
+        const handleClickOutside = (e: MouseEvent) => {
+            if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
+                setShowTitleSuggestions(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showTitleSuggestions]);
+
     const handleSlashKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (!showSlashMenu) return;
 
@@ -396,11 +416,33 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
 
                 {/* Title Suggestions */}
                 {showTitleSuggestions && titleSuggestions.length > 0 && (
-                    <div className="title-suggestions">
+                    <div className="title-suggestions" ref={suggestionsRef}>
                         <div className="suggestions-header">
                             <Sparkles size={14} color="#8b5cf6" />
                             <span>Suggested titles</span>
-                            {isFetchingSuggestions && <span className="suggestions-loading">...</span>}
+                            <div className="suggestions-actions-header">
+                                <button
+                                    className="btn-refresh-titles"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        fetchTitleSuggestions(name);
+                                    }}
+                                    disabled={isFetchingSuggestions}
+                                    title="Regenerate suggestions"
+                                >
+                                    <RotateCw size={12} className={isFetchingSuggestions ? 'animate-spin' : ''} />
+                                </button>
+                                <button
+                                    className="btn-close-suggestions"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowTitleSuggestions(false);
+                                    }}
+                                    title="Dismiss"
+                                >
+                                    <X size={12} />
+                                </button>
+                            </div>
                         </div>
                         <div className="suggestions-list">
                             {titleSuggestions.map((suggestion, index) => (

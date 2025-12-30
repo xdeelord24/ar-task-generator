@@ -307,16 +307,37 @@
     }
 }
 
+.suggestion-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
 .suggestion-label {
     font-size: 11px;
     font-weight: 800;
     color: #a855f7;
     text-transform: uppercase;
-    margin-bottom: 12px;
     display: flex;
     align-items: center;
-    gap: 6px;
     letter-spacing: 0.05em;
+}
+
+.btn-close-popover {
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-close-popover:hover {
+    background: var(--bg-hover);
+    color: var(--text-main);
 }
 
 .suggested-title-text {
@@ -369,6 +390,31 @@
     background: var(--bg-hover);
     color: var(--text-main);
     border-color: var(--text-secondary);
+}
+
+.btn-refresh-suggestion {
+    padding: 10px;
+    background: transparent;
+    color: #a855f7;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-refresh-suggestion:hover {
+    background: rgba(168, 85, 247, 0.1);
+    border-color: #a855f7;
+    transform: rotate(30deg);
+}
+
+.btn-refresh-suggestion:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
 }
 
 /* Metadata Grid */

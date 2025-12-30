@@ -24,7 +24,8 @@ import {
     Search,
     Circle,
     Sparkles,
-    ArrowUpDown
+    ArrowUpDown,
+    RotateCw
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore } from '../store/useAppStore';
@@ -125,13 +126,31 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [suggestedTitle, setSuggestedTitle] = useState<string | null>(null);
     const [isPriorityPickerOpen, setIsPriorityPickerOpen] = useState(false);
     const activityFeedRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
-    // Auto-scroll activity feed to bottom
+    const titleSuggestionRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (activityFeedRef.current) {
             activityFeedRef.current.scrollTop = activityFeedRef.current.scrollHeight;
         }
     }, [task?.comments, sidebarTab]);
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && suggestedTitle) {
+                setSuggestedTitle(null);
+            }
+        };
+        const handleClickOutside = (e: MouseEvent) => {
+            if (titleSuggestionRef.current && !titleSuggestionRef.current.contains(e.target as Node)) {
+                setSuggestedTitle(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [suggestedTitle]);
     if (!task) return null;
 
     const handleSuggestSubtasks = async () => {
@@ -596,8 +615,20 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                             )}
 
                             {suggestedTitle && (
-                                <div className="title-suggestion-popover">
-                                    <span className="suggestion-label">AI Suggestion</span>
+                                <div className="title-suggestion-popover" ref={titleSuggestionRef}>
+                                    <div className="suggestion-header-content">
+                                        <span className="suggestion-label">
+                                            <Sparkles size={12} style={{ marginRight: '6px' }} />
+                                            AI Suggestion
+                                        </span>
+                                        <button
+                                            className="btn-close-popover"
+                                            onClick={() => setSuggestedTitle(null)}
+                                            title="Dismiss"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
                                     <div className="suggested-title-text">{suggestedTitle}</div>
                                     <div className="suggestion-actions">
                                         <button
@@ -608,6 +639,14 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                             }}
                                         >
                                             Accept
+                                        </button>
+                                        <button
+                                            className="btn-refresh-suggestion"
+                                            onClick={handleEnhanceTitle}
+                                            disabled={isEnhancingTitle}
+                                            title="Regenerate"
+                                        >
+                                            <RotateCw size={14} className={isEnhancingTitle ? 'animate-spin' : ''} />
                                         </button>
                                         <button
                                             className="btn-decline-suggestion"
