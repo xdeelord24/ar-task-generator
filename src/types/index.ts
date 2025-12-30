@@ -91,12 +91,16 @@ export interface Space {
   isDefault: boolean;
   taskCount: number;
   statuses?: Status[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Folder {
   id: string;
   name: string;
   spaceId: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface List {
@@ -108,6 +112,8 @@ export interface List {
   icon?: string;
   color?: string;
   statuses?: Status[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type ViewType = 'home' | 'list' | 'kanban' | 'calendar' | 'gantt' | 'timesheet' | 'dashboards' | 'docs' | 'pulse' | 'forms' | 'inbox' | 'teams' | 'whiteboards' | 'clips' | 'goals' | 'space_overview' | 'agents';

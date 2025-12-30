@@ -485,7 +485,8 @@ export const useAppStore = create<AppStore>()(
                 tasks: state.tasks.map((task) =>
                     task.id === taskId ? {
                         ...task,
-                        subtasks: [...(task.subtasks || []), { ...subtask, id: crypto.randomUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }]
+                        subtasks: [...(task.subtasks || []), { ...subtask, id: crypto.randomUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+                        updatedAt: new Date().toISOString()
                     } : task
                 )
             })),
@@ -493,7 +494,8 @@ export const useAppStore = create<AppStore>()(
                 tasks: state.tasks.map((task) =>
                     task.id === taskId ? {
                         ...task,
-                        subtasks: task.subtasks?.map(st => st.id === subtaskId ? { ...st, ...updates, updatedAt: new Date().toISOString() } : st)
+                        subtasks: task.subtasks?.map(st => st.id === subtaskId ? { ...st, ...updates, updatedAt: new Date().toISOString() } : st),
+                        updatedAt: new Date().toISOString()
                     } : task
                 )
             })),
@@ -501,20 +503,34 @@ export const useAppStore = create<AppStore>()(
                 tasks: state.tasks.map((task) =>
                     task.id === taskId ? {
                         ...task,
-                        subtasks: task.subtasks?.filter(st => st.id !== subtaskId)
+                        subtasks: task.subtasks?.filter(st => st.id !== subtaskId),
+                        updatedAt: new Date().toISOString()
                     } : task
                 )
             })),
             setSpaces: (spaces) => set({ spaces }),
             addSpace: (space) => set((state) => ({
-                spaces: [...state.spaces, { ...space, id: crypto.randomUUID(), taskCount: 0, isDefault: false, statuses: DEFAULT_STATUSES }]
+                spaces: [...state.spaces, {
+                    ...space,
+                    id: crypto.randomUUID(),
+                    taskCount: 0,
+                    isDefault: false,
+                    statuses: DEFAULT_STATUSES,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                }]
             })),
             setFolders: (folders) => set({ folders }),
             addFolder: (folder) => set((state) => ({
-                folders: [...state.folders, { ...folder, id: crypto.randomUUID() }]
+                folders: [...state.folders, {
+                    ...folder,
+                    id: crypto.randomUUID(),
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                }]
             })),
             updateFolder: (folderId, updates) => set((state) => ({
-                folders: state.folders.map(f => f.id === folderId ? { ...f, ...updates } : f)
+                folders: state.folders.map(f => f.id === folderId ? { ...f, ...updates, updatedAt: new Date().toISOString() } : f)
             })),
             deleteFolder: (folderId) => set((state) => ({
                 folders: state.folders.filter(f => f.id !== folderId),
@@ -522,17 +538,24 @@ export const useAppStore = create<AppStore>()(
             })),
             setLists: (lists) => set({ lists }),
             addList: (list) => set((state) => ({
-                lists: [...state.lists, { ...list, id: crypto.randomUUID(), taskCount: 0, statuses: DEFAULT_STATUSES }]
+                lists: [...state.lists, {
+                    ...list,
+                    id: crypto.randomUUID(),
+                    taskCount: 0,
+                    statuses: DEFAULT_STATUSES,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                }]
             })),
             updateList: (listId, updates) => set((state) => ({
-                lists: state.lists.map(l => l.id === listId ? { ...l, ...updates } : l)
+                lists: state.lists.map(l => l.id === listId ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l)
             })),
             deleteList: (listId) => set((state) => ({
                 lists: state.lists.filter(l => l.id !== listId),
                 tasks: state.tasks.filter(t => t.listId !== listId)
             })),
             updateSpace: (spaceId, updates) => set((state) => ({
-                spaces: state.spaces.map(s => s.id === spaceId ? { ...s, ...updates } : s)
+                spaces: state.spaces.map(s => s.id === spaceId ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s)
             })),
             deleteSpace: (spaceId) => set((state) => ({
                 spaces: state.spaces.filter(s => s.id !== spaceId),
@@ -559,25 +582,29 @@ export const useAppStore = create<AppStore>()(
             addComment: (taskId, comment) => set((state) => ({
                 tasks: state.tasks.map(task => task.id === taskId ? {
                     ...task,
-                    comments: [...(task.comments || []), { ...comment, id: crypto.randomUUID(), createdAt: new Date().toISOString() }]
+                    comments: [...(task.comments || []), { ...comment, id: crypto.randomUUID(), createdAt: new Date().toISOString() }],
+                    updatedAt: new Date().toISOString()
                 } : task)
             })),
             addTimeEntry: (taskId, entry) => set((state) => ({
                 tasks: state.tasks.map(task => task.id === taskId ? {
                     ...task,
-                    timeEntries: [...(task.timeEntries || []), { ...entry, id: crypto.randomUUID() }]
+                    timeEntries: [...(task.timeEntries || []), { ...entry, id: crypto.randomUUID() }],
+                    updatedAt: new Date().toISOString()
                 } : task)
             })),
             addRelationship: (taskId, relationship) => set((state) => ({
                 tasks: state.tasks.map(task => task.id === taskId ? {
                     ...task,
-                    relationships: [...(task.relationships || []), { ...relationship, id: crypto.randomUUID() }]
+                    relationships: [...(task.relationships || []), { ...relationship, id: crypto.randomUUID() }],
+                    updatedAt: new Date().toISOString()
                 } : task)
             })),
             removeRelationship: (taskId, relationshipId) => set((state) => ({
                 tasks: state.tasks.map(task => task.id === taskId ? {
                     ...task,
-                    relationships: (task.relationships || []).filter(r => r.id !== relationshipId)
+                    relationships: (task.relationships || []).filter(r => r.id !== relationshipId),
+                    updatedAt: new Date().toISOString()
                 } : task)
             })),
             addDoc: (doc) => {
@@ -871,6 +898,26 @@ export const useAppStore = create<AppStore>()(
         {
             name: 'ar-generator-app-storage',
             storage: createJSONStorage(() => serverStorage),
+            version: 2, // Bump version to force re-eval/migration
+            migrate: (persistedState: any, version) => {
+                console.log(`[Zustand] Migrating from version ${version} to 2`);
+                if (version === 0 || version === 1) {
+                    // Manual schema repair if needed, though storage.ts mostly handles it.
+                    // We can just return the state as-is because storage.ts already patches timestamps.
+                    return persistedState;
+                }
+                return persistedState;
+            },
+            onRehydrateStorage: (state) => {
+                console.log('[Zustand] Starting hydration...');
+                return (state, error) => {
+                    if (error) {
+                        console.error('[Zustand] An error happened during hydration', error);
+                    } else {
+                        console.log('[Zustand] Hydration finished successfully!');
+                    }
+                };
+            }
         }
     )
 );

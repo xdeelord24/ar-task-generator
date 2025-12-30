@@ -153,7 +153,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [isEnhancingTitle, setIsEnhancingTitle] = useState(false);
     const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
     const [isPriorityPickerOpen, setIsPriorityPickerOpen] = useState(false);
-    const activityFeedRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+    const activityFeedRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     const titleSuggestionRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (activityFeedRef.current) {

@@ -3,7 +3,7 @@ import type { StateStorage } from 'zustand/middleware';
 const SERVER_URL = 'http://localhost:3001/api/storage';
 const DB_NAME = 'ar-generator-db';
 const STORE_NAME = 'keyvalue';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // --- Standard Browser Database Handler (IndexedDB Wrapper) ---
 class BrowserDatabase {
@@ -34,36 +34,63 @@ class BrowserDatabase {
     async get(key: string): Promise<string | null> {
         const db = await this.dbPromise;
         return new Promise((resolve, reject) => {
-            const transaction = db.transaction(STORE_NAME, 'readonly');
-            const store = transaction.objectStore(STORE_NAME);
-            const request = store.get(key);
+            try {
+                const transaction = db.transaction(STORE_NAME, 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.get(key);
 
-            request.onsuccess = () => resolve(request.result as string || null);
-            request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result as string || null);
+                request.onerror = () => reject(request.error);
+            } catch (e) {
+                console.error('[IndexedDB] Transaction Failed (Get):', e);
+                resolve(null);
+            }
         });
     }
 
     async set(key: string, value: string): Promise<void> {
         const db = await this.dbPromise;
         return new Promise((resolve, reject) => {
-            const transaction = db.transaction(STORE_NAME, 'readwrite');
-            const store = transaction.objectStore(STORE_NAME);
-            const request = store.put(value, key);
+            try {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                store.put(value, key);
 
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
+                transaction.oncomplete = () => {
+                    resolve();
+                };
+
+                transaction.onerror = () => {
+                    console.error('[IndexedDB] Transaction Error:', transaction.error);
+                    reject(transaction.error);
+                };
+            } catch (e) {
+                console.error('[IndexedDB] Transaction Failed (Set):', e);
+                reject(e);
+            }
         });
     }
 
     async remove(key: string): Promise<void> {
         const db = await this.dbPromise;
         return new Promise((resolve, reject) => {
-            const transaction = db.transaction(STORE_NAME, 'readwrite');
-            const store = transaction.objectStore(STORE_NAME);
-            const request = store.delete(key);
+            try {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                store.delete(key);
 
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
+                transaction.oncomplete = () => {
+                    resolve();
+                };
+
+                transaction.onerror = () => {
+                    console.error('[IndexedDB] Transaction Error (Remove):', transaction.error);
+                    reject(transaction.error);
+                };
+            } catch (e) {
+                console.error('[IndexedDB] Transaction Failed (Remove):', e);
+                reject(e);
+            }
         });
     }
 }
@@ -86,116 +113,198 @@ const getAuthToken = () => {
 export const serverStorage: StateStorage = {
     getItem: async (name: string): Promise<string | null> => {
         try {
-            // 1. Try fetching from server (Source of Truth)
-            const token = getAuthToken();
-            const headers: HeadersInit = { 'Content-Type': 'application/json' };
-            if (token) headers['Authorization'] = `Bearer ${token}`;
+            // 1. Always load Local Data first (Primary Persistence for one device)
+            // Strategy: Try IndexedDB -> Fallback to LocalStorage -> Null
+            let localDataStr: string | null = null;
 
-            const response = await fetch(`${SERVER_URL}/${name}`, { headers });
-
-            let serverData = null;
-            if (response.ok) {
-                serverData = await response.json();
+            try {
+                localDataStr = await browserDb.get(name);
+            } catch (idbErr) {
+                console.error('[Storage] IndexedDB read failed, falling back to LocalStorage:', idbErr);
             }
 
-            if (serverData) {
-                // Determine if we need to fetch shared data
-                if (token && name.includes('app-storage')) {
-                    try {
-                        const sharedRes = await fetch('http://localhost:3001/api/shared', { headers });
-                        if (sharedRes.ok) {
-                            const sharedData = await sharedRes.json();
-                            const currentState = serverData.state || serverData;
+            if (!localDataStr && typeof localStorage !== 'undefined') {
+                console.log('[Storage] IndexedDB empty, checking LocalStorage backup...');
+                localDataStr = localStorage.getItem(name);
+                // If found in LS but not IDB, migrate it forward to IDB immediately
+                if (localDataStr) {
+                    browserDb.set(name, localDataStr).catch(e => console.error('[Storage] Migration to IDB failed:', e));
+                }
+            }
 
-                            // Merge shared spaces - Check if they exist to prevent duplicates if logic changes
-                            if (sharedData.spaces && sharedData.spaces.length > 0) {
-                                if (!currentState.spaces) currentState.spaces = [];
-                                const existingSpaceIds = new Set(currentState.spaces.map((s: any) => s.id));
-                                sharedData.spaces.forEach((s: any) => {
-                                    if (!existingSpaceIds.has(s.id)) {
-                                        // s.name should already have (Shared) from server, but nice to ensure
-                                        currentState.spaces.push(s);
+            let localJson: any = localDataStr ? JSON.parse(localDataStr) : null;
+
+            // 2. Fetch Server/Shared Data (Secondary/Sync)
+            const token = getAuthToken();
+            if (token) {
+                try {
+                    const headers: HeadersInit = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    };
+
+                    const response = await fetch(`${SERVER_URL}/${name}`, { headers });
+                    let serverJson = null;
+
+                    if (response.ok) {
+                        serverJson = await response.json();
+                    }
+
+                    // 3. Fetch Shared Resources (Invited Spaces, etc.)
+                    if (name.includes('app-storage')) {
+                        try {
+                            const sharedRes = await fetch('http://localhost:3001/api/shared', { headers });
+                            if (sharedRes.ok) {
+                                const sharedData = await sharedRes.json();
+                                // Merge shared data into serverJson (which might be empty if new user)
+                                if (!serverJson) serverJson = { state: {}, version: 0 };
+                                if (!serverJson.state) serverJson.state = {};
+
+                                const sState = serverJson.state;
+
+                                const mergeShared = (listName: string, items: any[]) => {
+                                    if (!items || items.length === 0) return;
+                                    if (!sState[listName]) sState[listName] = [];
+                                    const existingIds = new Set(sState[listName].map((i: any) => i.id));
+                                    items.forEach(item => {
+                                        if (!existingIds.has(item.id)) sState[listName].push(item);
+                                    });
+                                };
+
+                                mergeShared('spaces', sharedData.spaces);
+                                mergeShared('folders', sharedData.folders);
+                                mergeShared('lists', sharedData.lists);
+                                mergeShared('tasks', sharedData.tasks);
+                            }
+                        } catch (e) {
+                            console.error('[Storage] Failed to fetch/merge shared data:', e);
+                        }
+                    }
+
+                    // 4. SMART MERGE: Local (Master) + Shared (Merge)
+                    if (localJson && localJson.state) {
+                        if (serverJson && serverJson.state) {
+                            console.log('[Storage] Merging Server/Shared data into Local state...');
+
+                            const lState = localJson.state;
+                            const sState = serverJson.state;
+
+                            const safeMerge = (listName: string) => {
+                                const localList = lState[listName] || [];
+                                const serverList = sState[listName] || [];
+                                const localIds = new Set(localList.map((i: any) => i.id));
+
+                                let addedCount = 0;
+                                serverList.forEach((sItem: any) => {
+                                    if (!localIds.has(sItem.id)) {
+                                        localList.push(sItem);
+                                        addedCount++;
                                     }
                                 });
-                            }
+                                if (addedCount > 0) {
+                                    console.log(`[Storage] Merged ${addedCount} new ${listName} from server.`);
+                                    lState[listName] = localList;
+                                }
+                            };
 
-                            if (sharedData.folders && sharedData.folders.length > 0) {
-                                if (!currentState.folders) currentState.folders = [];
-                                const existingIds = new Set(currentState.folders.map((f: any) => f.id));
-                                sharedData.folders.forEach((f: any) => {
-                                    if (!existingIds.has(f.id)) currentState.folders.push(f);
-                                });
-                            }
+                            safeMerge('spaces');
+                            safeMerge('folders');
+                            safeMerge('lists');
+                            safeMerge('tasks');
+                            safeMerge('docs');
 
-                            if (sharedData.lists && sharedData.lists.length > 0) {
-                                if (!currentState.lists) currentState.lists = [];
-                                const existingIds = new Set(currentState.lists.map((l: any) => l.id));
-                                sharedData.lists.forEach((l: any) => {
-                                    if (!existingIds.has(l.id)) currentState.lists.push(l);
-                                });
-                            }
+                            // Update local DB with the merged result so next load is faster
+                            localDataStr = JSON.stringify(localJson);
 
-                            if (sharedData.tasks && sharedData.tasks.length > 0) {
-                                if (!currentState.tasks) currentState.tasks = [];
-                                const existingIds = new Set(currentState.tasks.map((t: any) => t.id));
-                                sharedData.tasks.forEach((t: any) => {
-                                    if (!existingIds.has(t.id)) currentState.tasks.push(t);
-                                });
+                            // Save merged result to both stores
+                            await browserDb.set(name, localDataStr);
+                            if (typeof localStorage !== 'undefined') {
+                                try { localStorage.setItem(name, localDataStr); } catch (e) { }
                             }
                         }
-                    } catch (e) { console.error('Failed to merge shared data', e); }
-                }
+                        // IMPORTANT: Even if merge happens, we return localDataStr which is now updated
+                        return localDataStr;
+                    } else {
+                        // No local data but we have server data
+                        if (serverJson) {
+                            const paramsStr = JSON.stringify(serverJson);
+                            await browserDb.set(name, paramsStr);
+                            if (typeof localStorage !== 'undefined') {
+                                try { localStorage.setItem(name, paramsStr); } catch (e) { }
+                            }
+                            return paramsStr;
+                        }
+                    }
 
-                const dataStr = JSON.stringify(serverData);
-                // Sync to local DB for offline backup
-                await browserDb.set(name, dataStr);
-                return dataStr;
+                } catch (e) {
+                    console.error('[Storage] Server sync failed, falling back to local:', e);
+                }
             }
 
-            // 2. Fallback to IndexedDB (Standard Database Handler)
-            console.log('Server unreachable or empty, checking IndexedDB...');
-            const localData = await browserDb.get(name);
-
-            // Check legacy localStorage for migration
-            if (!localData && typeof localStorage !== 'undefined') {
+            // Fallback (Not authenticated or offline or server failed)
+            // Check legacy localStorage if IndexedDB is empty
+            if (!localDataStr && typeof localStorage !== 'undefined') {
                 const legacyData = localStorage.getItem(name);
                 if (legacyData) {
-                    console.log('Migrating localStorage to IndexedDB...');
                     await browserDb.set(name, legacyData);
                     return legacyData;
                 }
             }
 
-            return localData;
+            return localDataStr;
+
         } catch (error) {
-            console.error('Failed to fetch state from server:', error);
-            // Fallback to local DB
-            return await browserDb.get(name);
+            console.error('Failed to load state:', error);
+            // Last resort
+            if (typeof localStorage !== 'undefined') {
+                return localStorage.getItem(name);
+            }
+            return null;
         }
     },
     setItem: async (name: string, value: string): Promise<void> => {
-        // 1. Save to Local DB immediately
-        await browserDb.set(name, value);
+        // 1. Save to Local DB (Primary target)
+        try {
+            await browserDb.set(name, value);
+        } catch (e) {
+            console.error('[Storage] IDB Save failed:', e);
+        }
 
-        // 2. Sync to Server
+        // 2. Save to LocalStorage (Redundant Backup)
+        if (typeof localStorage !== 'undefined') {
+            try {
+                localStorage.setItem(name, value);
+            } catch (e: any) {
+                // Ignore Quota errors silently to avoid console spam, effectively gracefully degrading
+                if (e.name !== 'QuotaExceededError') {
+                    console.warn('[Storage] LocalStorage backup failed:', e);
+                }
+            }
+        }
+
+        // 3. Sync to Server (Background)
         try {
             const token = getAuthToken();
-            // Don't sync to server if not logged in, to avoid overwriting public/default state
             if (!token) return;
 
-            await fetch(`${SERVER_URL}/${name}`, {
+            // Fire and forget, logging errors if any
+            fetch(`${SERVER_URL}/${name}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
                 body: value,
-            });
+            }).catch(e => console.error('[Storage] Background sync error:', e));
+
         } catch (error) {
-            console.error('Failed to save state to server (saved locally):', error);
+            console.error('[Storage] Failed to initiate server sync:', error);
         }
     },
     removeItem: async (name: string): Promise<void> => {
         await browserDb.remove(name);
+        if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem(name);
+        }
     },
 };
