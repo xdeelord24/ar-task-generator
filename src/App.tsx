@@ -17,6 +17,8 @@ import ReportModal from './components/ReportModal';
 import AIModal from './components/AIModal';
 import SettingsModal from './components/SettingsModal';
 import { useAppStore } from './store/useAppStore';
+import { useAuthStore } from './store/useAuthStore';
+import { AuthModal } from './components/AuthModal';
 
 function App() {
   const { currentView, theme, accentColor, checkDueDates } = useAppStore();
@@ -65,6 +67,14 @@ function App() {
     return () => clearInterval(interval);
   }, [checkDueDates]);
 
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  useEffect(() => {
+    // Check if we have a token in local storage on mount (simple persistence handled by store middleware)
+    // The persist middleware of zustand handles this automatically.
+  }, []);
+
+
   const renderView = () => {
     switch (currentView) {
       case 'home':
@@ -110,6 +120,10 @@ function App() {
         return <ListView onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
     }
   };
+
+  if (!isAuthenticated) {
+    return <AuthModal isOpen={true} />;
+  }
 
   return (
     <Layout

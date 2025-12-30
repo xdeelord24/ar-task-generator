@@ -1,0 +1,99 @@
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+
+export class DatabaseHandler {
+    db;
+    dbPath;
+
+    constructor(dbPath = './database.sqlite') {
+        this.dbPath = dbPath;
+        this.db = null;
+    }
+
+    async initialize() {
+        try {
+            this.db = await open({
+                filename: this.dbPath,
+                driver: sqlite3.Database
+            });
+
+            // Standardize schema with separate metadata if needed, 
+            // but for Zustand we primarily need Key-Value.
+            // unique key constraint, and timestamps for syncing
+            await this.db.exec(`
+                CREATE TABLE IF NOT EXISTS app_state (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS users (
+                    id TEXT PRIMARY KEY,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT,
+                    name TEXT,
+                    provider TEXT DEFAULT 'local',
+                    provider_id TEXT,
+                    avatar_url TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+
+            console.log('Database schema initialized: tables ready.');
+        } catch (error) {
+            console.error('Database initialization failed:', error);
+            throw error;
+        }
+    }
+
+    async get(key) {
+        if (!this.db) throw new Error('Database not initialized');
+        const result = await this.db.get('SELECT value FROM app_state WHERE key = ?', key);
+        return result ? JSON.parse(result.value) : null;
+    }
+
+    async set(key, value) {
+        if (!this.db) throw new Error('Database not initialized');
+        const stringValue = JSON.stringify(value);
+        const timestamp = new Date().toISOString();
+
+        await this.db.run(`
+            INSERT INTO app_state (key, value, updated_at) 
+            VALUES (?, ?, ?)
+            ON CONFLICT(key) DO UPDATE SET 
+            value = excluded.value, 
+            updated_at = excluded.updated_at
+        `, key, stringValue, timestamp);
+    }
+
+    async getAll() {
+        if (!this.db) throw new Error('Database not initialized');
+        const result = await this.db.all('SELECT key, value FROM app_state');
+        return result.reduce((acc, row) => {
+            acc[row.key] = JSON.parse(row.value);
+            return acc;
+        }, {});
+    }
+
+    // --- User Methods ---
+
+    async createUser({ id, email, passwordHash, name, provider = 'local', providerId = null, avatarUrl = null }) {
+        if (!this.db) throw new Error('Database not initialized');
+        await this.db.run(`
+            INSERT INTO users (id, email, password_hash, name, provider, provider_id, avatar_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, id, email, passwordHash, name, provider, providerId, avatarUrl);
+        return { id, email, name, provider, avatarUrl };
+    }
+
+    async getUserByEmail(email) {
+        if (!this.db) throw new Error('Database not initialized');
+        return await this.db.get('SELECT * FROM users WHERE email = ?', email);
+    }
+
+    async getUserById(id) {
+        if (!this.db) throw new Error('Database not initialized');
+        return await this.db.get('SELECT * FROM users WHERE id = ?', id);
+    }
+}

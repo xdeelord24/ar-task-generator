@@ -14,6 +14,7 @@ import {
     ChevronRight,
     Volume2
 } from 'lucide-react';
+import { useAuthStore } from '../store/useAuthStore';
 import '../styles/ProfileDropdown.css';
 
 interface ProfileDropdownProps {
@@ -22,6 +23,26 @@ interface ProfileDropdownProps {
 }
 
 const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenSettings, position = 'right' }) => {
+    const { user, logout } = useAuthStore();
+
+    if (!user) return null;
+
+    const initials = user.name
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+
+    const handleLogout = () => {
+        logout();
+        localStorage.clear();
+        const req = indexedDB.deleteDatabase('ar-generator-db');
+        req.onsuccess = () => window.location.reload();
+        req.onerror = () => window.location.reload();
+        req.onblocked = () => window.location.reload();
+    };
+
     return (
         <div
             className="profile-dropdown"
@@ -30,12 +51,16 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenSettings, posit
         >
             <div className="profile-dropdown-header">
                 <div className="profile-avatar-large">
-                    JM
+                    {user.avatarUrl ? (
+                        <img src={user.avatarUrl} alt={user.name} style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+                    ) : (
+                        initials
+                    )}
                     <div className="status-indicator"></div>
                 </div>
                 <div className="profile-info">
-                    <span className="profile-name">Jundee Mark Gerona Molina</span>
-                    <span className="profile-status-text">Online</span>
+                    <span className="profile-name">{user.name}</span>
+                    <span className="profile-status-text" style={{ fontSize: '0.8rem', opacity: 0.7 }}>{user.email}</span>
                 </div>
             </div>
 
@@ -95,10 +120,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenSettings, posit
                     <Trash2 size={18} className="dropdown-item-icon" />
                     <span>Trash</span>
                 </button>
-                <button className="dropdown-item" onClick={() => {
-                    localStorage.clear();
-                    window.location.reload();
-                }}>
+                <button className="dropdown-item" onClick={handleLogout}>
                     <LogOut size={18} className="dropdown-item-icon" />
                     <span>Log out</span>
                 </button>

@@ -13,6 +13,7 @@ interface HeaderProps {
 }
 
 import { useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 
 const ActiveTimerDisplay: React.FC = () => {
     const { activeTimer, stopTimer, tasks } = useAppStore();
@@ -57,6 +58,7 @@ const ActiveTimerDisplay: React.FC = () => {
 const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI, onOpenSettings, onTaskClick }) => {
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState<'left' | 'right'>('right');
+    const { user } = useAuthStore();
 
     useEffect(() => {
         const handleClickOutside = () => setShowProfileDropdown(false);
@@ -75,6 +77,10 @@ const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI, onOp
             setShowProfileDropdown(true);
         }
     };
+
+    const initials = user?.name
+        ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+        : 'U';
 
     return (
         <header className="top-header">
@@ -114,7 +120,17 @@ const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI, onOp
                     className="user-profile"
                     onClick={(e) => toggleDropdown(e, 'right')}
                 >
-                    <div className="profile-circle">J</div>
+                    <div className="profile-circle" style={{ overflow: 'hidden' }}>
+                        {user?.avatarUrl ? (
+                            <img
+                                src={user.avatarUrl}
+                                alt={user.name}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                        ) : (
+                            initials
+                        )}
+                    </div>
                     <ChevronDown size={14} />
                 </div>
             </div>

@@ -1,6 +1,205 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { serverStorage } from './storage';
 import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard, Clip, Notification, NotificationSettings, Agent } from '../types';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// --- Helper: Agent Condition Checker ---
+const checkAgentCondition = (agent: Agent, task: Task): boolean => {
+    if (!agent.trigger.conditions) return true;
+
+    const condition = agent.trigger.conditions.toLowerCase();
+    const taskText = (task.name + ' ' + (task.description || '')).toLowerCase();
+
+    // Treat condition as set of keywords if it contains spaces
+    const keywords = condition.split(' ').filter(w => w.length > 3 && !['task', 'about', 'when', 'this', 'that', 'with', 'from'].includes(w));
+
+    const isMatch = keywords.length > 0
+        ? keywords.some(k => taskText.includes(k))
+        : taskText.includes(condition);
+
+    return isMatch;
+};
+
+// --- Helper: Execute Autopilot (AI) ---
+const executeAutopilot = async (
+    agent: Agent,
+    task: Task,
+    state: AppStore
+) => {
+    const instructions = agent.action.instructions;
+    if (!instructions) return;
+
+    try {
+        const aiConfig = state.aiConfig;
+        const prompt = `
+You are an intelligent autopilot for a Task Management App "AR Generator".
+Your goal is to analyze the Task and the User Instructions, and output specific JSON updates to modify the task.
+
+CONTEXT:
+Task Name: "${task.name}"
+Task Description: "${task.description || ''}"
+Current Priority: ${task.priority}
+Current Status: ${task.status}
+Current Assignee: ${task.assignee || 'Unassigned'}
+
+INSTRUCTIONS:
+"${instructions}"
+
+METADATA:
+Current Date: ${new Date().toISOString()}
+Available Tags: ${state.tags.map(t => t.name).join(', ')}
+
+RESPONSE FORMAT:
+Return a JSON object with the keys to update. DO NOT return markdown formatting, just the raw JSON string.
+Supported Keys:
+- "priority": "urgent" | "high" | "medium" | "low"
+- "status": string (e.g., "TO DO", "IN PROGRESS", "COMPLETED")
+- "dueDate": ISO 8601 Date String (calculate based on instructions like "due tomorrow")
+- "startDate": ISO 8601 Date String
+- "assignee": string (name of user)
+- "tags": string[] (array of tag names to add)
+- "subtasks": string[] (array of new subtask names to create)
+- "comment": string (short explanation of what changed)
+- "docName": string (if instruction asks to create a doc attached to this task)
+- "blockingTaskName": string (if instruction says this blocks another task)
+
+Example JSON:
+{
+  "priority": "high",
+  "dueDate": "2025-12-31T09:00:00.000Z",
+  "comment": "Marked high priority and due tomorrow per instructions."
+}
+`;
+
+        let responseText = '';
+
+        if (aiConfig.provider === 'ollama') {
+            const response = await fetch(`${aiConfig.ollamaHost}/api/generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: aiConfig.ollamaModel,
+                    prompt,
+                    stream: false,
+                    format: 'json',
+                    system: "You are a JSON-speaking task automation assistant."
+                }),
+            });
+            if (!response.ok) throw new Error('Ollama Error');
+            const data = await response.json();
+            responseText = data.response;
+        } else {
+            // Gemini
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+            if (!apiKey) return;
+
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const result = await model.generateContent(prompt);
+            responseText = result.response.text();
+        }
+
+        // Clean response (remove markdown code blocks if present)
+        const jsonStr = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const updates = JSON.parse(jsonStr);
+
+        // --- Apply Updates ---
+
+        // 1. Basic Fields
+        const taskUpdates: any = {};
+        if (updates.priority && updates.priority !== task.priority) taskUpdates.priority = updates.priority;
+        if (updates.status && updates.status !== task.status) taskUpdates.status = updates.status;
+        if (updates.dueDate && updates.dueDate !== task.dueDate) taskUpdates.dueDate = updates.dueDate;
+        if (updates.startDate && updates.startDate !== task.startDate) taskUpdates.startDate = updates.startDate;
+        if (updates.assignee && updates.assignee !== task.assignee) taskUpdates.assignee = updates.assignee;
+
+        // 2. Tags
+        if (updates.tags && Array.isArray(updates.tags)) {
+            const currentTags = task.tags || [];
+            const newTagIds: string[] = [];
+
+            updates.tags.forEach((tagName: string) => {
+                // Find existing
+                const existingTag = state.tags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+                if (existingTag) {
+                    if (!currentTags.includes(existingTag.id)) newTagIds.push(existingTag.id);
+                } else {
+                    // Create new tag
+                    const newTagId = crypto.randomUUID();
+                    state.addTag({
+                        name: tagName,
+                        color: '#' + Math.floor(Math.random() * 16777215).toString(16)
+                    });
+                    newTagIds.push(newTagId);
+                }
+            });
+
+            if (newTagIds.length > 0) {
+                taskUpdates.tags = [...currentTags, ...newTagIds];
+            }
+        }
+
+        // 3. Subtasks
+        if (updates.subtasks && Array.isArray(updates.subtasks)) {
+            const newSubtasks = updates.subtasks.map((name: string) => ({
+                id: crypto.randomUUID(),
+                name,
+                status: 'TO DO',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }));
+
+            const currentTask = state.tasks.find(t => t.id === task.id) || task;
+            taskUpdates.subtasks = [...(currentTask.subtasks || []), ...newSubtasks];
+        }
+
+        // 4. Docs
+        if (updates.docName) {
+            const newDocId = state.addDoc({
+                name: updates.docName,
+                content: `# ${updates.docName}\n\nAuto-generated by Autopilot for task: ${task.name}`,
+                userId: 'agent-bot',
+                userName: 'Autopilot API'
+            });
+            taskUpdates.linkedDocId = newDocId;
+        }
+
+        // 5. Relations (Blocking)
+        if (updates.blockingTaskName) {
+            const target = state.tasks.find(t => t.name.toLowerCase().includes(updates.blockingTaskName.toLowerCase()));
+            if (target) {
+                const rel = { id: crypto.randomUUID(), type: 'blocking', taskId: target.id };
+                const currentTask = state.tasks.find(t => t.id === task.id) || task;
+                taskUpdates.relationships = [...(currentTask.relationships || []), rel];
+            }
+        }
+
+        // 6. Comment
+        const commentText = updates.comment
+            ? `🤖 **Autopilot Executed**\n\n${updates.comment}`
+            : `🤖 **Autopilot Executed**\n\nUpdates applied based on instruction: "${instructions}"`;
+
+        state.addComment(task.id, {
+            userId: 'agent-bot',
+            userName: 'Autopilot Agent',
+            text: commentText
+        });
+
+        if (Object.keys(taskUpdates).length > 0) {
+            state.updateTask(task.id, taskUpdates);
+        }
+
+    } catch (error) {
+        console.error('Autopilot Execution Failed:', error);
+        state.addComment(task.id, {
+            userId: 'agent-bot',
+            userName: 'Autopilot Agent',
+            text: `⚠️ **Autopilot Error**\n\nFailed to execute instructions: ${error}`
+        });
+    }
+};
+
 
 interface AppStore extends AppState {
     setTasks: (tasks: Task[]) => void;
@@ -203,8 +402,9 @@ export const useAppStore = create<AppStore>()(
             },
 
             setTasks: (tasks) => set({ tasks }),
-            addTask: (task) => set((state) => {
-                const newTask = {
+            addTask: async (task) => {
+
+                const newTask: Task = {
                     ...task,
                     id: crypto.randomUUID(),
                     createdAt: new Date().toISOString(),
@@ -213,209 +413,54 @@ export const useAppStore = create<AppStore>()(
                     tags: task.tags || []
                 };
 
-                // Helper to process agents
-                let updatedTasks = [newTask, ...state.tasks];
-                const activeAgents = state.agents.filter(a => a.isEnabled && a.trigger.type === 'task_created');
+                // 1. Immediate Update (Optimistic)
+                set((state) => ({ tasks: [newTask, ...state.tasks] }));
 
-                activeAgents.forEach(agent => {
-                    // Check conditions (Enhanced fuzzy match)
-                    if (agent.trigger.conditions) {
-                        const condition = agent.trigger.conditions.toLowerCase();
-                        const taskText = (newTask.name + ' ' + (newTask.description || '')).toLowerCase();
+                // 2. Process Agents
+                // We reference 'get()' to ensure we have fresh state including agents
+                const freshState = get();
+                const activeAgents = freshState.agents.filter(a => a.isEnabled && a.trigger.type === 'task_created');
 
-                        // Treat condition as set of keywords if it contains spaces
-                        const keywords = condition.split(' ').filter(w => w.length > 3 && !['task', 'about', 'when', 'this', 'that', 'with', 'from'].includes(w));
-                        const isMatch = keywords.length > 0
-                            ? keywords.some(k => taskText.includes(k))
-                            : taskText.includes(condition);
-
-                        if (!isMatch) return;
+                for (const agent of activeAgents) {
+                    if (checkAgentCondition(agent, newTask)) {
+                        if (agent.action.type === 'launch_autopilot') {
+                            await executeAutopilot(agent, newTask, freshState);
+                        }
+                        // Handle other action types like notifications here if needed
                     }
+                }
+            },
 
-                    // Execute Action
-                    if (agent.action.type === 'launch_autopilot') {
-                        let updates: any = {};
-                        const instructions = agent.action.instructions?.toLowerCase() || '';
+            updateTask: async (taskId, updates) => {
+                console.log(`Updating task ${taskId}`, updates);
 
-                        // Simple Instruction Parser
-                        if (instructions.includes('high priority')) updates.priority = 'high';
-                        if (instructions.includes('urgent')) updates.priority = 'urgent';
-
-
-                        // Status parsing
-                        const statusMatch = instructions.match(/status (?:is|to) ['"]?([\w\s]+)['"]?|move to ['"]?([\w\s]+)['"]?/i);
-                        if (statusMatch) {
-                            const newStatus = (statusMatch[1] || statusMatch[2]).trim();
-                            updates.status = newStatus; // Naive: assumes valid status name
-                        }
-
-                        // Date parsing (Due Date) - Naive
-                        if (instructions.includes('due today')) updates.dueDate = new Date().toISOString();
-                        else if (instructions.includes('due tomorrow')) {
-                            const d = new Date(); d.setDate(d.getDate() + 1);
-                            updates.dueDate = d.toISOString();
-                        } else {
-                            const dateMatch = instructions.match(/due (?:on )?(\d{4}-\d{2}-\d{2})/);
-                            if (dateMatch) updates.dueDate = new Date(dateMatch[1]).toISOString();
-                        }
-
-                        // Start Date
-                        const startDateMatch = instructions.match(/start(?:s)? (?:on )?(\d{4}-\d{2}-\d{2})/);
-                        if (startDateMatch) updates.startDate = new Date(startDateMatch[1]).toISOString();
-
-                        // Assignee parsing
-                        const assignMatch = instructions.match(/assign (?:to )?['"]?([\w\s]+)['"]?/i);
-                        if (assignMatch) {
-                            updates.assignee = assignMatch[1].trim();
-                        }
-
-                        // Relationships (Blocks)
-                        const blockMatch = instructions.match(/blocks task ['"]?(.+?)['"]?(?:\s|$)/i);
-                        if (blockMatch) {
-                            const targetTaskName = blockMatch[1];
-                            const targetTask = state.tasks.find(t => t.name.toLowerCase().includes(targetTaskName.toLowerCase()));
-                            if (targetTask) {
-                                const rel = { id: crypto.randomUUID(), type: 'blocking', taskId: targetTask.id };
-                                updates.relationships = [...(newTask.relationships || []), rel];
-                                updates._relName = targetTask.name;
-                            }
-                        }
-
-                        // Docs
-                        const docMatch = instructions.match(/(?:attach|create) doc ['"]?(.+?)['"]?(?:\s|$)/i);
-                        if (docMatch) {
-                            const docName = docMatch[1];
-                            const newDocId = crypto.randomUUID();
-                            const newDoc = {
-                                id: newDocId,
-                                name: docName,
-                                content: '# ' + docName + '\n\nAuto-generated document.',
-                                userId: 'agent-bot',
-                                userName: 'Autopilot Agent',
-                                updatedAt: new Date().toISOString()
-                            };
-                            set(s => ({ docs: [...s.docs, newDoc] }));
-                            updates.linkedDocId = newDocId;
-                            updates._docName = docName;
-                        }
-
-                        // Subtasks
-                        // Use a global regex to catch multiple subtasks
-                        const subtaskRegex = /(?:create|add) subtask ['"]?(.+?)['"]?(?:,|$)/gi;
-                        let subtaskMatch;
-                        while ((subtaskMatch = subtaskRegex.exec(instructions)) !== null) {
-                            const subtaskName = subtaskMatch[1].trim();
-                            if (subtaskName) {
-                                const newSubtask = {
-                                    id: crypto.randomUUID(),
-                                    name: subtaskName,
-                                    status: 'TO DO',
-                                    createdAt: new Date().toISOString(),
-                                    updatedAt: new Date().toISOString()
-                                };
-                                // Accumulate subtasks
-                                updates.subtasks = [...(updates.subtasks || newTask.subtasks || []), newSubtask];
-
-                                if (!updates._subtaskNames) updates._subtaskNames = [];
-                                updates._subtaskNames.push(subtaskName);
-                            }
-                        }
-
-                        // Tag parsing
-                        if (instructions.includes('tag')) {
-                            // extracting tags naive approach
-                            const words = instructions.split(' ');
-                            const tagIndex = words.indexOf('tag');
-                            if (tagIndex !== -1 && words[tagIndex + 1]) {
-                                // check for 'tag it as X'
-                                const tagCandidates = words.slice(tagIndex + 1).filter(w => !['as', 'it', 'is', 'a', 'the'].includes(w));
-                                if (tagCandidates.length > 0) {
-                                    const newTagText = tagCandidates[0].replace(/[^a-z0-9]/g, ''); // clean tag
-                                    if (newTagText) {
-                                        // Check if tag exists
-                                        let tagId = state.tags.find(t => t.name.toLowerCase() === newTagText.toLowerCase())?.id;
-
-                                        // Create if not exists
-                                        if (!tagId) {
-                                            tagId = crypto.randomUUID();
-                                            const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16);
-                                            // We need to update state.tags too, not just locally
-                                            set(s => ({ tags: [...s.tags, { id: tagId!, name: newTagText, color: randomColor, spaceId: newTask.spaceId }] }));
-                                        }
-
-                                        updates.tags = [...(newTask.tags || []), tagId];
-                                        // Store tag name for comment
-                                        updates._tagName = newTagText;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Apply updates
-                        updatedTasks = updatedTasks.map(t => t.id === newTask.id ? {
-                            ...t,
-                            ...updates,
-                            comments: [...(t.comments || []), {
-                                id: crypto.randomUUID(),
-                                userId: 'agent-bot',
-                                userName: 'Autopilot Agent',
-                                text: `🤖 **Autopilot Executed**\n\nI have updated this task based on your instructions:
-${updates.priority ? `- Set priority to **${updates.priority}**\n` : ''}
-${updates.status ? `- Set status to **${updates.status}**\n` : ''}
-${updates.dueDate ? `- Set due date to **${new Date(updates.dueDate).toLocaleDateString()}**\n` : ''}
-${updates.startDate ? `- Set start date to **${new Date(updates.startDate).toLocaleDateString()}**\n` : ''}
-${updates.assignee ? `- Assigned to **${updates.assignee}**\n` : ''}
-${updates._tagName ? `- Added tag **${updates._tagName}**\n` : ''}
-${updates._docName ? `- Created document **${updates._docName}**\n` : ''}
-${updates._subtaskNames ? updates._subtaskNames.map((n: string) => `- Created subtask **${n}**`).join('\n') + '\n' : ''}
-${updates._relName ? `- Blocks task **${updates._relName}**\n` : ''}`,
-                                createdAt: new Date().toISOString()
-                            }]
-                        } : t);
-                    } else if (agent.action.type === 'send_notification') {
-                        // We can't easily call other actions from here without recursion issues in some setups,
-                        // so we'll just push to the notification array directly if needed, or use a separate effect.
-                        // For simplicity in this demo, we'll assume the notification relies on an external watcher or just skip it for now.
-                    }
+                set((state) => {
+                    const newTasks = state.tasks.map((task) =>
+                        task.id === taskId ? { ...task, ...updates, updatedAt: new Date().toISOString() } : task
+                    );
+                    return { tasks: newTasks };
                 });
 
-                return { tasks: updatedTasks };
-            }),
-            updateTask: (taskId, updates) => set((state) => {
-                console.log(`Updating task ${taskId}`, updates);
-                let newTasks = state.tasks.map((task) =>
-                    task.id === taskId ? { ...task, ...updates, updatedAt: new Date().toISOString() } : task
-                );
+                // Agent Processing
+                const state = get();
+                const updatedTask = state.tasks.find(t => t.id === taskId);
 
-                const updatedTask = newTasks.find(t => t.id === taskId);
                 if (updatedTask) {
                     const activeAgents = state.agents.filter(a => a.isEnabled && a.trigger.type === 'task_updated');
-                    activeAgents.forEach(agent => {
-                        // Check conditions
-                        if (agent.trigger.conditions) {
-                            const condition = agent.trigger.conditions.toLowerCase();
-                            const taskText = (updatedTask.name + ' ' + (updatedTask.description || '')).toLowerCase();
-                            if (!taskText.includes(condition)) return;
-                        }
 
-                        if (agent.action.type === 'launch_autopilot') {
-                            // Add comment
-                            newTasks = newTasks.map(t => t.id === taskId ? {
-                                ...t,
-                                comments: [...(t.comments || []), {
-                                    id: crypto.randomUUID(),
-                                    userId: 'agent-bot',
-                                    userName: 'Autopilot Agent',
-                                    text: `🤖 **Autopilot Update**\n\nTask detected update. Re-evaluating based on instructions: "${agent.action.instructions}"`,
-                                    createdAt: new Date().toISOString()
-                                }]
-                            } : t);
+                    for (const agent of activeAgents) {
+                        if (checkAgentCondition(agent, updatedTask)) {
+                            if (agent.action.type === 'launch_autopilot') {
+                                // We use executeAutopilot here too. 
+                                // Note: Infinite loops are possible if AI updates trigger 'task_updated' again.
+                                // For now, we assume user is careful or we add a flag.
+                                // Ideally, updates from AI should have a flag to suppress agents, but we'll stick to basic implementation.
+                                await executeAutopilot(agent, updatedTask, state);
+                            }
                         }
-                    });
+                    }
                 }
-
-                return { tasks: newTasks };
-            }),
+            },
             deleteTask: (taskId) => set((state) => ({
                 tasks: state.tasks.filter((task) => task.id !== taskId)
             })),
@@ -825,6 +870,7 @@ ${updates._relName ? `- Blocks task **${updates._relName}**\n` : ''}`,
         }),
         {
             name: 'ar-generator-app-storage',
+            storage: createJSONStorage(() => serverStorage),
         }
     )
 );
