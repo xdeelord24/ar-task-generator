@@ -240,7 +240,9 @@ const SortableCard: React.FC<SortableCardProps> = ({
                         {task.subtasks && task.subtasks.length > 0 && (
                             <span><CheckSquare size={14} /> {task.subtasks.length}</span>
                         )}
-                        <span><MessageSquare size={14} /> 2</span>
+                        {task.comments && task.comments.length > 0 && (
+                            <span><MessageSquare size={14} /> {task.comments.length}</span>
+                        )}
                     </div>
                     <div className="assignee-avatar-small">
                         {task.assignee?.[0] || '?'}
