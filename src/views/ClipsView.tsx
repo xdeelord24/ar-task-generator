@@ -366,10 +366,9 @@ const ClipsView: React.FC = () => {
 
                 <div className="clips-empty-hero">
                     <div className="hero-content">
-                        <h1 className="hero-title">Welcome to Clips</h1>
                         <div className="hero-illustration-wrapper">
                             <img
-                                src="/clips_empty_illustration_1767034347079.png"
+                                src="/clips_illustration.png"
                                 alt="Welcome to Clips"
                                 className="hero-illustration"
                             />
