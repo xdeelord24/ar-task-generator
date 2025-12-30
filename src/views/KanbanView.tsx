@@ -39,7 +39,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useAppStore } from '../store/useAppStore';
+import { useAppStore, DEFAULT_STATUSES } from '../store/useAppStore';
 import type { Task, Tag } from '../types';
 import TaskOptionsMenu from '../components/TaskOptionsMenu';
 import ViewHeader from '../components/ViewHeader';
@@ -503,11 +503,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
     });
 
 
-    const boardStatuses: Status[] = activeList?.statuses || activeSpace?.statuses || [
-        { id: 'todo', name: 'TO DO', color: '#3b82f6', type: 'todo' },
-        { id: 'inprogress', name: 'IN PROGRESS', color: '#f59e0b', type: 'inprogress' },
-        { id: 'completed', name: 'COMPLETED', color: '#10b981', type: 'done' }
-    ];
+    const boardStatuses: Status[] = activeList?.statuses || activeSpace?.statuses || DEFAULT_STATUSES;
 
     const handleAddColumn = () => {
         if (!newColumnName.trim()) return;

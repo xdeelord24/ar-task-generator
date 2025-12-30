@@ -85,7 +85,13 @@ const ViewHeader: React.FC = () => {
     const [showViewSelector, setShowViewSelector] = React.useState(false);
     const [contextMenu, setContextMenu] = React.useState<{ view: any; position: { x: number; y: number } } | null>(null);
 
-    const activeSpace = spaces.find(s => s.id === currentSpaceId);
+    const isEverything = currentSpaceId === 'everything';
+    const activeSpace = spaces.find(s => s.id === currentSpaceId) || (isEverything ? {
+        id: 'everything',
+        name: 'Everything',
+        icon: 'star',
+        color: '#3b82f6'
+    } : null);
     const activeList = lists.find(l => l.id === currentListId);
 
     // For Dashboard context

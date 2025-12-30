@@ -9,7 +9,7 @@ import {
     UserPlus, Eye, CalendarDays, Inbox, CircleDot, GitMerge, Hash, Box, RotateCw
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { useAppStore } from '../store/useAppStore';
+import { useAppStore, DEFAULT_STATUSES } from '../store/useAppStore';
 import type { Priority, Task } from '../types';
 import RichTextEditor from './RichTextEditor';
 import { markdownToHtml } from '../utils/markdownConverter';
@@ -26,16 +26,16 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
     const { addTask, currentSpaceId, currentListId, spaces, lists, aiConfig } = useAppStore();
 
     const activeList = lists.find(l => l.id === currentListId);
-    const activeSpace = spaces.find(s => s.id === currentSpaceId);
+    const isEverything = currentSpaceId === 'everything';
+    const activeSpace = spaces.find(s => s.id === currentSpaceId) || (isEverything ? {
+        id: 'everything',
+        name: 'Everything',
+        icon: 'star',
+        color: '#3b82f6',
+        statuses: DEFAULT_STATUSES
+    } : null);
 
-    // Default statuses fallback
-    const defaultStatuses = [
-        { id: 'todo', name: 'TO DO' },
-        { id: 'inprogress', name: 'IN PROGRESS' },
-        { id: 'completed', name: 'COMPLETED' }
-    ];
-
-    const activeStatuses = activeList?.statuses || activeSpace?.statuses || defaultStatuses;
+    const activeStatuses = activeList?.statuses || activeSpace?.statuses || DEFAULT_STATUSES;
 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');

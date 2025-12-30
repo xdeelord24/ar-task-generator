@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAppStore } from '../store/useAppStore';
+import { useAppStore, DEFAULT_STATUSES } from '../store/useAppStore';
 import {
     FileText,
     Bookmark,
@@ -26,13 +26,23 @@ const SpaceOverview: React.FC = () => {
     const [isAddBookmarkOpen, setIsAddBookmarkOpen] = useState(false);
     const [isCreateDocOpen, setIsCreateDocOpen] = useState(false);
 
-    const currentSpace = spaces.find(s => s.id === currentSpaceId);
-    const spaceLists = lists.filter(l => l.spaceId === currentSpaceId);
-    const spaceFolders = folders.filter(f => f.spaceId === currentSpaceId);
-    const spaceDocs = docs.filter(d => d.spaceId === currentSpaceId);
+    const isEverything = currentSpaceId === 'everything';
+    const currentSpace = spaces.find(s => s.id === currentSpaceId) || (isEverything ? {
+        id: 'everything',
+        name: 'Everything',
+        icon: 'star',
+        color: '#3b82f6',
+        statuses: DEFAULT_STATUSES,
+        isDefault: true,
+        taskCount: tasks.length
+    } : null);
+
+    const spaceLists = isEverything ? lists : lists.filter(l => l.spaceId === currentSpaceId);
+    const spaceFolders = isEverything ? folders : folders.filter(f => f.spaceId === currentSpaceId);
+    const spaceDocs = isEverything ? docs : docs.filter(d => d.spaceId === currentSpaceId);
 
     // Calculate Workload by Status
-    const spaceTasks = tasks.filter(t => t.spaceId === currentSpaceId);
+    const spaceTasks = isEverything ? tasks : tasks.filter(t => t.spaceId === currentSpaceId);
     const statusCounts = spaceTasks.reduce((acc, task) => {
         const status = task.status || 'TO DO';
         acc[status] = (acc[status] || 0) + 1;
@@ -124,7 +134,7 @@ const SpaceOverview: React.FC = () => {
                                 <div key={list.id} className="recent-list-item" onClick={() => handleListClick(list.id)} style={{ cursor: 'pointer' }}>
                                     <ListIcon size={16} className="recent-list-icon" />
                                     <span style={{ fontWeight: 500 }}>{list.name}</span>
-                                    <span className="recent-list-location">in {currentSpace.name}</span>
+                                    <span className="recent-list-location">in {spaces.find(s => s.id === list.spaceId)?.name || 'Unknown Space'}</span>
                                 </div>
                             ))
                         ) : (

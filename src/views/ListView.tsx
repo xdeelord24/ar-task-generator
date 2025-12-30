@@ -31,7 +31,7 @@ import {
     arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useAppStore } from '../store/useAppStore';
+import { useAppStore, DEFAULT_STATUSES } from '../store/useAppStore';
 import { format, isPast, isToday } from 'date-fns';
 import type { Task, ColumnSetting, Tag, Status } from '../types';
 import TaskOptionsMenu from '../components/TaskOptionsMenu';
@@ -874,11 +874,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
 
     const activeList = lists.find(l => l.id === currentListId);
 
-    const activeStatuses: Status[] = activeList?.statuses || activeSpace?.statuses || [
-        { id: 'todo', name: 'TO DO', color: '#3b82f6', type: 'todo' },
-        { id: 'inprogress', name: 'IN PROGRESS', color: '#f59e0b', type: 'inprogress' },
-        { id: 'completed', name: 'COMPLETED', color: '#10b981', type: 'done' }
-    ];
+    const activeStatuses: Status[] = activeList?.statuses || activeSpace?.statuses || DEFAULT_STATUSES;
 
     const handleConfirmAddGroup = () => {
         if (!newGroupName.trim()) {

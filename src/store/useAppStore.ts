@@ -70,9 +70,9 @@ interface AppStore extends AppState {
     checkDueDates: () => void;
 }
 
-const DEFAULT_STATUSES: Status[] = [
-    { id: 'todo', name: 'TO DO', color: '#3b82f6', type: 'todo' },
-    { id: 'inprogress', name: 'IN PROGRESS', color: '#f59e0b', type: 'inprogress' },
+export const DEFAULT_STATUSES: Status[] = [
+    { id: 'todo', name: 'TO DO', color: '#87909e', type: 'todo' },
+    { id: 'inprogress', name: 'IN PROGRESS', color: '#3b82f6', type: 'inprogress' },
     { id: 'completed', name: 'COMPLETED', color: '#10b981', type: 'done' }
 ];
 
