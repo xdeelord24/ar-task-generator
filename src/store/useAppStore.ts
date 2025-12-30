@@ -241,6 +241,64 @@ export const useAppStore = create<AppStore>()(
                         if (instructions.includes('high priority')) updates.priority = 'high';
                         if (instructions.includes('urgent')) updates.priority = 'urgent';
 
+
+                        // Status parsing
+                        const statusMatch = instructions.match(/status (?:is|to) ['"]?([\w\s]+)['"]?|move to ['"]?([\w\s]+)['"]?/i);
+                        if (statusMatch) {
+                            const newStatus = (statusMatch[1] || statusMatch[2]).trim();
+                            updates.status = newStatus; // Naive: assumes valid status name
+                        }
+
+                        // Date parsing (Due Date) - Naive
+                        if (instructions.includes('due today')) updates.dueDate = new Date().toISOString();
+                        else if (instructions.includes('due tomorrow')) {
+                            const d = new Date(); d.setDate(d.getDate() + 1);
+                            updates.dueDate = d.toISOString();
+                        } else {
+                            const dateMatch = instructions.match(/due (?:on )?(\d{4}-\d{2}-\d{2})/);
+                            if (dateMatch) updates.dueDate = new Date(dateMatch[1]).toISOString();
+                        }
+
+                        // Start Date
+                        const startDateMatch = instructions.match(/start(?:s)? (?:on )?(\d{4}-\d{2}-\d{2})/);
+                        if (startDateMatch) updates.startDate = new Date(startDateMatch[1]).toISOString();
+
+                        // Assignee parsing
+                        const assignMatch = instructions.match(/assign (?:to )?['"]?([\w\s]+)['"]?/i);
+                        if (assignMatch) {
+                            updates.assignee = assignMatch[1].trim();
+                        }
+
+                        // Relationships (Blocks)
+                        const blockMatch = instructions.match(/blocks task ['"]?(.+?)['"]?(?:\s|$)/i);
+                        if (blockMatch) {
+                            const targetTaskName = blockMatch[1];
+                            const targetTask = state.tasks.find(t => t.name.toLowerCase().includes(targetTaskName.toLowerCase()));
+                            if (targetTask) {
+                                const rel = { id: crypto.randomUUID(), type: 'blocking', taskId: targetTask.id };
+                                updates.relationships = [...(newTask.relationships || []), rel];
+                                updates._relName = targetTask.name;
+                            }
+                        }
+
+                        // Docs
+                        const docMatch = instructions.match(/(?:attach|create) doc ['"]?(.+?)['"]?(?:\s|$)/i);
+                        if (docMatch) {
+                            const docName = docMatch[1];
+                            const newDocId = crypto.randomUUID();
+                            const newDoc = {
+                                id: newDocId,
+                                name: docName,
+                                content: '# ' + docName + '\n\nAuto-generated document.',
+                                userId: 'agent-bot',
+                                userName: 'Autopilot Agent',
+                                updatedAt: new Date().toISOString()
+                            };
+                            set(s => ({ docs: [...s.docs, newDoc] }));
+                            updates.linkedDocId = newDocId;
+                            updates._docName = docName;
+                        }
+
                         // Tag parsing
                         if (instructions.includes('tag')) {
                             // extracting tags naive approach
@@ -279,7 +337,15 @@ export const useAppStore = create<AppStore>()(
                                 id: crypto.randomUUID(),
                                 userId: 'agent-bot',
                                 userName: 'Autopilot Agent',
-                                text: `🤖 **Autopilot Executed**\n\nI have updated this task based on your instructions:\n${updates.priority ? `- Set priority to **${updates.priority}**\n` : ''}${updates._tagName ? `- Added tag **${updates._tagName}**` : ''}`,
+                                text: `🤖 **Autopilot Executed**\n\nI have updated this task based on your instructions:
+${updates.priority ? `- Set priority to **${updates.priority}**\n` : ''}
+${updates.status ? `- Set status to **${updates.status}**\n` : ''}
+${updates.dueDate ? `- Set due date to **${new Date(updates.dueDate).toLocaleDateString()}**\n` : ''}
+${updates.startDate ? `- Set start date to **${new Date(updates.startDate).toLocaleDateString()}**\n` : ''}
+${updates.assignee ? `- Assigned to **${updates.assignee}**\n` : ''}
+${updates._tagName ? `- Added tag **${updates._tagName}**\n` : ''}
+${updates._docName ? `- Created document **${updates._docName}**\n` : ''}
+${updates._relName ? `- Blocks task **${updates._relName}**\n` : ''}`,
                                 createdAt: new Date().toISOString()
                             }]
                         } : t);
