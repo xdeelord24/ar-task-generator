@@ -48,7 +48,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
         initialStartDate ? initialStartDate.toISOString() : undefined
     );
     const [dueDate, setDueDate] = useState<string | undefined>(
-        initialDate ? initialDate.toISOString() : undefined
+        initialDate ? initialDate.toISOString() : format(new Date(), 'yyyy-MM-dd')
     );
 
     // Date picker state
