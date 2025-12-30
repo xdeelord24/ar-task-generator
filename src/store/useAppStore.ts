@@ -299,6 +299,28 @@ export const useAppStore = create<AppStore>()(
                             updates._docName = docName;
                         }
 
+                        // Subtasks
+                        // Use a global regex to catch multiple subtasks
+                        const subtaskRegex = /(?:create|add) subtask ['"]?(.+?)['"]?(?:,|$)/gi;
+                        let subtaskMatch;
+                        while ((subtaskMatch = subtaskRegex.exec(instructions)) !== null) {
+                            const subtaskName = subtaskMatch[1].trim();
+                            if (subtaskName) {
+                                const newSubtask = {
+                                    id: crypto.randomUUID(),
+                                    name: subtaskName,
+                                    status: 'TO DO',
+                                    createdAt: new Date().toISOString(),
+                                    updatedAt: new Date().toISOString()
+                                };
+                                // Accumulate subtasks
+                                updates.subtasks = [...(updates.subtasks || newTask.subtasks || []), newSubtask];
+
+                                if (!updates._subtaskNames) updates._subtaskNames = [];
+                                updates._subtaskNames.push(subtaskName);
+                            }
+                        }
+
                         // Tag parsing
                         if (instructions.includes('tag')) {
                             // extracting tags naive approach
@@ -345,6 +367,7 @@ ${updates.startDate ? `- Set start date to **${new Date(updates.startDate).toLoc
 ${updates.assignee ? `- Assigned to **${updates.assignee}**\n` : ''}
 ${updates._tagName ? `- Added tag **${updates._tagName}**\n` : ''}
 ${updates._docName ? `- Created document **${updates._docName}**\n` : ''}
+${updates._subtaskNames ? updates._subtaskNames.map((n: string) => `- Created subtask **${n}**`).join('\n') + '\n' : ''}
 ${updates._relName ? `- Blocks task **${updates._relName}**\n` : ''}`,
                                 createdAt: new Date().toISOString()
                             }]
