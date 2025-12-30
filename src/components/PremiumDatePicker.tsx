@@ -6,7 +6,8 @@ import {
     ChevronRight,
     ChevronDown,
     History,
-    MoreHorizontal
+    MoreHorizontal,
+    X
 } from 'lucide-react';
 import {
     format,
@@ -158,6 +159,22 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
         setTimePickerTarget(null);
     };
 
+    const handleClearDate = (type: 'start' | 'due') => {
+        if (type === 'start') {
+            setTempStart(undefined);
+        } else {
+            setTempDue(undefined);
+        }
+    };
+
+    const handleClearTime = (type: 'start' | 'due') => {
+        if (type === 'start' && tempStart) {
+            setTempStart(tempStart.split('T')[0]);
+        } else if (type === 'due' && tempDue) {
+            setTempDue(tempDue.split('T')[0]);
+        }
+    };
+
     const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
     const monthStart = startOfMonth(currentMonth);
@@ -291,25 +308,66 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
                 >
                     <CalendarIcon size={14} />
                     <div className="input-group-premium">
-                        <input
-                            placeholder="Start date"
-                            value={formatDisplay(tempStart)}
-                            readOnly
-                        />
+                        <div style={{ position: 'relative', width: '100%' }}>
+                            <input
+                                placeholder="Start date"
+                                value={formatDisplay(tempStart)}
+                                readOnly
+                                style={{ paddingRight: tempStart ? '24px' : '0' }}
+                            />
+                            {tempStart && (
+                                <button
+                                    className="icon-btn-ghost"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleClearDate('start');
+                                    }}
+                                    style={{
+                                        position: 'absolute',
+                                        right: 0,
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        height: '24px',
+                                        width: '24px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'var(--text-tertiary)'
+                                    }}
+                                >
+                                    <X size={12} />
+                                </button>
+                            )}
+                        </div>
                         {tempStart && (
-                            <div style={{ position: 'relative' }}>
-                                <span className="sub-action" ref={setStartInputRef} onClick={(e) => {
-                                    e.stopPropagation();
-                                    setTimePickerTarget('start');
-                                }}>
-                                    {tempStart.includes('T') ? 'Change time' : 'Add time'}
-                                </span>
-                                {timePickerTarget === 'start' && (
-                                    <TimePicker
-                                        onSelect={handleTimeSelect}
-                                        onClose={() => setTimePickerTarget(null)}
-                                        triggerElement={startInputRef}
-                                    />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ position: 'relative' }}>
+                                    <span className="sub-action" ref={setStartInputRef} onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTimePickerTarget('start');
+                                    }}>
+                                        {tempStart.includes('T') ? 'Change time' : 'Add time'}
+                                    </span>
+                                    {timePickerTarget === 'start' && (
+                                        <TimePicker
+                                            onSelect={handleTimeSelect}
+                                            onClose={() => setTimePickerTarget(null)}
+                                            triggerElement={startInputRef}
+                                        />
+                                    )}
+                                </div>
+                                {tempStart.includes('T') && (
+                                    <button
+                                        className="icon-btn-ghost"
+                                        title="Remove time"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleClearTime('start');
+                                        }}
+                                        style={{ height: '16px', width: '16px', padding: 0 }}
+                                    >
+                                        <X size={10} />
+                                    </button>
                                 )}
                             </div>
                         )}
@@ -321,25 +379,66 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
                 >
                     <CalendarIcon size={14} />
                     <div className="input-group-premium">
-                        <input
-                            placeholder="Due date"
-                            value={formatDisplay(tempDue)}
-                            readOnly
-                        />
+                        <div style={{ position: 'relative', width: '100%' }}>
+                            <input
+                                placeholder="Due date"
+                                value={formatDisplay(tempDue)}
+                                readOnly
+                                style={{ paddingRight: tempDue ? '24px' : '0' }}
+                            />
+                            {tempDue && (
+                                <button
+                                    className="icon-btn-ghost"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleClearDate('due');
+                                    }}
+                                    style={{
+                                        position: 'absolute',
+                                        right: 0,
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        height: '24px',
+                                        width: '24px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'var(--text-tertiary)'
+                                    }}
+                                >
+                                    <X size={12} />
+                                </button>
+                            )}
+                        </div>
                         {tempDue && (
-                            <div style={{ position: 'relative' }}>
-                                <span className="sub-action" ref={setDueInputRef} onClick={(e) => {
-                                    e.stopPropagation();
-                                    setTimePickerTarget('due');
-                                }}>
-                                    {tempDue.includes('T') ? 'Change time' : 'Add time'}
-                                </span>
-                                {timePickerTarget === 'due' && (
-                                    <TimePicker
-                                        onSelect={handleTimeSelect}
-                                        onClose={() => setTimePickerTarget(null)}
-                                        triggerElement={dueInputRef}
-                                    />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ position: 'relative' }}>
+                                    <span className="sub-action" ref={setDueInputRef} onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTimePickerTarget('due');
+                                    }}>
+                                        {tempDue.includes('T') ? 'Change time' : 'Add time'}
+                                    </span>
+                                    {timePickerTarget === 'due' && (
+                                        <TimePicker
+                                            onSelect={handleTimeSelect}
+                                            onClose={() => setTimePickerTarget(null)}
+                                            triggerElement={dueInputRef}
+                                        />
+                                    )}
+                                </div>
+                                {tempDue.includes('T') && (
+                                    <button
+                                        className="icon-btn-ghost"
+                                        title="Remove time"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleClearTime('due');
+                                        }}
+                                        style={{ height: '16px', width: '16px', padding: 0 }}
+                                    >
+                                        <X size={10} />
+                                    </button>
                                 )}
                             </div>
                         )}
