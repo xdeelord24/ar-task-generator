@@ -218,24 +218,53 @@ export const useAppStore = create<AppStore>()(
                 const activeAgents = state.agents.filter(a => a.isEnabled && a.trigger.type === 'task_created');
 
                 activeAgents.forEach(agent => {
-                    // Check conditions (simple check for now)
+                    // Check conditions (Enhanced fuzzy match)
                     if (agent.trigger.conditions) {
                         const condition = agent.trigger.conditions.toLowerCase();
                         const taskText = (newTask.name + ' ' + (newTask.description || '')).toLowerCase();
-                        if (!taskText.includes(condition)) return;
+
+                        // Treat condition as set of keywords if it contains spaces
+                        const keywords = condition.split(' ').filter(w => w.length > 3 && !['task', 'about', 'when', 'this', 'that', 'with', 'from'].includes(w));
+                        const isMatch = keywords.length > 0
+                            ? keywords.some(k => taskText.includes(k))
+                            : taskText.includes(condition);
+
+                        if (!isMatch) return;
                     }
 
                     // Execute Action
                     if (agent.action.type === 'launch_autopilot') {
-                        // Simulate Autopilot: Add a comment processing the task
-                        const commentId = crypto.randomUUID();
+                        let updates: any = {};
+                        const instructions = agent.action.instructions?.toLowerCase() || '';
+
+                        // Simple Instruction Parser
+                        if (instructions.includes('high priority')) updates.priority = 'high';
+                        if (instructions.includes('urgent')) updates.priority = 'urgent';
+
+                        // Tag parsing
+                        if (instructions.includes('tag')) {
+                            // extracting tags naive approach
+                            const words = instructions.split(' ');
+                            const tagIndex = words.indexOf('tag');
+                            if (tagIndex !== -1 && words[tagIndex + 1]) {
+                                // check for 'tag it as X'
+                                const tagCandidates = words.slice(tagIndex + 1).filter(w => !['as', 'it', 'is', 'a', 'the'].includes(w));
+                                if (tagCandidates.length > 0) {
+                                    const newTag = tagCandidates[0].replace(/[^a-z0-9]/g, ''); // clean tag
+                                    if (newTag) updates.tags = [...(newTask.tags || []), newTag];
+                                }
+                            }
+                        }
+
+                        // Apply updates
                         updatedTasks = updatedTasks.map(t => t.id === newTask.id ? {
                             ...t,
+                            ...updates,
                             comments: [...(t.comments || []), {
-                                id: commentId,
+                                id: crypto.randomUUID(),
                                 userId: 'agent-bot',
                                 userName: 'Autopilot Agent',
-                                text: `🤖 **Autopilot Activated**\n\nI am processing this task based on your instructions: "${agent.action.instructions}"\n\nI have analyzed the task details and will update you shortly.`,
+                                text: `🤖 **Autopilot Executed**\n\nI have updated this task based on your instructions:\n${updates.priority ? `- Set priority to **${updates.priority}**\n` : ''}${updates.tags ? `- Added tag **${updates.tags[updates.tags.length - 1]}**` : ''}`,
                                 createdAt: new Date().toISOString()
                             }]
                         } : t);
