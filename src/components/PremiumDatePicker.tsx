@@ -100,7 +100,6 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
 
             // Horizontal positioning
             if (rect.left + pickerWidth > viewportWidth - 20) {
-                const rightSpace = viewportWidth - rect.right;
                 // If aligning right to trigger works (trigger is wide enough or close to right edge)
                 if (rect.right >= pickerWidth) {
                     newStyle.right = viewportWidth - rect.right;
@@ -171,7 +170,58 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
         end: endDateCal,
     });
 
-    const handleDateClick = (day: Date) => {
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState<Date | null>(null);
+
+    const handleMouseDown = (day: Date) => {
+        setIsDragging(true);
+        const dateStr = format(day, 'yyyy-MM-dd');
+
+        // Start new selection if:
+        // 1. We have both start and due dates
+        // 2. We are focused on start input
+        // 3. We don't have a start date yet
+        if ((tempStart && tempDue) || activeInput === 'start' || !tempStart) {
+            setDragStart(day);
+            setTempStart(dateStr);
+            setTempDue(undefined);
+            setActiveInput('due');
+        } else {
+            // We have a start date and are selecting due date
+            // Use existing start as anchor
+            const anchor = new Date(tempStart);
+            setDragStart(anchor);
+
+            if (day < anchor) {
+                setTempStart(dateStr);
+                setTempDue(tempStart);
+            } else {
+                setTempDue(dateStr);
+            }
+        }
+    };
+
+    const handleMouseEnter = (day: Date) => {
+        if (isDragging && dragStart) {
+            const anchorStr = format(dragStart, 'yyyy-MM-dd');
+            const currentStr = format(day, 'yyyy-MM-dd');
+
+            if (day < dragStart) {
+                setTempStart(currentStr);
+                setTempDue(anchorStr);
+            } else {
+                setTempStart(anchorStr);
+                setTempDue(currentStr);
+            }
+        }
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+        setDragStart(null);
+    };
+
+    const handleQuickSelect = (day: Date) => {
         const dateStr = format(day, 'yyyy-MM-dd');
         if (activeInput === 'start') {
             setTempStart(dateStr);
@@ -270,7 +320,7 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
                         <>
                             <div className="quick-options-list">
                                 {quickOptions.map((opt, i) => (
-                                    <div key={i} className="quick-opt-item" onClick={() => handleDateClick(opt.value)}>
+                                    <div key={i} className="quick-opt-item" onClick={() => handleQuickSelect(opt.value)}>
                                         <span className="opt-label">{opt.label}</span>
                                         <span className="opt-sub">{opt.sub}</span>
                                     </div>
@@ -345,7 +395,7 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
                         {days.map(d => <div key={d}>{d}</div>)}
                     </div>
 
-                    <div className="cal-days-grid">
+                    <div className="cal-days-grid" onMouseLeave={() => setIsDragging(false)}>
                         {calendarDays.map((day, i) => {
                             const isSelect = (tempStart && isSameDay(day, new Date(tempStart))) ||
                                 (tempDue && isSameDay(day, new Date(tempDue)));
@@ -357,7 +407,15 @@ const PremiumDatePicker: React.FC<PremiumDatePickerProps> = ({ startDate, dueDat
                                 <div
                                     key={i}
                                     className={`cal-day ${!isCurrentMonth ? 'other-month' : ''} ${isSelect ? 'selected' : ''} ${isToday ? 'today' : ''} ${inRange ? 'in-range' : ''}`}
-                                    onClick={() => handleDateClick(day)}
+                                    onMouseDown={() => handleMouseDown(day)}
+                                    onMouseEnter={() => handleMouseEnter(day)}
+                                    onMouseUp={handleMouseUp}
+                                    onClick={() => {
+                                        // Prevent default click if we generated a range
+                                        // But if it was a simple click (start == end or prompt quick click), handle it.
+                                        // Actually reusing logic: MouseUp handles end of drag.
+                                        // Simple click is mousedown + mouseup on same day.
+                                    }}
                                 >
                                     {format(day, 'd')}
                                 </div>

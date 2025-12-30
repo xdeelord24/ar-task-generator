@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     ChevronLeft,
     ChevronRight,
@@ -41,7 +41,7 @@ import '../styles/CalendarView.css';
 import '../styles/ListView.css';
 
 interface CalendarViewProps {
-    onAddTask: (date?: Date) => void;
+    onAddTask: (startDate?: Date, dueDate?: Date) => void;
     onTaskClick: (taskId: string) => void;
 }
 
@@ -103,11 +103,268 @@ const DroppableCalendarDay: React.FC<DroppableDayProps> = ({ day, monthStart, ch
 
 type CalendarMode = 'day' | '4day' | 'week' | 'month';
 
+// Helper to get time from Y
+const getTimeFromY = (y: number, rect: DOMRect) => {
+    const relativeY = y - rect.top;
+    const percentage = relativeY / rect.height;
+    // 24 hours * 60 mins = 1440
+    const totalMinutes = 24 * 60;
+    const minutes = Math.max(0, Math.min(totalMinutes, Math.floor(totalMinutes * percentage)));
+    return minutes;
+};
+
+const DroppableTimeSlot: React.FC<{
+    day: Date;
+    hour: number;
+    title?: string;
+    children?: React.ReactNode;
+}> = ({ day, hour, title, children }) => {
+    const { setNodeRef, isOver } = useDroppable({
+        id: `time-slot|${day.toISOString()}|${hour}`,
+    });
+
+    return (
+        <div ref={setNodeRef} className={`time-slot ${isOver ? 'drag-over' : ''}`} title={title}>
+            {children}
+        </div>
+    );
+};
+
+const DroppableTimeColumn: React.FC<{
+    day: Date;
+    currentTime: Date;
+    tasks: Task[];
+    onTaskClick: (taskId: string) => void;
+    onAddTask: (startDate?: Date, dueDate?: Date) => void;
+}> = ({ day, currentTime, tasks, onTaskClick, onAddTask }) => {
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const { updateTask } = useAppStore();
+    const { setNodeRef } = useDroppable({
+        id: day.toISOString(),
+    });
+    const columnRef = useRef<HTMLDivElement>(null);
+
+    // Local state to track resizing height temporarily for smooth UX
+    const [resizingTask, setResizingTask] = useState<{ id: string, height: number } | null>(null);
+
+    // Selection State
+    const [isSelecting, setIsSelecting] = useState(false);
+    const [selectionStart, setSelectionStart] = useState<number | null>(null); // Minutes from midnight
+    const [selectionEnd, setSelectionEnd] = useState<number | null>(null); // Minutes from midnight
+
+    const getTimePosition = (date: Date) => {
+        const mins = date.getHours() * 60 + date.getMinutes();
+        return (mins / (24 * 60)) * 100;
+    };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        // Only trigger if clicking directly on the column/slots, not on a task
+        if ((e.target as HTMLElement).closest('.draggable-calendar-task')) return;
+        if ((e.target as HTMLElement).closest('.resize-handle-bottom')) return;
+
+        if (columnRef.current) {
+            const rect = columnRef.current.getBoundingClientRect();
+            const mins = getTimeFromY(e.clientY, rect);
+
+            // Snap to 15 min
+            const snapped = Math.floor(mins / 15) * 15;
+
+            setSelectionStart(snapped);
+            setSelectionEnd(snapped + 30); // Default 30 min duration visual
+            setIsSelecting(true);
+        }
+    };
+
+    useEffect(() => {
+        if (!isSelecting) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            if (columnRef.current && selectionStart !== null) {
+                const rect = columnRef.current.getBoundingClientRect();
+                const mins = getTimeFromY(e.clientY, rect);
+                const snapped = Math.floor(mins / 15) * 15;
+                setSelectionEnd(snapped);
+            }
+        };
+
+        const handleMouseUp = () => {
+            if (selectionStart !== null && selectionEnd !== null) {
+                const startMins = Math.min(selectionStart, selectionEnd);
+                const endMins = Math.max(selectionStart, selectionEnd);
+                // Ensure at least 30 mins
+                const duration = Math.max(30, endMins - startMins);
+                const finalEndMins = startMins + duration;
+
+                const startDate = new Date(day);
+                startDate.setHours(Math.floor(startMins / 60), startMins % 60, 0, 0);
+
+                const endDate = new Date(day);
+                endDate.setHours(Math.floor(finalEndMins / 60), finalEndMins % 60, 0, 0);
+
+                onAddTask(startDate, endDate);
+            }
+            setIsSelecting(false);
+            setSelectionStart(null);
+            setSelectionEnd(null);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isSelecting, selectionStart, day, onAddTask]);
+
+    const handleResizeStart = (e: React.MouseEvent, taskId: string, initialHeight: number) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const startY = e.pageY;
+
+        const onMouseMove = (moveEvent: MouseEvent) => {
+            const deltaY = moveEvent.pageY - startY;
+            if (!columnRef.current) return;
+            const colHeight = columnRef.current.offsetHeight;
+            const deltaPercent = (deltaY / colHeight) * 100;
+            const newHeight = Math.max(initialHeight + deltaPercent, (15 / (24 * 60)) * 100);
+            setResizingTask({ id: taskId, height: newHeight });
+        };
+
+        const onMouseUp = (upEvent: MouseEvent) => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+
+            const deltaY = upEvent.pageY - startY;
+            let deltaMins = 0;
+            if (columnRef.current) {
+                const colHeight = columnRef.current.offsetHeight;
+                deltaMins = Math.round((deltaY / colHeight) * (24 * 60));
+            }
+
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                const start = task.startDate ? new Date(task.startDate) : new Date(task.dueDate || '');
+                const currentDuration = task.startDate && task.dueDate
+                    ? differenceInMinutes(new Date(task.dueDate), new Date(task.startDate))
+                    : 60;
+
+                const newDuration = Math.max(currentDuration + deltaMins, 15);
+                const newDueDate = new Date(start.getTime() + newDuration * 60000);
+
+                updateTask(taskId, { dueDate: newDueDate.toISOString() });
+            }
+
+            setResizingTask(null);
+        };
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    };
+
+    return (
+        <div
+            ref={(node) => {
+                setNodeRef(node);
+                // @ts-ignore
+                columnRef.current = node;
+            }}
+            className="time-column"
+            onMouseDown={handleMouseDown}
+        >
+            {hours.map(hour => (
+                <DroppableTimeSlot
+                    key={hour}
+                    day={day}
+                    hour={hour}
+                    title={format(setHours(day, hour), 'h a')}
+                />
+            ))}
+
+            {/* Render Selection Box */}
+            {isSelecting && selectionStart !== null && selectionEnd !== null && (
+                <div
+                    className="selection-draft-box"
+                    style={{
+                        top: `${(Math.min(selectionStart, selectionEnd) / 1440) * 100}%`,
+                        height: `${(Math.max(30, Math.abs(selectionEnd - selectionStart)) / 1440) * 100}%`,
+                        position: 'absolute',
+                        width: '100%',
+                        background: 'rgba(59, 130, 246, 0.2)',
+                        borderLeft: '3px solid #3b82f6',
+                        zIndex: 10,
+                        pointerEvents: 'none'
+                    }}
+                >
+                    <div style={{ padding: '4px', fontSize: '11px', color: '#1d4ed8', fontWeight: 600 }}>
+                        New Task
+                    </div>
+                </div>
+            )}
+
+            {isToday(day) && (
+                <div
+                    className="current-time-line"
+                    style={{ top: `${getTimePosition(currentTime)}%` }}
+                >
+                    <div className="current-time-dot"></div>
+                </div>
+            )}
+
+            <div className="day-tasks-absolute">
+                {tasks
+                    .filter(t => {
+                        if (!t.dueDate) return false;
+                        const taskDate = new Date(t.dueDate);
+                        // ONLY timed tasks here
+                        const isTimed = t.dueDate.includes('T') || (t.startDate && t.startDate.includes('T'));
+                        if (!isTimed) return false;
+
+                        // Compare yyyy-MM-dd to be timezone-safe for daily columns
+                        return format(taskDate, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
+                    })
+                    .map(task => {
+                        const start = task.startDate ? new Date(task.startDate) : new Date(task.dueDate || '');
+                        const end = task.dueDate ? new Date(task.dueDate) : addHours(start, 1);
+
+                        const top = getTimePosition(start);
+                        let height = (differenceInMinutes(end, start) / (24 * 60)) * 100;
+
+                        if (resizingTask && resizingTask.id === task.id) {
+                            height = resizingTask.height;
+                        }
+
+                        return (
+                            <div
+                                key={task.id}
+                                className="draggable-task-wrapper"
+                                style={{
+                                    position: 'absolute',
+                                    top: `${top}%`,
+                                    height: `${height}%`,
+                                    width: '100%',
+                                    zIndex: 5
+                                }}
+                            >
+                                <DraggableCalendarTask task={task} onTaskClick={onTaskClick} />
+                                <div
+                                    className="resize-handle-bottom"
+                                    onMouseDown={(e) => handleResizeStart(e, task.id, height)}
+                                />
+                            </div>
+                        );
+                    })}
+            </div>
+        </div>
+    );
+};
+
 const TimeGrid: React.FC<{
     days: Date[],
     tasks: Task[],
     onTaskClick: (taskId: string) => void;
-    onAddTask: (date?: Date) => void;
+    onAddTask: (startDate?: Date, dueDate?: Date) => void;
 }> = ({ days, tasks, onTaskClick, onAddTask }) => {
     const hours = Array.from({ length: 24 }, (_, i) => i);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -170,157 +427,6 @@ const TimeGrid: React.FC<{
                         />
                     ))}
                 </div>
-            </div>
-        </div>
-    );
-};
-
-const DroppableTimeSlot: React.FC<{
-    day: Date;
-    hour: number;
-    children?: React.ReactNode;
-    onClick?: () => void;
-}> = ({ day, hour, children, onClick }) => {
-    const { setNodeRef, isOver } = useDroppable({
-        id: `time-slot|${day.toISOString()}|${hour}`,
-    });
-
-    return (
-        <div ref={setNodeRef} className={`time-slot ${isOver ? 'drag-over' : ''}`} onClick={onClick}>
-            {children}
-        </div>
-    );
-};
-
-const DroppableTimeColumn: React.FC<{
-    day: Date;
-    currentTime: Date;
-    tasks: Task[];
-    onTaskClick: (taskId: string) => void;
-    onAddTask: (date?: Date) => void;
-}> = ({ day, currentTime, tasks, onTaskClick, onAddTask }) => {
-    const hours = Array.from({ length: 24 }, (_, i) => i);
-    const { updateTask } = useAppStore();
-    const { setNodeRef } = useDroppable({
-        id: day.toISOString(),
-    });
-
-    // Local state to track resizing height temporarily for smooth UX
-    const [resizingTask, setResizingTask] = useState<{ id: string, height: number } | null>(null);
-
-    const getTimePosition = (date: Date) => {
-        const mins = date.getHours() * 60 + date.getMinutes();
-        return (mins / (24 * 60)) * 100;
-    };
-
-    const handleResizeStart = (e: React.MouseEvent, taskId: string, initialHeight: number) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const startY = e.pageY;
-
-        const onMouseMove = (moveEvent: MouseEvent) => {
-            const deltaY = moveEvent.pageY - startY;
-            // 1px = 1 minute. 1440px = 100%
-            const deltaPercent = (deltaY / 1440) * 100;
-            const newHeight = Math.max(initialHeight + deltaPercent, (15 / 1440) * 100); // Min 15 mins
-            setResizingTask({ id: taskId, height: newHeight });
-        };
-
-        const onMouseUp = (upEvent: MouseEvent) => {
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
-
-            const deltaY = upEvent.pageY - startY;
-            const deltaMins = Math.round(deltaY);
-
-            const task = tasks.find(t => t.id === taskId);
-            if (task) {
-                const start = task.startDate ? new Date(task.startDate) : new Date(task.dueDate || '');
-                const currentDuration = task.startDate && task.dueDate
-                    ? differenceInMinutes(new Date(task.dueDate), new Date(task.startDate))
-                    : 60;
-
-                const newDuration = Math.max(currentDuration + deltaMins, 15);
-                const newDueDate = new Date(start.getTime() + newDuration * 60000);
-
-                updateTask(taskId, { dueDate: newDueDate.toISOString() });
-            }
-
-            setResizingTask(null);
-        };
-
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-    };
-
-    return (
-        <div ref={setNodeRef} className="time-column">
-            {hours.map(hour => (
-                <DroppableTimeSlot
-                    key={hour}
-                    day={day}
-                    hour={hour}
-                    onClick={() => {
-                        const d = new Date(day);
-                        d.setHours(hour);
-                        onAddTask(d);
-                    }}
-                />
-            ))}
-
-            {isToday(day) && (
-                <div
-                    className="current-time-line"
-                    style={{ top: `${getTimePosition(currentTime)}%` }}
-                >
-                    <div className="current-time-dot"></div>
-                </div>
-            )}
-
-            <div className="day-tasks-absolute">
-                {tasks
-                    .filter(t => {
-                        if (!t.dueDate) return false;
-                        const taskDate = new Date(t.dueDate);
-                        // ONLY timed tasks here
-                        const isTimed = t.dueDate.includes('T') || (t.startDate && t.startDate.includes('T'));
-                        if (!isTimed) return false;
-
-                        // Compare yyyy-MM-dd to be timezone-safe for daily columns
-                        return format(taskDate, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
-                    })
-                    .map(task => {
-                        const start = task.startDate ? new Date(task.startDate) : new Date(task.dueDate || '');
-                        const end = task.dueDate ? new Date(task.dueDate) : addHours(start, 1);
-
-                        const top = getTimePosition(start);
-                        let height = (differenceInMinutes(end, start) / (24 * 60)) * 100;
-
-                        if (resizingTask && resizingTask.id === task.id) {
-                            height = resizingTask.height;
-                        }
-
-                        return (
-                            <div
-                                key={task.id}
-                                className="draggable-task-wrapper"
-                                style={{
-                                    position: 'absolute',
-                                    top: `${top}%`,
-                                    height: `${height}%`,
-                                    width: '100%',
-                                    zIndex: 5
-                                }}
-                            >
-                                <DraggableCalendarTask task={task} onTaskClick={onTaskClick} />
-                                <div
-                                    className="resize-handle-bottom"
-                                    onMouseDown={(e) => handleResizeStart(e, task.id, height)}
-                                />
-                            </div>
-                        );
-                    })}
             </div>
         </div>
     );

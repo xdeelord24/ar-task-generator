@@ -23,6 +23,7 @@ function App() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [initialStatus, setInitialStatus] = useState<string | undefined>(undefined);
   const [initialDate, setInitialDate] = useState<Date | undefined>(undefined);
+  const [initialStartDate, setInitialStartDate] = useState<Date | undefined>(undefined);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [settingsState, setSettingsState] = useState<{ open: boolean; tab?: string }>({ open: false });
@@ -86,7 +87,19 @@ function App() {
           onTaskClick={(id) => setSelectedTaskId(id)}
         />;
       case 'calendar':
-        return <CalendarView onAddTask={(date) => { setInitialDate(date); setIsModalOpen(true); }} onTaskClick={(id) => setSelectedTaskId(id)} />;
+        return <CalendarView
+          onAddTask={(start, end) => {
+            if (end) {
+              setInitialStartDate(start);
+              setInitialDate(end);
+            } else {
+              setInitialStartDate(undefined);
+              setInitialDate(start);
+            }
+            setIsModalOpen(true);
+          }}
+          onTaskClick={(id) => setSelectedTaskId(id)}
+        />;
       case 'gantt':
         return <GanttView onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
       case 'list':
@@ -104,7 +117,7 @@ function App() {
       onTaskClick={setSelectedTaskId}
     >
       {renderView()}
-      {isModalOpen && <TaskModal initialStatus={initialStatus} initialDate={initialDate} onClose={() => { setIsModalOpen(false); setInitialStatus(undefined); setInitialDate(undefined); }} />}
+      {isModalOpen && <TaskModal initialStatus={initialStatus} initialDate={initialDate} initialStartDate={initialStartDate} onClose={() => { setIsModalOpen(false); setInitialStatus(undefined); setInitialDate(undefined); setInitialStartDate(undefined); }} />}
       {selectedTaskId && <TaskDetailModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} onTaskClick={(id) => setSelectedTaskId(id)} />}
       {isReportOpen && <ReportModal onClose={() => setIsReportOpen(false)} />}
       {isAIOpen && <AIModal onClose={() => setIsAIOpen(false)} onTaskClick={(id) => setSelectedTaskId(id)} />}

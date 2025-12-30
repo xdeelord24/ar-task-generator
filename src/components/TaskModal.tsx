@@ -20,10 +20,11 @@ import '../styles/TaskModal.css';
 interface TaskModalProps {
     onClose: () => void;
     initialStatus?: string;
-    initialDate?: Date;
+    initialDate?: Date; // Usually treated as Due Date
+    initialStartDate?: Date;
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDate }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDate, initialStartDate }) => {
     const { addTask, currentSpaceId, currentListId, spaces, lists, aiConfig } = useAppStore();
 
     const activeList = lists.find(l => l.id === currentListId);
@@ -43,7 +44,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
     const [status, setStatus] = useState<Task['status']>(initialStatus || activeStatuses[0]?.name || 'TO DO');
     const [priority, setPriority] = useState<Priority>('medium');
 
-    const [startDate, setStartDate] = useState<string | undefined>(undefined);
+    const [startDate, setStartDate] = useState<string | undefined>(
+        initialStartDate ? initialStartDate.toISOString() : undefined
+    );
     const [dueDate, setDueDate] = useState<string | undefined>(
         initialDate ? initialDate.toISOString() : undefined
     );
