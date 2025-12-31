@@ -369,11 +369,39 @@ app.get('/api/resource/members', authenticateToken, async (req, res) => {
         }
 
         const members = await dbHandler.db.all(`
-            SELECT sr.*, u.name as user_name, u.avatar_url 
+            SELECT sr.*, u.id as user_id, COALESCE(u.name, sr.invited_email) as user_name, u.avatar_url, sr.invited_email as email
             FROM shared_resources sr
             LEFT JOIN users u ON sr.invited_email = u.email
             WHERE sr.resource_type = ? AND sr.resource_id = ?
         `, resourceType, resourceId);
+
+        // Robustly fetch owner
+        const resourceRecord = await dbHandler.db.get(`
+            SELECT owner_id FROM shared_resources 
+            WHERE resource_type = ? AND resource_id = ? 
+            LIMIT 1
+        `, resourceType, resourceId);
+
+        if (resourceRecord && resourceRecord.owner_id) {
+            const owner = await dbHandler.db.get(`
+                SELECT id, COALESCE(name, email) as user_name, email, avatar_url FROM users WHERE id = ?
+            `, resourceRecord.owner_id);
+
+            if (owner) {
+                // Determine if owner is already in the list to avoid duplicates
+                // Note: The main query joins on invited_email. The owner is usually NOT in that list unless they invited themselves.
+                // We check by user_id.
+                const alreadyListed = members.some(m => m.user_id === owner.id);
+                if (!alreadyListed) {
+                    members.push({
+                        ...owner,
+                        user_id: owner.id,
+                        role: 'owner',
+                        status: 'accepted'
+                    });
+                }
+            }
+        }
 
         res.json(members);
     } catch (error) {

@@ -197,6 +197,20 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                     }
                 }
 
+                // Safety net: Check if we have the space locally and can identify the owner
+                const space = useAppStore.getState().spaces.find(s => s.id === task.spaceId);
+                if (space && space.ownerId && space.ownerName) {
+                    if (!allMembers.find((am: any) => am.id === space.ownerId || am.user_id === space.ownerId)) {
+                        allMembers.push({
+                            id: space.ownerId,
+                            user_id: space.ownerId,
+                            user_name: space.ownerName,
+                            name: space.ownerName,
+                            role: 'owner'
+                        });
+                    }
+                }
+
                 setWorkspaceMembers(allMembers);
             } catch (e) {
                 console.error('Failed to fetch members', e);
