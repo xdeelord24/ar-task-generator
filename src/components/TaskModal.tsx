@@ -27,6 +27,7 @@ interface TaskModalProps {
 
 const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDate, initialStartDate }) => {
     const { addTask, currentSpaceId, currentListId, spaces, lists, aiConfig } = useAppStore();
+    const { token, user: currentUser } = useAuthStore();
 
     const activeList = lists.find(l => l.id === currentListId);
     const isEverything = currentSpaceId === 'everything';
@@ -61,7 +62,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
     const [taskType, setTaskType] = useState<TaskType>('task');
     const [selectedSpaceId, setSelectedSpaceId] = useState(currentSpaceId === 'everything' ? 'team-space' : currentSpaceId);
     const [selectedListId, setSelectedListId] = useState(currentListId || undefined);
-    const [assignees, setAssignees] = useState<string[]>([]);
+    const [assignees, setAssignees] = useState<string[]>(currentUser?.name ? [currentUser.name] : []);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
     // Dropdown visibility states
@@ -72,7 +73,6 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
     const [showTagMenu, setShowTagMenu] = useState(false);
 
     const [workspaceMembers, setWorkspaceMembers] = useState<any[]>([]);
-    const { token, user: currentUser } = useAuthStore();
     const availableTags = useAppStore(state => state.tags);
     const allSpaces = spaces.filter(s => s.id !== 'everything');
 
