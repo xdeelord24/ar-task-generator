@@ -320,8 +320,7 @@ export const useAppStore = create<AppStore>()(
             ],
             spaces: [
                 { id: 'everything', name: 'Everything', icon: 'star', color: '#3b82f6', isDefault: true, taskCount: 0, statuses: DEFAULT_STATUSES },
-                { id: 'team-space', name: 'Team Space', icon: 'users', color: '#10b981', isDefault: true, taskCount: 0, statuses: DEFAULT_STATUSES },
-                { id: 'pmnp', name: 'PMNP', icon: 'lock', color: '#f59e0b', isDefault: true, taskCount: 0, statuses: DEFAULT_STATUSES }
+                { id: 'team-space', name: 'Team Space', icon: 'users', color: '#10b981', isDefault: true, taskCount: 0, statuses: DEFAULT_STATUSES }
             ],
             folders: [],
             lists: [
