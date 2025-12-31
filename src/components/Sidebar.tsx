@@ -48,7 +48,8 @@ import {
     LogOut,
     Download,
     StickyNote,
-    Clipboard
+    Clipboard,
+    ArrowRight
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import ContextMenu, { useContextMenu } from './ContextMenu';
@@ -87,7 +88,8 @@ const IconMap: Record<string, any> = {
     'calendar': Calendar,
     'hash': Hash,
     'clips': Video,
-    'agents': Bot
+    'agents': Bot,
+    'folder': Folder
 };
 
 const Sidebar: React.FC = () => {
@@ -114,7 +116,10 @@ const Sidebar: React.FC = () => {
         setCurrentDashboardId,
         updateDashboard,
         deleteDashboard,
-        leaveSpace
+        leaveSpace,
+        duplicateFolder,
+        duplicateList,
+        addDoc
     } = useAppStore();
 
     const [isCreateSpaceOpen, setIsCreateSpaceOpen] = React.useState(false);
@@ -316,7 +321,7 @@ const Sidebar: React.FC = () => {
 
                                 {isExpanded && !sidebarCollapsed && (
                                     <div className="space-children">
-                                        {folders.filter(f => f.spaceId === space.id).map(folder => {
+                                        {folders.filter(f => f.spaceId === space.id && !f.isArchived).map(folder => {
                                             const isFolderExpanded = expandedFolderIds.has(folder.id);
                                             return (
                                                 <div key={folder.id} className="folder-container">
@@ -324,20 +329,70 @@ const Sidebar: React.FC = () => {
                                                         className="nav-item folder-item"
                                                         onClick={(e) => toggleFolder(e, folder.id)}
                                                         onContextMenu={(e) => showContextMenu(e, [
-                                                            { label: 'Create List', icon: <Plus size={14} />, onClick: () => { setCreateListSpaceId(space.id); setCreateListFolderId(folder.id); } },
                                                             { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingFolder(folder) },
+                                                            { label: 'Copy link', icon: <Link size={14} />, onClick: () => { navigator.clipboard.writeText(`${window.location.origin}/folder/${folder.id}`); } },
+                                                            { divider: true, label: '', onClick: () => { } },
+                                                            {
+                                                                label: 'Create new',
+                                                                icon: <Plus size={14} />,
+                                                                subItems: [
+                                                                    { label: 'List', icon: <ListIcon size={14} />, onClick: () => { setCreateListSpaceId(space.id); setCreateListFolderId(folder.id); } },
+                                                                    {
+                                                                        label: 'Doc',
+                                                                        icon: <FileText size={14} />,
+                                                                        onClick: () => {
+                                                                            const newDocId = addDoc({
+                                                                                name: 'New Doc',
+                                                                                content: '',
+                                                                                userId: 'user', // Default
+                                                                                userName: 'User',
+                                                                                spaceId: space.id
+                                                                            });
+                                                                            setCurrentView('docs');
+                                                                            // Ideally navigate to doc
+                                                                        }
+                                                                    },
+                                                                    { label: 'Form', icon: <Clipboard size={14} />, onClick: () => alert('Forms coming soon!') },
+                                                                    { label: 'Whiteboard', icon: <StickyNote size={14} />, onClick: () => alert('Whiteboards coming soon!') },
+                                                                ]
+                                                            },
+                                                            {
+                                                                label: 'Color & Icon',
+                                                                icon: <Droplet size={14} />,
+                                                                onClick: () => setEditingFolder(folder)
+                                                            },
+                                                            { label: 'Templates', icon: <Wand2 size={14} />, onClick: () => { } },
+                                                            { label: 'Automations', icon: <Zap size={14} />, onClick: () => { } },
+                                                            { label: 'Custom Fields', icon: <FileEdit size={14} />, onClick: () => { } },
+                                                            { label: 'Task statuses', icon: <Disc size={14} />, onClick: () => { } },
+                                                            { label: 'More', icon: <MoreHorizontal size={14} />, onClick: () => { } },
+                                                            { divider: true, label: '', onClick: () => { } },
+                                                            { label: 'Add to Favorites', icon: <StarIcon size={14} />, onClick: () => { } },
+                                                            { divider: true, label: '', onClick: () => { } },
+                                                            { label: 'Move', icon: <ArrowRight size={14} />, onClick: () => alert('Move folder coming soon') },
+                                                            { label: 'Duplicate', icon: <Copy size={14} />, onClick: () => duplicateFolder(folder.id) },
+                                                            { label: 'Archive', icon: <Archive size={14} />, onClick: () => updateFolder(folder.id, { isArchived: true }) },
                                                             { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteFolder(folder.id), danger: true },
+                                                            { divider: true, label: '', onClick: () => { } },
+                                                            {
+                                                                label: 'Sharing & Permissions',
+                                                                icon: null,
+                                                                onClick: () => alert('Sharing settings coming soon'),
+                                                                className: 'context-menu-share-btn'
+                                                            },
                                                         ])}
                                                     >
                                                         <div className="expand-icon-wrapper">
                                                             <ChevronRight size={14} className={`expand-icon ${isFolderExpanded ? 'expanded' : ''}`} />
                                                         </div>
-                                                        <Folder size={14} className="folder-icon" />
-                                                        <span>{folder.name}</span>
+                                                        <div className="folder-icon-wrapper" style={{ marginRight: '8px' }}>
+                                                            {renderIcon(folder.icon || 'folder', 14, folder.color)}
+                                                        </div>
+                                                        <span style={{ color: folder.color }}>{folder.name}</span>
                                                     </div>
                                                     {isFolderExpanded && (
                                                         <div className="folder-children">
-                                                            {lists.filter(l => l.folderId === folder.id).map(list => (
+                                                            {lists.filter(l => l.folderId === folder.id && !l.isArchived).map(list => (
                                                                 <React.Fragment key={list.id}>
                                                                     <a
                                                                         href="#"
@@ -352,7 +407,40 @@ const Sidebar: React.FC = () => {
                                                                         }}
                                                                         onContextMenu={(e) => showContextMenu(e, [
                                                                             { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingList({ ...list, id: list.id, spaceId: space.id }) },
+                                                                            { label: 'Copy link', icon: <Link size={14} />, onClick: () => { navigator.clipboard.writeText(`${window.location.origin}/list/${list.id}`); } },
+                                                                            { divider: true, label: '', onClick: () => { } },
+                                                                            {
+                                                                                label: 'Create new',
+                                                                                icon: <Plus size={14} />,
+                                                                                subItems: [
+                                                                                    { label: 'Task', icon: <CheckSquare size={14} />, onClick: () => console.log('Create Task') },
+                                                                                    { label: 'Doc', icon: <FileText size={14} />, onClick: () => console.log('Create Doc') },
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                label: 'Color & Icon',
+                                                                                icon: <Droplet size={14} />,
+                                                                                onClick: () => setEditingList({ ...list, id: list.id, spaceId: space.id })
+                                                                            },
+                                                                            { label: 'Templates', icon: <Wand2 size={14} />, onClick: () => { } },
+                                                                            { label: 'Automations', icon: <Zap size={14} />, onClick: () => { } },
+                                                                            { label: 'Custom Fields', icon: <FileEdit size={14} />, onClick: () => { } },
+                                                                            { label: 'Task statuses', icon: <Disc size={14} />, onClick: () => { } },
+                                                                            { label: 'More', icon: <MoreHorizontal size={14} />, onClick: () => { } },
+                                                                            { divider: true, label: '', onClick: () => { } },
+                                                                            { label: 'Add to Favorites', icon: <StarIcon size={14} />, onClick: () => { } },
+                                                                            { divider: true, label: '', onClick: () => { } },
+                                                                            { label: 'Move', icon: <ArrowRight size={14} />, onClick: () => alert('Move list coming soon') },
+                                                                            { label: 'Duplicate', icon: <Copy size={14} />, onClick: () => duplicateList(list.id) },
+                                                                            { label: 'Archive', icon: <Archive size={14} />, onClick: () => updateList(list.id, { isArchived: true }) },
                                                                             { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteList(list.id), danger: true },
+                                                                            { divider: true, label: '', onClick: () => { } },
+                                                                            {
+                                                                                label: 'Sharing & Permissions',
+                                                                                icon: null,
+                                                                                onClick: () => alert('Sharing settings coming soon'),
+                                                                                className: 'context-menu-share-btn'
+                                                                            },
                                                                         ])}
                                                                     >
                                                                         <div className="list-icon-wrapper">
@@ -433,7 +521,40 @@ const Sidebar: React.FC = () => {
                                                     }}
                                                     onContextMenu={(e) => showContextMenu(e, [
                                                         { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingList({ ...list, id: list.id, spaceId: space.id }) },
+                                                        { label: 'Copy link', icon: <Link size={14} />, onClick: () => { navigator.clipboard.writeText(`${window.location.origin}/list/${list.id}`); } },
+                                                        { divider: true, label: '', onClick: () => { } },
+                                                        {
+                                                            label: 'Create new',
+                                                            icon: <Plus size={14} />,
+                                                            subItems: [
+                                                                { label: 'Task', icon: <CheckSquare size={14} />, onClick: () => console.log('Create Task') },
+                                                                { label: 'Doc', icon: <FileText size={14} />, onClick: () => console.log('Create Doc') },
+                                                            ]
+                                                        },
+                                                        {
+                                                            label: 'Color & Icon',
+                                                            icon: <Droplet size={14} />,
+                                                            onClick: () => setEditingList({ ...list, id: list.id, spaceId: space.id })
+                                                        },
+                                                        { label: 'Templates', icon: <Wand2 size={14} />, onClick: () => { } },
+                                                        { label: 'Automations', icon: <Zap size={14} />, onClick: () => { } },
+                                                        { label: 'Custom Fields', icon: <FileEdit size={14} />, onClick: () => { } },
+                                                        { label: 'Task statuses', icon: <Disc size={14} />, onClick: () => { } },
+                                                        { label: 'More', icon: <MoreHorizontal size={14} />, onClick: () => { } },
+                                                        { divider: true, label: '', onClick: () => { } },
+                                                        { label: 'Add to Favorites', icon: <StarIcon size={14} />, onClick: () => { } },
+                                                        { divider: true, label: '', onClick: () => { } },
+                                                        { label: 'Move', icon: <ArrowRight size={14} />, onClick: () => alert('Move list coming soon') },
+                                                        { label: 'Duplicate', icon: <Copy size={14} />, onClick: () => duplicateList(list.id) },
+                                                        { label: 'Archive', icon: <Archive size={14} />, onClick: () => updateList(list.id, { isArchived: true }) },
                                                         { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteList(list.id), danger: true },
+                                                        { divider: true, label: '', onClick: () => { } },
+                                                        {
+                                                            label: 'Sharing & Permissions',
+                                                            icon: null,
+                                                            onClick: () => alert('Sharing settings coming soon'),
+                                                            className: 'context-menu-share-btn'
+                                                        },
                                                     ])}
                                                 >
                                                     <div className="list-icon-wrapper">

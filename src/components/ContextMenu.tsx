@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useLayoutEffect } from 'react';
 import ReactDOM from 'react-dom';
 
 export interface ContextMenuItem {
@@ -18,36 +18,55 @@ interface ContextMenuProps {
     items: ContextMenuItem[];
     onClose: () => void;
     level?: number; // For recursive styling/logic if needed
+    anchorRect?: DOMRect;
 }
 
-const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose, level = 0 }) => {
+const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose, level = 0, anchorRect }) => {
     const [position, setPosition] = useState({ x, y });
     const [activeSubMenu, setActiveSubMenu] = useState<{ index: number; rect: DOMRect } | null>(null);
     const menuRef = React.useRef<HTMLDivElement>(null);
     const itemRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         const menu = menuRef.current;
         if (menu) {
             const rect = menu.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const PADDING = 10;
+
             let newX = x;
             let newY = y;
 
-            if (x + rect.width > window.innerWidth) {
-                newX = x - rect.width;
+            // Check if we need to flip horizontally
+            if (x + rect.width > viewportWidth - PADDING) {
+                if (anchorRect) {
+                    newX = anchorRect.left - rect.width - 2;
+                } else {
+                    newX = x - rect.width;
+                }
             }
-            if (y + rect.height > window.innerHeight) {
+
+            // Check if we need to flip vertically
+            if (y + rect.height > viewportHeight - PADDING) {
                 newY = y - rect.height;
             }
 
-            // Adjust for submenus (level > 0) to appear to the right or left
-            if (level > 0) {
-                // Logic handled by parent passing correct x/y, but we might need tweaks
-            }
+            // Clamp to viewport boundaries with padding
+            const maxX = viewportWidth - rect.width - PADDING;
+            const maxY = viewportHeight - rect.height - PADDING;
+
+            // Ensure not off-screen to the right/bottom
+            // We use Math.max(PADDING, ...) to ensure if menu is bigger than screen, top-left is prioritized
+            newX = Math.min(newX, Math.max(PADDING, maxX));
+            newX = Math.max(PADDING, newX);
+
+            newY = Math.min(newY, Math.max(PADDING, maxY));
+            newY = Math.max(PADDING, newY);
 
             setPosition({ x: newX, y: newY });
         }
-    }, [x, y, level]);
+    }, [x, y, items, level, anchorRect]);
 
     return ReactDOM.createPortal(
         <div
@@ -135,6 +154,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose, level =
                             items={item.subItems}
                             onClose={onClose}
                             level={level + 1}
+                            anchorRect={activeSubMenu.rect}
                         />
                     )}
                 </React.Fragment>

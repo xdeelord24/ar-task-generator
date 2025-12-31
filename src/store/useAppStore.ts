@@ -220,10 +220,12 @@ interface AppStore extends AppState {
     addFolder: (folder: Omit<Folder, 'id'>) => void;
     updateFolder: (folderId: string, updates: Partial<Folder>) => void;
     deleteFolder: (folderId: string) => void;
+    duplicateFolder: (folderId: string) => void;
     setLists: (lists: List[]) => void;
     addList: (list: Omit<List, 'id' | 'taskCount'>) => void;
     updateList: (listId: string, updates: Partial<List>) => void;
     deleteList: (listId: string) => void;
+    duplicateList: (listId: string) => void;
     updateSpace: (spaceId: string, updates: Partial<Space>) => void;
     deleteSpace: (spaceId: string) => void;
     leaveSpace: (spaceId: string) => Promise<void>;
@@ -701,6 +703,53 @@ export const useAppStore = create<AppStore>()(
                 folders: state.folders.filter(f => f.id !== folderId),
                 lists: state.lists.map(l => l.folderId === folderId ? { ...l, folderId: undefined } : l) // Move lists to root of space
             })),
+            duplicateFolder: (folderId) => set((state) => {
+                const folder = state.folders.find(f => f.id === folderId);
+                if (!folder) return state;
+
+                const newFolderId = crypto.randomUUID();
+                const newFolder: Folder = {
+                    ...folder,
+                    id: newFolderId,
+                    name: `${folder.name} (Copy)`,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                // Duplicate Lists in this folder
+                const folderLists = state.lists.filter(l => l.folderId === folderId);
+                const newLists = folderLists.map(list => ({
+                    ...list,
+                    id: crypto.randomUUID(),
+                    folderId: newFolderId,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                }));
+
+                // Duplicate Tasks in those lists? 
+                // For a full robust duplicate, we should. But for this MVP step, maybe just Folder + Lists.
+                // Users usually expect tasks. Let's try to map tasks too.
+                const newTasks: Task[] = [];
+                newLists.forEach((newList, index) => {
+                    const originalListId = folderLists[index].id;
+                    const originalTasks = state.tasks.filter(t => t.listId === originalListId);
+                    originalTasks.forEach(task => {
+                        newTasks.push({
+                            ...task,
+                            id: crypto.randomUUID(),
+                            listId: newList.id,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        });
+                    });
+                });
+
+                return {
+                    folders: [...state.folders, newFolder],
+                    lists: [...state.lists, ...newLists],
+                    tasks: [...state.tasks, ...newTasks]
+                };
+            }),
             setLists: (lists) => set({ lists }),
             addList: (list) => {
                 const newList = {
@@ -742,6 +791,34 @@ export const useAppStore = create<AppStore>()(
                     }
                 }
             },
+            duplicateList: (listId: string) => set((state) => {
+                const list = state.lists.find(l => l.id === listId);
+                if (!list) return state;
+
+                const newListId = crypto.randomUUID();
+                const newList = {
+                    ...list,
+                    id: newListId,
+                    name: `${list.name} (Copy)`,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                // Duplicate tasks
+                const originalTasks = state.tasks.filter(t => t.listId === listId);
+                const newTasks = originalTasks.map(t => ({
+                    ...t,
+                    id: crypto.randomUUID(),
+                    listId: newListId,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                }));
+
+                return {
+                    lists: [...state.lists, newList],
+                    tasks: [...state.tasks, ...newTasks]
+                };
+            }),
             updateList: (listId, updates) => {
                 set((state) => ({
                     lists: state.lists.map(l => l.id === listId ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l)

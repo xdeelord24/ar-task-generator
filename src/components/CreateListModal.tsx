@@ -78,7 +78,7 @@ const CreateListModal: React.FC<CreateListModalProps> = ({ spaceId, folderId, on
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content create-list-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
                 <div className="modal-header">
-                    <h3>{editingList ? 'Rename List' : `Create List in ${space?.name}`}</h3>
+                    <h3>{editingList ? 'Update List' : `Create List in ${space?.name}`}</h3>
                     <button className="close-btn" onClick={onClose}><X size={20} /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="task-form">

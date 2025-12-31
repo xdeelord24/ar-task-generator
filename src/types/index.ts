@@ -105,6 +105,9 @@ export interface Folder {
   id: string;
   name: string;
   spaceId: string;
+  color?: string;
+  icon?: string;
+  isArchived?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -118,6 +121,7 @@ export interface List {
   icon?: string;
   color?: string;
   statuses?: Status[];
+  isArchived?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
