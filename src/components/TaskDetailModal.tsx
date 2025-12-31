@@ -27,7 +27,9 @@ import {
     Sparkles,
     ArrowUpDown,
     RotateCw,
-    CornerDownLeft
+    CornerDownLeft,
+    Play,
+    Square
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore } from '../store/useAppStore';
@@ -96,7 +98,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         addTag,
         updateTag,
         deleteTag,
-        aiConfig
+        aiConfig,
+        activeTimer,
+        startTimer,
+        stopTimer
     } = useAppStore();
 
     // Logic to find task or subtask
@@ -555,6 +560,32 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const currentSpace = spaces.find(s => s.id === task.spaceId);
     const currentList = lists.find(l => l.id === task.listId);
 
+    const isTimerRunning = activeTimer?.taskId === taskId;
+    const [elapsedTime, setElapsedTime] = useState(0);
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (isTimerRunning && activeTimer) {
+            const start = new Date(activeTimer.startTime).getTime();
+            setElapsedTime(Math.floor((new Date().getTime() - start) / 1000));
+
+            interval = setInterval(() => {
+                const now = new Date().getTime();
+                setElapsedTime(Math.floor((now - start) / 1000));
+            }, 1000);
+        } else {
+            setElapsedTime(0);
+        }
+        return () => clearInterval(interval);
+    }, [isTimerRunning, activeTimer?.startTime]);
+
+    const formatDuration = (seconds: number) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content task-detail-modal" onClick={e => e.stopPropagation()}>
@@ -810,15 +841,46 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                     <span className="meta-label">Track Time</span>
                                     <div className="meta-inline-val">
                                         <Clock3 size={14} />
-                                        <div style={{ position: 'relative' }}>
-                                            <button className="text-btn-picker" onClick={(e) => {
-                                                setTimePickerTrigger(e.currentTarget);
-                                                setIsTimePickerOpen(true);
-                                            }}>
-                                                {task.timeEntries && task.timeEntries.length > 0
-                                                    ? `${task.timeEntries.reduce((acc, curr) => acc + curr.duration, 0)}m tracked`
-                                                    : 'Add time'}
-                                            </button>
+                                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            {isTimerRunning ? (
+                                                <>
+                                                    <span style={{ color: '#10b981', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                                                        {formatDuration(elapsedTime)}
+                                                    </span>
+                                                    <button
+                                                        className="icon-btn-ghost"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            stopTimer();
+                                                        }}
+                                                        style={{ color: '#ef4444' }}
+                                                        title="Stop Timer"
+                                                    >
+                                                        <Square size={14} fill="currentColor" />
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button className="text-btn-picker" onClick={(e) => {
+                                                        setTimePickerTrigger(e.currentTarget);
+                                                        setIsTimePickerOpen(true);
+                                                    }}>
+                                                        {task.timeEntries && task.timeEntries.length > 0
+                                                            ? `${task.timeEntries.reduce((acc, curr) => acc + curr.duration, 0)}m tracked`
+                                                            : 'Add time'}
+                                                    </button>
+                                                    <button
+                                                        className="icon-btn-ghost"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            startTimer(taskId);
+                                                        }}
+                                                        title="Start Timer"
+                                                    >
+                                                        <Play size={14} />
+                                                    </button>
+                                                </>
+                                            )}
                                             {isTimePickerOpen && (
                                                 <TimePicker
                                                     onSelect={handleAddTime}
