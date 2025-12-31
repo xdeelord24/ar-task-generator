@@ -73,7 +73,7 @@ const VIEW_OPTIONS: ViewOption[] = [
         category: 'popular'
     },
     {
-        id: 'list',
+        id: 'table',
         name: 'Table',
         description: 'Structured table format',
         icon: Table,

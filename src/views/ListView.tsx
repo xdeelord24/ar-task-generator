@@ -49,6 +49,7 @@ import '../styles/TaskOptionsMenu.css';
 interface ListViewProps {
     onAddTask: () => void;
     onTaskClick: (taskId: string) => void;
+    isTableMode?: boolean;
 }
 
 interface ColumnHeaderProps {
@@ -116,6 +117,9 @@ interface SortableRowProps {
     onDeleteTag: (tagId: string) => void;
     onStartTimer: () => void;
     menuTrigger: HTMLElement | null;
+
+    rowIndex?: number;
+    isTableMode?: boolean;
 }
 
 const priorities: any[] = ['low', 'medium', 'high', 'urgent'];
@@ -135,7 +139,9 @@ interface SubtaskRowItemProps {
     isMenuOpen: boolean;
     onCloseMenu: () => void;
     menuTrigger: HTMLElement | null;
+
     onDeleteSubtask: (parentId: string, subtaskId: string) => void;
+    isTableMode?: boolean;
 }
 
 const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
@@ -153,7 +159,8 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
     onCloseMenu,
     menuTrigger,
     onDeleteSubtask,
-    tags
+    tags,
+    isTableMode
 }) => {
     const [isRenaming, setIsRenaming] = React.useState(false);
     const [renameValue, setRenameValue] = React.useState(task.name);
@@ -326,6 +333,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
             onOpenMenu(task.id, e.currentTarget);
         }}>
             <div className="drag-handle-placeholder" style={{ width: 30 }}></div>
+            {isTableMode && <div className="task-cell index-cell" style={{ width: 50 }}></div>}
             {columns.filter(c => c.visible).map(col => (
                 <React.Fragment key={col.id}>
                     {renderCell(col)}
@@ -396,7 +404,9 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
     onAddSubtask,
     onDeleteSubtask,
     menuTrigger,
-    openMenuTaskId
+    openMenuTaskId,
+    rowIndex,
+    isTableMode
 }) => {
     const {
         attributes,
@@ -730,6 +740,12 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 <div className="drag-handle" {...attributes} {...listeners}>
                     <GripVertical size={16} />
                 </div>
+
+                {isTableMode && (
+                    <div className="task-cell index-cell" style={{ width: 50, justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
+                        {rowIndex !== undefined ? rowIndex : '-'}
+                    </div>
+                )}
                 {columns.filter(c => c.visible).map(col => (
                     <React.Fragment key={col.id}>
                         {renderCell(col)}
@@ -792,6 +808,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                     {isAddingSubtask && (
                         <div className="task-item-row subtask-item-row">
                             <div className="drag-handle-placeholder" style={{ width: 30 }}></div>
+                            {isTableMode && <div className="task-cell index-cell" style={{ width: 50 }}></div>}
                             {columns.filter(c => c.visible).map(col => {
                                 if (col.id === 'name') {
                                     return (
@@ -827,8 +844,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
         </div>
     );
 };
-
-const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
+const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode }) => {
     const {
         tasks,
         currentSpaceId,
@@ -862,6 +878,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
     const [isAddingGroup, setIsAddingGroup] = React.useState(false);
     const [newGroupName, setNewGroupName] = React.useState('');
     const [isStatusEditorOpen, setIsStatusEditorOpen] = React.useState(false);
+    const [groupBy, setGroupBy] = React.useState<'status' | 'none'>(isTableMode ? 'none' : 'status');
 
     React.useEffect(() => {
         const handleClickOutside = () => {
@@ -1024,6 +1041,13 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                 <div className="toolbar-left">
                     <button className="btn-secondary" style={{ padding: '6px 14px', fontSize: '13px' }}><Filter size={14} /> Filter</button>
                     <button className="btn-secondary" style={{ padding: '6px 14px', fontSize: '13px' }}><ArrowUpDown size={14} /> Sort</button>
+                    <button
+                        className="btn-secondary"
+                        style={{ padding: '6px 14px', fontSize: '13px', background: groupBy === 'none' ? 'var(--bg-active)' : undefined }}
+                        onClick={() => setGroupBy(prev => prev === 'status' ? 'none' : 'status')}
+                    >
+                        Group: {groupBy === 'status' ? 'Status' : 'None'}
+                    </button>
                 </div>
                 <div className="toolbar-right">
                     <div className="toolbar-search">
@@ -1045,6 +1069,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                 >
                     <div className="list-table-header">
                         <div className="drag-handle-placeholder"></div>
+                        {isTableMode && <div className="column-header-cell" style={{ width: 50, borderRight: '1px solid var(--border)' }}></div>}
                         <SortableContext
                             items={activeColumns.filter(c => c.visible).map(c => c.id)}
                             strategy={horizontalListSortingStrategy}
@@ -1063,7 +1088,63 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                     onDragEnd={handleTaskDragEnd}
                 >
                     <div className="list-body">
-                        {activeStatuses.map(statusObj => {
+                        {/* Flat List (Group: None) */}
+                        {groupBy === 'none' && (
+                            <SortableContext
+                                items={filteredTasks.map(t => t.id)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                <div className="task-list">
+                                    {filteredTasks.map((task, index) => (
+                                        <SortableRow
+                                            key={task.id}
+                                            rowIndex={index + 1}
+                                            isTableMode={isTableMode}
+                                            task={task}
+                                            columns={activeColumns}
+                                            onTaskClick={onTaskClick}
+                                            getPriorityColor={getPriorityColor}
+                                            getDateStatus={getDateStatus}
+                                            tags={tags}
+                                            onOpenMenu={(id, trigger) => {
+                                                setOpenMenuTaskId(id);
+                                                setMenuTrigger(trigger);
+                                            }}
+                                            isMenuOpen={openMenuTaskId === task.id}
+                                            onCloseMenu={() => {
+                                                setOpenMenuTaskId(null);
+                                                setMenuTrigger(null);
+                                            }}
+                                            onDuplicate={duplicateTask}
+                                            onArchive={archiveTask}
+                                            onDelete={deleteTask}
+                                            onConvertToDoc={handleConvertToDoc}
+                                            onUpdateTask={updateTask}
+                                            activePopover={activePopover}
+                                            setActivePopover={setActivePopover}
+                                            onAddTag={addTag}
+                                            onUpdateTag={updateTag}
+                                            onDeleteTag={deleteTag}
+                                            onStartTimer={() => {
+                                                startTimer(task.id);
+                                                setOpenMenuTaskId(null);
+                                                setMenuTrigger(null);
+                                            }}
+                                            onUpdateSubtask={updateSubtask}
+                                            onAddSubtask={(taskId, name) => addSubtask(taskId, { name, status: 'TO DO' })}
+                                            onDeleteSubtask={deleteSubtask}
+                                            openMenuTaskId={openMenuTaskId}
+                                            menuTrigger={menuTrigger}
+                                        />
+                                    ))}
+                                    <button className="btn-inline-add" onClick={onAddTask}>
+                                        <Plus size={14} /> New Task
+                                    </button>
+                                </div>
+                            </SortableContext>
+                        )}
+
+                        {groupBy === 'status' && activeStatuses.map(statusObj => {
                             const statusTasks = filteredTasks.filter(t =>
                                 t.status.toLowerCase() === statusObj.name.toLowerCase() ||
                                 t.status === statusObj.id
@@ -1088,12 +1169,15 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                             strategy={verticalListSortingStrategy}
                                         >
                                             <div className="task-list">
-                                                {statusTasks.map(task => (
+                                                {statusTasks.map((task, index) => (
                                                     <SortableRow
                                                         key={task.id}
+                                                        rowIndex={index + 1}
+                                                        isTableMode={isTableMode}
                                                         task={task}
                                                         columns={activeColumns}
                                                         onTaskClick={onTaskClick}
+                                                        // ... continuing existing props
                                                         getPriorityColor={getPriorityColor}
                                                         getDateStatus={getDateStatus}
                                                         tags={tags}
@@ -1138,15 +1222,15 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                             );
                         })}
 
-                        {/* Uncategorized Tasks */}
-                        {(() => {
+                        {/* Uncategorized Tasks Logic (Only show if Group By Status) */}
+                        {groupBy === 'status' && (() => {
                             const uncategorizedTasks = filteredTasks.filter(t =>
                                 !activeStatuses.some(s =>
                                     t.status.toLowerCase() === s.name.toLowerCase() ||
                                     t.status === s.id
                                 )
                             );
-
+                            // ... existing logic for uncategorized
                             if (uncategorizedTasks.length === 0) return null;
 
                             return (
@@ -1160,9 +1244,11 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
                                     />
                                     {!collapsedGroups.has('UNCATEGORIZED') && (
                                         <div className="task-list">
-                                            {uncategorizedTasks.map(task => (
+                                            {uncategorizedTasks.map((task, index) => (
                                                 <SortableRow
                                                     key={task.id}
+                                                    rowIndex={index + 1}
+                                                    isTableMode={isTableMode}
                                                     task={task}
                                                     columns={activeColumns}
                                                     onTaskClick={onTaskClick}

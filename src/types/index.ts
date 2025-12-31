@@ -126,7 +126,7 @@ export interface List {
   updatedAt?: string;
 }
 
-export type ViewType = 'home' | 'list' | 'kanban' | 'calendar' | 'gantt' | 'timesheet' | 'dashboards' | 'docs' | 'pulse' | 'forms' | 'inbox' | 'teams' | 'whiteboards' | 'clips' | 'goals' | 'space_overview' | 'agents';
+export type ViewType = 'home' | 'list' | 'table' | 'kanban' | 'calendar' | 'gantt' | 'timesheet' | 'dashboards' | 'docs' | 'pulse' | 'forms' | 'inbox' | 'teams' | 'whiteboards' | 'clips' | 'goals' | 'space_overview' | 'agents';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 

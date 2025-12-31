@@ -147,9 +147,11 @@ function App() {
         />;
       case 'gantt':
         return <GanttView onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
+      case 'table':
+        return <ListView key="table" onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} isTableMode={true} />;
       case 'list':
       default:
-        return <ListView onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
+        return <ListView key="list" onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
     }
   };
 
