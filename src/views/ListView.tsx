@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import AssigneeMenu from '../components/AssigneeMenu';
 import {
     Plus,
     Search,
@@ -10,7 +11,8 @@ import {
     GripVertical,
     Flag,
     Tag as TagIcon,
-    Pencil
+    Pencil,
+    Users
 } from 'lucide-react';
 import {
     DndContext,
@@ -87,7 +89,7 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column }) => {
 
 interface ActivePopover {
     taskId: string;
-    field: 'priority' | 'date' | 'tags';
+    field: 'priority' | 'date' | 'tags' | 'assignees';
     element: HTMLElement;
 }
 
@@ -592,8 +594,15 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 );
             case 'assignee':
                 return (
-                    <div className="task-cell assignee-cell" style={{ width: col.width || 150 }}>
-                        <div className="involved-stack" style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className="task-cell assignee-cell" style={{ width: col.width || 150, position: 'relative', overflow: 'visible' }}>
+                        <div
+                            className="involved-stack"
+                            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setActivePopover({ taskId: task.id, field: 'assignees', element: e.currentTarget });
+                            }}
+                        >
                             {(task.assignees && task.assignees.length > 0) ? (
                                 <>
                                     {task.assignees.slice(0, 2).map((name, idx) => (
@@ -612,8 +621,8 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                     {task.assignee[0].toUpperCase()}
                                 </div>
                             ) : (
-                                <div className="assignee-avatar-xs" style={{ margin: 0, opacity: 0.3 }}>
-                                    ?
+                                <div className="assignee-avatar-xs dashed" style={{ margin: 0, borderStyle: 'dashed', background: 'transparent', color: 'var(--text-tertiary)' }}>
+                                    <Users size={12} />
                                 </div>
                             )}
                         </div>
@@ -622,6 +631,18 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                 ? task.assignees.length === 1 ? task.assignees[0] : `${task.assignees.length} people`
                                 : task.assignee || 'Unassigned'}
                         </span>
+                        {activePopover?.taskId === task.id && activePopover?.field === 'assignees' && (
+                            <AssigneeMenu
+                                taskId={task.id}
+                                spaceId={task.spaceId}
+                                assignees={task.assignees || []}
+                                onUpdateAssignees={(newAssignees) => {
+                                    onUpdateTask(task.id, { assignees: newAssignees });
+                                }}
+                                onClose={() => setActivePopover(null)}
+                                triggerElement={activePopover.element}
+                            />
+                        )}
                     </div>
                 );
             case 'dueDate':

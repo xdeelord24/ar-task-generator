@@ -1,5 +1,6 @@
 import React from 'react';
 import { type Status } from '../types';
+import AssigneeMenu from '../components/AssigneeMenu';
 import {
     Plus,
     PlusCircle,
@@ -16,6 +17,7 @@ import {
     Check,
     ChevronDown,
     User,
+    Users,
     CircleDashed,
     Flag,
     Tag as TagIcon
@@ -56,7 +58,7 @@ interface KanbanViewProps {
 
 interface ActivePopover {
     taskId: string;
-    field: 'priority' | 'date' | 'tags';
+    field: 'priority' | 'date' | 'tags' | 'assignees';
     element: HTMLElement;
 }
 
@@ -248,7 +250,14 @@ const SortableCard: React.FC<SortableCardProps> = ({
                             <span><MessageSquare size={14} /> {task.comments.length}</span>
                         )}
                     </div>
-                    <div className="involved-stack" style={{ display: 'flex', alignItems: 'center' }}>
+                    <div
+                        className="involved-stack"
+                        style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setActivePopover({ taskId: task.id, field: 'assignees', element: e.currentTarget });
+                        }}
+                    >
                         {(task.assignees && task.assignees.length > 0) ? (
                             <>
                                 {task.assignees.slice(0, 2).map((name, idx) => (
@@ -262,17 +271,29 @@ const SortableCard: React.FC<SortableCardProps> = ({
                                     </div>
                                 )}
                             </>
-                        ) : task.assignee ? (
-                            <div className="assignee-avatar-xs" style={{ margin: 0 }}>
-                                {task.assignee[0].toUpperCase()}
-                            </div>
                         ) : (
-                            <div className="assignee-avatar-xs" style={{ margin: 0, opacity: 0.3 }}>
-                                <User size={12} />
+                            <div className="assignee-avatar-xs dashed" style={{ margin: 0, borderStyle: 'dashed', background: 'transparent', color: 'var(--text-tertiary)' }}>
+                                <Users size={12} />
                             </div>
                         )}
                     </div>
                 </div>
+
+                {activePopover?.taskId === task.id && activePopover?.field === 'assignees' && (
+                    <AssigneeMenu
+                        taskId={task.id}
+                        spaceId={task.spaceId}
+                        assignees={task.assignees || []}
+                        onUpdateAssignees={(newAssignees) => {
+                            onUpdateTask(task.id, { assignees: newAssignees });
+                            // Keep menu open for multiple selections potentially, or close?
+                            // Usually for multi-select prefer keeping open, but if standard is close, user can reopen.
+                            // For now, let's keep it open to allow multiple changes, user clicks outside to close.
+                        }}
+                        onClose={() => setActivePopover(null)}
+                        triggerElement={activePopover.element}
+                    />
+                )}
 
                 {task.subtasks && task.subtasks.length > 0 && (
                     <>
