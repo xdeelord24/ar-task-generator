@@ -178,27 +178,54 @@ const CalculationRow: React.FC<{
             );
         }
 
-        const values = tasks
-            .map(t => t.customFieldValues?.[col.id])
-            .filter(v => typeof v === 'number') as number[];
+        const getAllFilteredValues = (taskList: Task[]): any[] => {
+            let all: any[] = [];
+            taskList.forEach(t => {
+                const val = t.customFieldValues?.[col.id];
+                if (val !== undefined && val !== null) all.push(val);
+                if (t.subtasks && t.subtasks.length > 0) {
+                    all = [...all, ...getAllFilteredValues(t.subtasks as any)];
+                }
+            });
+            return all;
+        };
+
+        const allValues = getAllFilteredValues(tasks);
+
+        if (col.type === 'checkbox') {
+            const checkedCount = allValues.filter(v => v === true).length;
+            return (
+                <div className="calculation-value">
+                    <span className="calc-label">Checked:</span> {checkedCount}
+                </div>
+            );
+        }
+
+        const numericValues = allValues
+            .map(v => Number(v))
+            .filter(v => !isNaN(v));
 
         let result: number | string = 0;
         switch (col.calculationType) {
-            case 'sum': result = values.reduce((a, b) => a + b, 0); break;
-            case 'avg': result = values.length ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2) : 0; break;
-            case 'min': result = values.length ? Math.min(...values) : 0; break;
-            case 'max': result = values.length ? Math.max(...values) : 0; break;
-            case 'count': result = values.length; break;
+            case 'sum': result = numericValues.reduce((a, b) => a + b, 0); break;
+            case 'avg': result = numericValues.length ? (numericValues.reduce((a, b) => a + b, 0) / numericValues.length).toFixed(2) : 0; break;
+            case 'min': result = numericValues.length ? Math.min(...numericValues) : 0; break;
+            case 'max': result = numericValues.length ? Math.max(...numericValues) : 0; break;
+            case 'count': result = numericValues.length; break;
         }
+
+        const currency = col.currency === 'USD' ? '$' : col.currency === 'EUR' ? '€' : col.currency === 'GBP' ? '£' : col.currency === 'JPY' ? '¥' : '';
 
         return (
             <div className="calculation-value" onClick={() => {
                 const types: ColumnSetting['calculationType'][] = ['sum', 'avg', 'min', 'max', 'count', 'none'];
-                const currentIndex = types.indexOf(col.calculationType);
+                const currentIndex = types.indexOf(col.calculationType || 'none');
                 const nextType = types[(currentIndex + 1) % types.length];
                 onCalculationChange(col.id, nextType);
             }}>
-                <span className="calc-label">{col.calculationType.toUpperCase()}:</span> {result}
+                <span className="calc-label">{col.calculationType?.toUpperCase() || 'CALC'}:</span>
+                {col.type === 'money' && currency}
+                {result}
             </div>
         );
     };
@@ -213,7 +240,7 @@ const CalculationRow: React.FC<{
                     flex: (!col.width && col.id === 'name') ? 1 : 'none',
                     justifyContent: col.type === 'number' ? 'flex-end' : 'flex-start'
                 }}>
-                    {col.type === 'number' && renderCalculationValue(col)}
+                    {(col.type === 'number' || col.type === 'money' || col.type === 'checkbox') && renderCalculationValue(col)}
                 </div>
             ))}
             <div style={{ width: 50 }}></div>
@@ -545,6 +572,30 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    );
+                }
+
+                if (col.type === 'checkbox') {
+                    const isChecked = task.customFieldValues?.[col.id] === true;
+                    return (
+                        <div className="task-cell" style={{ width: col.width }}>
+                            <div className="custom-checkbox-wrapper">
+                                <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                        onUpdateSubtask(parentId, task.id, {
+                                            customFieldValues: {
+                                                ...(task.customFieldValues || {}),
+                                                [col.id]: e.target.checked
+                                            }
+                                        });
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="custom-checkbox-input"
+                                />
+                            </div>
                         </div>
                     );
                 }
@@ -1046,6 +1097,30 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    );
+                }
+
+                if (col.type === 'checkbox') {
+                    const isChecked = task.customFieldValues?.[col.id] === true;
+                    return (
+                        <div className="task-cell" style={{ width: col.width }}>
+                            <div className="custom-checkbox-wrapper">
+                                <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                        onUpdateTask(task.id, {
+                                            customFieldValues: {
+                                                ...(task.customFieldValues || {}),
+                                                [col.id]: e.target.checked
+                                            }
+                                        });
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="custom-checkbox-input"
+                                />
+                            </div>
                         </div>
                     );
                 }
