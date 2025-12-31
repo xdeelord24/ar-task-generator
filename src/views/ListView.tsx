@@ -34,6 +34,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useAppStore, DEFAULT_STATUSES } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { format, isPast, isToday } from 'date-fns';
 import type { Task, ColumnSetting, Tag, Status } from '../types';
 import TaskOptionsMenu from '../components/TaskOptionsMenu';
@@ -853,6 +854,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         updateList,
         addSubtask
     } = useAppStore();
+    const { user } = useAuthStore();
     const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
     const [menuTrigger, setMenuTrigger] = React.useState<HTMLElement | null>(null);
@@ -893,8 +895,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick }) => {
         const docId = addDoc({
             name: `${task.name} - Specification`,
             content: task.description,
-            userId: 'user-1',
-            userName: 'Jundee',
+            userId: user?.id || 'user-1',
+            userName: user?.name || 'Jundee',
             spaceId: task.spaceId
         });
 

@@ -8,6 +8,7 @@ import {
     Clock
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { format } from 'date-fns';
 import DocEditor from '../components/DocEditor';
 import ViewHeader from '../components/ViewHeader';
@@ -22,6 +23,7 @@ const DocsView: React.FC = () => {
         currentSpaceId,
         currentListId
     } = useAppStore();
+    const { user } = useAuthStore();
     const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
 
     const filteredDocs = useMemo(() => {
@@ -40,8 +42,8 @@ const DocsView: React.FC = () => {
         const newId = addDoc({
             name: 'Untitled Doc',
             content: '',
-            userId: 'user-1',
-            userName: 'Jundee',
+            userId: user?.id || 'user-1',
+            userName: user?.name || 'Jundee',
             spaceId: currentSpaceId === 'everything' ? undefined : currentSpaceId,
             listId: currentListId || undefined
         });

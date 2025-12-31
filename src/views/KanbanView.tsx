@@ -42,6 +42,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useAppStore, DEFAULT_STATUSES } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 import type { Task, Tag } from '../types';
 import TaskOptionsMenu from '../components/TaskOptionsMenu';
 import ViewHeader from '../components/ViewHeader';
@@ -499,6 +500,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         spaces,
         lists,
     } = useAppStore();
+    const { user } = useAuthStore();
     const [activePopover, setActivePopover] = React.useState<ActivePopover | null>(null);
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
@@ -532,8 +534,8 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         const docId = addDoc({
             name: `${task.name} - Specification`,
             content: task.description,
-            userId: 'user-1',
-            userName: 'Jundee',
+            userId: user?.id || 'user-1',
+            userName: user?.name || 'Jundee',
             spaceId: task.spaceId
         });
 

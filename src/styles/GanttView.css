@@ -219,3 +219,37 @@
     background: var(--border);
     margin: 0 12px;
 }
+
+.gantt-resize-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: col-resize;
+    opacity: 0;
+    background: rgba(255, 255, 255, 0.4);
+    z-index: 20;
+    transition: opacity 0.2s;
+}
+
+.gantt-bar:hover .gantt-resize-handle,
+.gantt-resize-handle:active,
+.gantt-bar.dragging .gantt-resize-handle {
+    opacity: 1;
+}
+
+.gantt-resize-handle:hover {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.gantt-resize-handle.left {
+    left: 0;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+}
+
+.gantt-resize-handle.right {
+    right: 0;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}

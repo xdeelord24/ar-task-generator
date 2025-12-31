@@ -26,12 +26,14 @@ import {
     Monitor
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 import CreateClipModal from '../components/CreateClipModal';
 import ContextMenu, { useContextMenu } from '../components/ContextMenu';
 import '../styles/ClipsView.css';
 
 const ClipsView: React.FC = () => {
     const { clips, addClipComment, deleteClip, renameClip } = useAppStore();
+    const { user } = useAuthStore();
     const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('All');
@@ -120,8 +122,8 @@ const ClipsView: React.FC = () => {
     const handleAddComment = () => {
         if (!selectedClipId || !commentText.trim()) return;
         addClipComment(selectedClipId, {
-            userId: 'user-1',
-            userName: 'Jundee Mark Gerona Molina',
+            userId: user?.id || 'user-1',
+            userName: user?.name || 'Jundee Mark Gerona Molina',
             text: commentText
         });
         setCommentText('');
@@ -197,7 +199,7 @@ const ClipsView: React.FC = () => {
                                     </button>
                                 </div>
                                 <div className="clip-meta-row">
-                                    <div className="user-avatar-sm">JM</div>
+                                    <div className="user-avatar-sm">{selectedClip.ownerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}</div>
                                     <span className="user-name">{selectedClip.ownerName}</span>
                                     <span className="meta-dot">•</span>
                                     <span className="timestamp">Just now</span>

@@ -10,6 +10,7 @@ import {
     Square
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { format, isToday, parseISO, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import '../styles/HomeView.css';
 
@@ -20,6 +21,7 @@ interface HomeViewProps {
 
 const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
     const { tasks, startTimer, stopTimer, activeTimer } = useAppStore();
+    const { user } = useAuthStore();
     const [activeTab, setActiveTab] = useState<'To Do' | 'Done' | 'Delegated'>('To Do');
 
     const todayTasks = useMemo(() =>
@@ -41,9 +43,10 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
             return tasks.filter(t => t.status.toUpperCase() === 'COMPLETED');
         } else {
             // Delegated - for now just high priority tasks as a placeholder if no assignee logic
-            return tasks.filter(t => t.assignee && t.assignee !== 'Jundee');
+            const currentName = user?.name || 'Jundee';
+            return tasks.filter(t => t.assignee && t.assignee !== currentName);
         }
-    }, [tasks, activeTab]);
+    }, [tasks, activeTab, user]);
 
     const workGroupTasks = useMemo(() => {
         return filteredWorkTasks.filter(t => t.dueDate && isToday(parseISO(t.dueDate)));
@@ -84,7 +87,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
             <div className="home-header">
                 <div className="header-top">
                     <div>
-                        <h1>Good morning, Jundee</h1>
+                        <h1>Good morning, {user?.name.split(' ')[0] || 'there'}</h1>
                         <p>Here's what's happening with your projects today.</p>
                     </div>
                     <button className="btn-primary" onClick={onAddTask}>

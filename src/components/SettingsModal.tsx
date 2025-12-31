@@ -5,6 +5,7 @@ import {
     Check, Moon, Sun, Monitor, Coffee, Sparkles, Globe
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 import '../styles/SettingsModal.css';
 
 interface SettingsModalProps {
@@ -18,6 +19,7 @@ declare const QRCode: any;
 const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'profile' }) => {
     const [activeTab, setActiveTab] = useState(initialTab);
     const { theme, setTheme, accentColor, setAccentColor, aiConfig, setAIConfig, notificationSettings, updateNotificationSettings } = useAppStore();
+    const { user } = useAuthStore();
     const [ollamaModels, setOllamaModels] = useState<string[]>([]);
     const [isFetchingModels, setIsFetchingModels] = useState(false);
     const [ollamaError, setOllamaError] = useState<string | null>(null);
@@ -112,16 +114,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'pr
                         <h2>My Profile</h2>
                         <div className="profile-edit-section">
                             <div className="profile-avatar-upload">
-                                <div className="avatar-preview">JM</div>
+                                <div className="avatar-preview">{user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}</div>
                                 <button className="btn-secondary">Change Photo</button>
                             </div>
                             <div className="form-group">
                                 <label>Full Name</label>
-                                <input type="text" defaultValue="Jundee Mark Gerona Molina" />
+                                <input type="text" defaultValue={user?.name || ''} />
                             </div>
                             <div className="form-group">
                                 <label>Email Address</label>
-                                <input type="email" defaultValue="jundee@example.com" />
+                                <input type="email" defaultValue={user?.email || ''} />
                             </div>
                             <div className="form-group">
                                 <label>Job Title</label>

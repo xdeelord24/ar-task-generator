@@ -37,7 +37,8 @@ import {
     addWeeks,
     addYears,
     isSameMonth,
-    isSameYear
+    isSameYear,
+    addMinutes
 } from 'date-fns';
 import type { Task } from '../types';
 import ViewHeader from '../components/ViewHeader';
@@ -61,25 +62,95 @@ interface DraggableGanttBarProps {
     onContextMenu: (taskId: string, trigger: HTMLElement) => void;
     unit: TimeUnit;
     colWidth: number;
+    onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
 }
 
-const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, viewStart, onTaskClick, onContextMenu, unit, colWidth }) => {
+const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, viewStart, onTaskClick, onContextMenu, unit, colWidth, onUpdateTask }) => {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
+        disabled: false, // Ensure dragging is possible
     });
+
+    const [isResizing, setIsResizing] = useState(false);
+    const [tempTimes, setTempTimes] = useState<{ start: Date, end: Date } | null>(null);
 
     const taskStart = task.startDate ? parseISO(task.startDate) : (task.dueDate ? parseISO(task.dueDate) : new Date());
     const taskEnd = task.dueDate ? parseISO(task.dueDate) : taskStart;
+
+    const currentStart = tempTimes ? tempTimes.start : taskStart;
+    const currentEnd = tempTimes ? tempTimes.end : taskEnd;
+
+    // Handle Resize Logic
+    const handleResizeStart = (e: React.MouseEvent, direction: 'left' | 'right') => {
+        e.preventDefault();
+        e.stopPropagation(); // Prevent drag from starting
+        setIsResizing(true);
+
+        const startX = e.clientX;
+        const initialStart = taskStart;
+        const initialEnd = taskEnd;
+
+        let minsPerUnit = 24 * 60;
+        if (unit === 'hour') minsPerUnit = 60;
+        if (unit === 'week') minsPerUnit = 7 * 24 * 60;
+        if (unit === 'month') minsPerUnit = 30.44 * 24 * 60;
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            const minutesDelta = Math.round((deltaX / colWidth) * minsPerUnit);
+
+            let newStart = initialStart;
+            let newEnd = initialEnd;
+
+            if (direction === 'left') {
+                newStart = addMinutes(initialStart, minutesDelta);
+                if (newStart > initialEnd) newStart = initialEnd; // Constraint
+            } else {
+                newEnd = addMinutes(initialEnd, minutesDelta);
+                if (newEnd < initialStart) newEnd = initialStart; // Constraint
+            }
+
+            setTempTimes({ start: newStart, end: newEnd });
+        };
+
+        const handleMouseUp = () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+            setIsResizing(false);
+
+            // Commit changes
+            // Only if we have changes
+            // We need to access the LATEST calculated times. 
+            // Since closure captures initial scope, we might need a ref or just re-calculate based on last event?
+            // Actually, we can just use the state updater or re-calculate.
+            // Re-calculating in mouseUp is safer if we track lastDelta. 
+            // But easier is:
+
+            setTempTimes(currentVals => {
+                if (currentVals) {
+                    onUpdateTask(task.id, {
+                        startDate: currentVals.start.toISOString(),
+                        dueDate: currentVals.end.toISOString()
+                    });
+                }
+                return null;
+            });
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    };
+
 
     let minsPerUnit = 24 * 60; // Default Day
     if (unit === 'hour') minsPerUnit = 60;
     if (unit === 'week') minsPerUnit = 7 * 24 * 60;
     if (unit === 'month') minsPerUnit = 30.44 * 24 * 60; // Approx
 
-    const diffMins = differenceInMinutes(taskStart, viewStart);
+    const diffMins = differenceInMinutes(currentStart, viewStart);
     const timeIndex = diffMins / minsPerUnit;
 
-    const durationMinutes = differenceInMinutes(taskEnd, taskStart);
+    const durationMinutes = differenceInMinutes(currentEnd, currentStart);
     let durationUnits = durationMinutes / minsPerUnit;
     if (durationMinutes <= 0) durationUnits = 1; // Min 1 unit width if instant
 
@@ -87,10 +158,10 @@ const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, viewStart, 
     const leftPx = timeIndex * colWidth;
 
     const style = {
-        left: `${leftPx + (transform?.x || 0)}px`,
+        left: `${leftPx + (transform && !isResizing ? transform.x : 0)}px`,
         width: `${widthPx}px`,
-        top: transform ? `${transform.y}px` : undefined,
-        zIndex: isDragging ? 100 : 1,
+        top: transform && !isResizing ? `${transform.y}px` : undefined,
+        zIndex: isDragging || isResizing ? 100 : 1,
         opacity: isDragging ? 0.8 : 1,
     };
 
@@ -101,13 +172,26 @@ const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, viewStart, 
             {...listeners}
             {...attributes}
             className={`gantt-bar ${task.status.toLowerCase().replace(' ', '-')} ${isDragging ? 'dragging' : ''}`}
-            onClick={() => onTaskClick(task.id)}
+            onClick={(e) => {
+                if (!isResizing) onTaskClick(task.id);
+            }}
             onContextMenu={(e) => {
                 e.preventDefault();
                 onContextMenu(task.id, e.currentTarget);
             }}
         >
+            {/* Resize Handles */}
+            <div
+                className="gantt-resize-handle left"
+                onPointerDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'left'); }}
+                onMouseDown={(e) => e.stopPropagation()}
+            />
             <span className="gantt-bar-label">{task.name}</span>
+            <div
+                className="gantt-resize-handle right"
+                onPointerDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'right'); }}
+                onMouseDown={(e) => e.stopPropagation()}
+            />
         </div>
     );
 };
@@ -516,6 +600,7 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
                                         onContextMenu={handleOpenMenu}
                                         unit={unit}
                                         colWidth={colWidth}
+                                        onUpdateTask={updateTask}
                                     />
                                 </div>
                             ))}
