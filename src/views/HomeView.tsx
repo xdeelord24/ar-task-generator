@@ -24,6 +24,13 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
     const { user } = useAuthStore();
     const [activeTab, setActiveTab] = useState<'To Do' | 'Done' | 'Delegated'>('To Do');
 
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour < 12) return 'Good morning';
+        if (hour >= 12 && hour < 18) return 'Good afternoon';
+        return 'Good evening';
+    };
+
     const todayTasks = useMemo(() =>
         tasks.filter(t => t.dueDate && isToday(parseISO(t.dueDate)) && t.status.toUpperCase() !== 'COMPLETED'),
         [tasks]);
@@ -87,7 +94,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
             <div className="home-header">
                 <div className="header-top">
                     <div>
-                        <h1>Good morning, {user?.name.split(' ')[0] || 'there'}</h1>
+                        <h1>{getGreeting()}, {user?.name.split(' ')[0] || 'there'}</h1>
                         <p>Here's what's happening with your projects today.</p>
                     </div>
                     <button className="btn-primary" onClick={onAddTask}>
