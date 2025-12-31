@@ -1768,7 +1768,9 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                                     isTableMode={isTableMode}
                                                 />
                                                 <button className="btn-inline-add" onClick={onAddTask}>
-                                                    <Plus size={14} /> New Task
+                                                    <div className="btn-inline-add-inner">
+                                                        <Plus size={14} /> New Task
+                                                    </div>
                                                 </button>
                                             </div>
                                         </SortableContext>
