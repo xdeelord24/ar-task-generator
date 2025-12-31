@@ -123,12 +123,28 @@
     gap: 8px;
 }
 
-.tag-pill-small {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+.card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.tag-pill-kanban {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-main);
+    line-height: 1.4;
+    transition: var(--transition);
+}
+
+.tag-pill-kanban:hover {
+    filter: brightness(0.95);
 }
 
 .card-date {

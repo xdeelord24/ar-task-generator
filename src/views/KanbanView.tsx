@@ -147,10 +147,16 @@ const SortableCard: React.FC<SortableCardProps> = ({
                     return (
                         <span
                             key={tagId}
-                            className="tag-pill-small"
-                            style={{ backgroundColor: tag.color }}
+                            className="tag-pill-kanban"
+                            style={{
+                                backgroundColor: `${tag.color}20`,
+                                border: `1px solid ${tag.color}60`
+                            }}
                             title={tag.name}
-                        ></span>
+                        >
+                            <TagIcon size={12} style={{ color: tag.color, fill: tag.color, fillOpacity: 0.2 }} />
+                            {tag.name}
+                        </span>
                     );
                 })}
             </div>
