@@ -56,6 +56,7 @@ import ContextMenu, { useContextMenu } from './ContextMenu';
 import CreateSpaceModal from './CreateSpaceModal';
 import CreateListModal from './CreateListModal';
 import CreateFolderModal from './CreateFolderModal';
+import MoveModal from './MoveModal';
 import ShareSpaceModal from './ShareSpaceModal';
 import '../styles/Sidebar.css';
 
@@ -129,6 +130,7 @@ const Sidebar: React.FC = () => {
     const [sharingSpace, setSharingSpace] = React.useState<any>(null);
     const [renamingDashboardId, setRenamingDashboardId] = React.useState<string | null>(null);
     const [dashboardNewName, setDashboardNewName] = React.useState('');
+    const [movingItem, setMovingItem] = React.useState<{ type: 'folder' | 'list', id: string, name: string, currentSpaceId: string } | null>(null);
     const [createListSpaceId, setCreateListSpaceId] = React.useState<string | null>(null);
     const [createListFolderId, setCreateListFolderId] = React.useState<string | null>(null);
     const [createFolderSpaceId, setCreateFolderSpaceId] = React.useState<string | null>(null);
@@ -178,6 +180,59 @@ const Sidebar: React.FC = () => {
     const renderIcon = (iconName: string, size = 18, color?: string) => {
         const IconComponent = IconMap[iconName] || StarIcon;
         return <IconComponent size={size} color={color} />;
+    };
+
+    const handleDragStart = (e: React.DragEvent, type: 'folder' | 'list', id: string) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('application/json', JSON.stringify({ type, id }));
+        e.currentTarget.classList.add('dragging');
+    };
+
+    const handleDragEnd = (e: React.DragEvent) => {
+        e.currentTarget.classList.remove('dragging');
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        e.currentTarget.classList.add('drag-over');
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.currentTarget.classList.remove('drag-over');
+    };
+
+    const handleDrop = (e: React.DragEvent, targetType: 'space' | 'folder', targetId: string) => {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drag-over');
+
+        try {
+            const data = JSON.parse(e.dataTransfer.getData('application/json'));
+            if (!data || !data.type || !data.id) return;
+
+            const { type, id } = data;
+
+            // Prevent dropping on itself
+            if (id === targetId && type === targetType) return;
+
+            if (type === 'list') {
+                if (targetType === 'space') {
+                    updateList(id, { spaceId: targetId, folderId: undefined });
+                } else if (targetType === 'folder') {
+                    const targetFolder = folders.find(f => f.id === targetId);
+                    if (targetFolder) {
+                        updateList(id, { spaceId: targetFolder.spaceId, folderId: targetId });
+                    }
+                }
+            } else if (type === 'folder') {
+                if (targetType === 'space') {
+                    updateFolder(id, { spaceId: targetId });
+                }
+            }
+        } catch (err) {
+            console.error('Drop failed', err);
+        }
     };
 
     return (
@@ -257,6 +312,9 @@ const Sidebar: React.FC = () => {
                                         e.preventDefault();
                                         handleSpaceClick(space.id);
                                     }}
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={(e) => handleDrop(e, 'space', space.id)}
                                     onContextMenu={(e) => showContextMenu(e, [
                                         { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingSpace(space) },
                                         { label: 'Copy link', icon: <Link size={14} />, onClick: () => console.log('Copy link') },
@@ -327,6 +385,12 @@ const Sidebar: React.FC = () => {
                                                 <div key={folder.id} className="folder-container">
                                                     <div
                                                         className="nav-item folder-item"
+                                                        draggable
+                                                        onDragStart={(e) => handleDragStart(e, 'folder', folder.id)}
+                                                        onDragEnd={handleDragEnd}
+                                                        onDragOver={handleDragOver}
+                                                        onDragLeave={handleDragLeave}
+                                                        onDrop={(e) => handleDrop(e, 'folder', folder.id)}
                                                         onClick={(e) => toggleFolder(e, folder.id)}
                                                         onContextMenu={(e) => showContextMenu(e, [
                                                             { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingFolder(folder) },
@@ -341,7 +405,7 @@ const Sidebar: React.FC = () => {
                                                                         label: 'Doc',
                                                                         icon: <FileText size={14} />,
                                                                         onClick: () => {
-                                                                            const newDocId = addDoc({
+                                                                            addDoc({
                                                                                 name: 'New Doc',
                                                                                 content: '',
                                                                                 userId: 'user', // Default
@@ -369,7 +433,7 @@ const Sidebar: React.FC = () => {
                                                             { divider: true, label: '', onClick: () => { } },
                                                             { label: 'Add to Favorites', icon: <StarIcon size={14} />, onClick: () => { } },
                                                             { divider: true, label: '', onClick: () => { } },
-                                                            { label: 'Move', icon: <ArrowRight size={14} />, onClick: () => alert('Move folder coming soon') },
+                                                            { label: 'Move', icon: <ArrowRight size={14} />, onClick: () => setMovingItem({ type: 'folder', id: folder.id, name: folder.name, currentSpaceId: folder.spaceId }) },
                                                             { label: 'Duplicate', icon: <Copy size={14} />, onClick: () => duplicateFolder(folder.id) },
                                                             { label: 'Archive', icon: <Archive size={14} />, onClick: () => updateFolder(folder.id, { isArchived: true }) },
                                                             { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteFolder(folder.id), danger: true },
@@ -397,6 +461,9 @@ const Sidebar: React.FC = () => {
                                                                     <a
                                                                         href="#"
                                                                         className={`nav-item list-item ${currentListId === list.id ? 'active' : ''}`}
+                                                                        draggable
+                                                                        onDragStart={(e) => handleDragStart(e, 'list', list.id)}
+                                                                        onDragEnd={handleDragEnd}
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
                                                                             setCurrentSpaceId(space.id);
@@ -430,7 +497,7 @@ const Sidebar: React.FC = () => {
                                                                             { divider: true, label: '', onClick: () => { } },
                                                                             { label: 'Add to Favorites', icon: <StarIcon size={14} />, onClick: () => { } },
                                                                             { divider: true, label: '', onClick: () => { } },
-                                                                            { label: 'Move', icon: <ArrowRight size={14} />, onClick: () => alert('Move list coming soon') },
+                                                                            { label: 'Move', icon: <ArrowRight size={14} />, onClick: () => setMovingItem({ type: 'list', id: list.id, name: list.name, currentSpaceId: list.spaceId }) },
                                                                             { label: 'Duplicate', icon: <Copy size={14} />, onClick: () => duplicateList(list.id) },
                                                                             { label: 'Archive', icon: <Archive size={14} />, onClick: () => updateList(list.id, { isArchived: true }) },
                                                                             { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteList(list.id), danger: true },
@@ -511,6 +578,9 @@ const Sidebar: React.FC = () => {
                                                 <a
                                                     href="#"
                                                     className={`nav-item list-item ${currentListId === list.id ? 'active' : ''}`}
+                                                    draggable
+                                                    onDragStart={(e) => handleDragStart(e, 'list', list.id)}
+                                                    onDragEnd={handleDragEnd}
                                                     onClick={(e) => {
                                                         e.preventDefault();
                                                         setCurrentSpaceId(space.id); // Ensure correct space is active
@@ -544,7 +614,7 @@ const Sidebar: React.FC = () => {
                                                         { divider: true, label: '', onClick: () => { } },
                                                         { label: 'Add to Favorites', icon: <StarIcon size={14} />, onClick: () => { } },
                                                         { divider: true, label: '', onClick: () => { } },
-                                                        { label: 'Move', icon: <ArrowRight size={14} />, onClick: () => alert('Move list coming soon') },
+                                                        { label: 'Move', icon: <ArrowRight size={14} />, onClick: () => setMovingItem({ type: 'list', id: list.id, name: list.name, currentSpaceId: list.spaceId }) },
                                                         { label: 'Duplicate', icon: <Copy size={14} />, onClick: () => duplicateList(list.id) },
                                                         { label: 'Archive', icon: <Archive size={14} />, onClick: () => updateList(list.id, { isArchived: true }) },
                                                         { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteList(list.id), danger: true },
@@ -676,6 +746,14 @@ const Sidebar: React.FC = () => {
             </div>
 
             {isCreateSpaceOpen && <CreateSpaceModal onClose={() => setIsCreateSpaceOpen(false)} />}
+
+            {movingItem && (
+                <MoveModal
+                    item={movingItem}
+                    onClose={() => setMovingItem(null)}
+                />
+            )}
+
             {editingSpace && (
                 <CreateSpaceModal
                     editingSpace={editingSpace}
