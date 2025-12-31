@@ -22,7 +22,8 @@ import {
     EyeOff,
     Copy,
     Trash2,
-    ArrowDownWideNarrow
+    ArrowDownWideNarrow,
+    Check
 } from 'lucide-react';
 import ContextMenu from '../components/ContextMenu';
 import {
@@ -155,7 +156,7 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize, o
 
 interface ActivePopover {
     taskId: string;
-    field: 'priority' | 'date' | 'tags' | 'assignees';
+    field: 'priority' | 'date' | 'tags' | 'assignees' | string;
     element: HTMLElement;
 }
 
@@ -456,37 +457,98 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                     </div>
                 );
             default: {
-                if (col.type === 'number') {
+                if (col.type === 'number' || col.type === 'money') {
                     const value = task.customFieldValues?.[col.id] || '';
+                    const currency = col.currency === 'USD' ? '$' : col.currency === 'EUR' ? '€' : col.currency === 'GBP' ? '£' : col.currency === 'JPY' ? '¥' : '';
                     return (
                         <div className="task-cell" style={{ width: col.width }}>
-                            <input
-                                type="number"
-                                value={value}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    onUpdateSubtask(parentId, task.id, {
-                                        customFieldValues: {
-                                            ...(task.customFieldValues || {}),
-                                            [col.id]: val === '' ? undefined : Number(val)
-                                        }
-                                    });
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                    width: '100%',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'inherit',
-                                    padding: 0,
-                                    outline: 'none',
-                                    textAlign: 'right'
-                                }}
-                                placeholder="--"
-                            />
+                            <div className="custom-number-input-wrapper">
+                                {col.type === 'money' && <span className="custom-field-currency">{currency}</span>}
+                                <input
+                                    type="number"
+                                    value={value}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        onUpdateSubtask(parentId, task.id, {
+                                            customFieldValues: {
+                                                ...(task.customFieldValues || {}),
+                                                [col.id]: val === '' ? undefined : Number(val)
+                                            }
+                                        });
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="custom-field-input"
+                                    placeholder="--"
+                                    step={col.decimals ? 1 / Math.pow(10, col.decimals) : 1}
+                                />
+                            </div>
                         </div>
                     );
                 }
+
+                if (col.type === 'dropdown' || col.type === 'labels' || col.type === 'custom-dropdown' || col.id.startsWith('dropdown')) {
+                    const selectedId = task.customFieldValues?.[col.id];
+                    const selectedOption = col.options?.find(o => o.id === selectedId);
+
+                    return (
+                        <div className="task-cell" style={{ width: col.width, position: 'relative', overflow: 'visible' }}>
+                            <div
+                                className="custom-dropdown-badge"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActivePopover({ taskId: task.id, field: col.id, element: e.currentTarget });
+                                }}
+                                style={{ background: selectedOption ? selectedOption.color + '20' : 'var(--bg-hover)', color: selectedOption ? selectedOption.color : 'var(--text-tertiary)' }}
+                            >
+                                {selectedOption && <div className="dot" style={{ background: selectedOption.color, width: 6, height: 6, borderRadius: '50%' }}></div>}
+                                {selectedOption ? selectedOption.name : '--'}
+                                <ChevronDown size={12} />
+                            </div>
+
+                            {activePopover?.taskId === task.id && activePopover?.field === col.id && (
+                                <div className="dropdown-popover" onClick={e => e.stopPropagation()}>
+                                    {col.options?.map(opt => (
+                                        <div
+                                            key={opt.id}
+                                            className="dropdown-popover-item"
+                                            onClick={() => {
+                                                onUpdateSubtask(parentId, task.id, {
+                                                    customFieldValues: {
+                                                        ...(task.customFieldValues || {}),
+                                                        [col.id]: opt.id
+                                                    }
+                                                });
+                                                setActivePopover(null);
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <div className="dot" style={{ background: opt.color }}></div>
+                                                {opt.name}
+                                            </div>
+                                            {selectedId === opt.id && <Check size={14} style={{ color: 'var(--primary)' }} />}
+                                        </div>
+                                    ))}
+                                    <div
+                                        className="dropdown-popover-item"
+                                        style={{ color: 'var(--text-tertiary)', borderTop: '1px solid var(--border)', marginTop: 4 }}
+                                        onClick={() => {
+                                            onUpdateSubtask(parentId, task.id, {
+                                                customFieldValues: {
+                                                    ...(task.customFieldValues || {}),
+                                                    [col.id]: undefined
+                                                }
+                                            });
+                                            setActivePopover(null);
+                                        }}
+                                    >
+                                        Clear value
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                }
+
                 const displayValue = task.customFieldValues?.[col.id] ?? '-';
                 return <div className="task-cell" style={{ width: col.width }}>{displayValue}</div>;
             }
@@ -896,37 +958,98 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                     </div>
                 );
             default: {
-                if (col.type === 'number') {
+                if (col.type === 'number' || col.type === 'money') {
                     const value = task.customFieldValues?.[col.id] || '';
+                    const currency = col.currency === 'USD' ? '$' : col.currency === 'EUR' ? '€' : col.currency === 'GBP' ? '£' : col.currency === 'JPY' ? '¥' : '';
                     return (
                         <div className="task-cell" style={{ width: col.width }}>
-                            <input
-                                type="number"
-                                value={value}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    onUpdateTask(task.id, {
-                                        customFieldValues: {
-                                            ...(task.customFieldValues || {}),
-                                            [col.id]: val === '' ? undefined : Number(val)
-                                        }
-                                    });
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                    width: '100%',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'inherit',
-                                    padding: 0,
-                                    outline: 'none',
-                                    textAlign: 'right'
-                                }}
-                                placeholder="--"
-                            />
+                            <div className="custom-number-input-wrapper">
+                                {col.type === 'money' && <span className="custom-field-currency">{currency}</span>}
+                                <input
+                                    type="number"
+                                    value={value}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        onUpdateTask(task.id, {
+                                            customFieldValues: {
+                                                ...(task.customFieldValues || {}),
+                                                [col.id]: val === '' ? undefined : Number(val)
+                                            }
+                                        });
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="custom-field-input"
+                                    placeholder="--"
+                                    step={col.decimals ? 1 / Math.pow(10, col.decimals) : 1}
+                                />
+                            </div>
                         </div>
                     );
                 }
+
+                if (col.type === 'dropdown' || col.type === 'labels' || col.type === 'custom-dropdown' || col.id.startsWith('dropdown')) {
+                    const selectedId = task.customFieldValues?.[col.id];
+                    const selectedOption = col.options?.find(o => o.id === selectedId);
+
+                    return (
+                        <div className="task-cell" style={{ width: col.width, position: 'relative', overflow: 'visible' }}>
+                            <div
+                                className="custom-dropdown-badge"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActivePopover({ taskId: task.id, field: col.id, element: e.currentTarget });
+                                }}
+                                style={{ background: selectedOption ? selectedOption.color + '20' : 'var(--bg-hover)', color: selectedOption ? selectedOption.color : 'var(--text-tertiary)' }}
+                            >
+                                {selectedOption && <div className="dot" style={{ background: selectedOption.color, width: 6, height: 6, borderRadius: '50%' }}></div>}
+                                {selectedOption ? selectedOption.name : '--'}
+                                <ChevronDown size={12} />
+                            </div>
+
+                            {activePopover?.taskId === task.id && activePopover?.field === col.id && (
+                                <div className="dropdown-popover" onClick={e => e.stopPropagation()}>
+                                    {col.options?.map(opt => (
+                                        <div
+                                            key={opt.id}
+                                            className="dropdown-popover-item"
+                                            onClick={() => {
+                                                onUpdateTask(task.id, {
+                                                    customFieldValues: {
+                                                        ...(task.customFieldValues || {}),
+                                                        [col.id]: opt.id
+                                                    }
+                                                });
+                                                setActivePopover(null);
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <div className="dot" style={{ background: opt.color }}></div>
+                                                {opt.name}
+                                            </div>
+                                            {selectedId === opt.id && <Check size={14} style={{ color: 'var(--primary)' }} />}
+                                        </div>
+                                    ))}
+                                    <div
+                                        className="dropdown-popover-item"
+                                        style={{ color: 'var(--text-tertiary)', borderTop: '1px solid var(--border)', marginTop: 4 }}
+                                        onClick={() => {
+                                            onUpdateTask(task.id, {
+                                                customFieldValues: {
+                                                    ...(task.customFieldValues || {}),
+                                                    [col.id]: undefined
+                                                }
+                                            });
+                                            setActivePopover(null);
+                                        }}
+                                    >
+                                        Clear value
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                }
+
                 const displayValue = task.customFieldValues?.[col.id] ?? '-';
                 return <div className="task-cell" style={{ width: col.width }}>{displayValue}</div>;
             }
@@ -1096,7 +1219,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
     const [groupBy, setGroupBy] = React.useState<'status' | 'none'>(isTableMode ? 'none' : 'status');
     const [isCreateFieldOpen, setIsCreateFieldOpen] = React.useState(false);
 
-    const handleAddField = (field: { id: string; name: string; type: string }) => {
+    const handleAddField = (field: { id: string; name: string; type: string; metadata?: any }) => {
         const targetId = currentListId || currentSpaceId;
         const currentCols = columnSettings[targetId] || columnSettings['default'] || [];
 
@@ -1106,7 +1229,10 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
             visible: true,
             width: 150,
             type: field.type,
-            calculationType: (field.type === 'number' ? 'sum' : 'none') as ColumnSetting['calculationType']
+            calculationType: (field.type === 'number' ? 'sum' : 'none') as ColumnSetting['calculationType'],
+            options: field.metadata?.options,
+            currency: field.metadata?.currency,
+            decimals: field.metadata?.decimals
         }];
 
         setColumnSettings(targetId, newCols);

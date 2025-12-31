@@ -11,7 +11,7 @@ import '../styles/CreateFieldSidebar.css';
 
 interface CreateFieldSidebarProps {
     onClose: () => void;
-    onAddField: (field: { id: string; name: string; type: string }) => void;
+    onAddField: (field: { id: string; name: string; type: string; metadata?: any }) => void;
 }
 
 const suggestedFields = [
@@ -66,12 +66,39 @@ const CreateFieldSidebar: React.FC<CreateFieldSidebarProps> = ({ onClose, onAddF
     const [searchQuery, setSearchQuery] = React.useState('');
     const [fieldConfig, setFieldConfig] = React.useState({
         name: '',
-        fillMethod: 'manual' as 'manual' | 'ai'
+        fillMethod: 'manual' as 'manual' | 'ai',
+        options: [] as { id: string; name: string; color: string }[],
+        currency: 'USD',
+        decimals: 0
     });
 
     const handleSelectField = (field: any) => {
         setSelectedField(field);
-        setFieldConfig({ ...fieldConfig, name: field.name });
+
+        // Pre-populate options for specific types
+        let initialOptions: any[] = [];
+        if (field.id === 'dropdown' || field.id === 'labels' || field.id === 'custom-dropdown') {
+            initialOptions = [
+                { id: '1', name: 'Option 1', color: '#ff4b91' },
+                { id: '2', name: 'Option 2', color: '#7c3aed' }
+            ];
+        } else if (field.id === 't-shirt-size') {
+            initialOptions = [
+                { id: 'xs', name: 'XS', color: '#94a3b8' },
+                { id: 's', name: 'S', color: '#3b82f6' },
+                { id: 'm', name: 'M', color: '#10b981' },
+                { id: 'l', name: 'L', color: '#f59e0b' },
+                { id: 'xl', name: 'XL', color: '#ef4444' }
+            ];
+        }
+
+        setFieldConfig({
+            ...fieldConfig,
+            name: field.name,
+            options: initialOptions,
+            currency: 'USD',
+            decimals: 0
+        });
         setStep('configure');
     };
 
@@ -80,7 +107,14 @@ const CreateFieldSidebar: React.FC<CreateFieldSidebarProps> = ({ onClose, onAddF
         onAddField({
             id: selectedField.id,
             name: fieldConfig.name,
-            type: selectedField.id
+            type: selectedField.id,
+            metadata: {
+                options: (selectedField.id === 'dropdown' || selectedField.id === 'labels' || selectedField.id === 't-shirt-size' || selectedField.id === 'custom-dropdown')
+                    ? fieldConfig.options
+                    : undefined,
+                currency: selectedField.id === 'money' ? fieldConfig.currency : undefined,
+                decimals: selectedField.id === 'number' ? fieldConfig.decimals : undefined,
+            }
         });
     };
 

@@ -139,6 +139,9 @@ export interface ColumnSetting {
   width?: number;
   type?: string;
   calculationType?: 'sum' | 'avg' | 'min' | 'max' | 'count' | 'none';
+  options?: { id: string; name: string; color: string }[];
+  currency?: string;
+  decimals?: number;
 }
 
 export interface SavedView {
