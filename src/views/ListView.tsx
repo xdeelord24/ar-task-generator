@@ -1599,7 +1599,6 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 cursor: 'pointer',
-                                background: 'transparent',
                                 borderRight: 'none',
                                 padding: 0
                             }}
@@ -2002,10 +2001,12 @@ const DroppableStatusHeader: React.FC<{
             className={`status-header ${isOver ? 'drag-over' : ''} ${isCollapsed ? 'collapsed' : ''}`}
             onClick={onToggle}
         >
-            <ChevronRight size={16} className={`expand-icon ${!isCollapsed ? 'expanded' : ''}`} />
-            <span className="status-dot" style={{ backgroundColor: color }}></span>
-            <span className="status-name">{status}</span>
-            <span className="status-count">{count}</span>
+            <div className="status-header-inner">
+                <ChevronRight size={16} className={`expand-icon ${!isCollapsed ? 'expanded' : ''}`} />
+                <span className="status-dot" style={{ backgroundColor: color }}></span>
+                <span className="status-name">{status}</span>
+                <span className="status-count">{count}</span>
+            </div>
         </div>
     );
 };
