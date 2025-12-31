@@ -110,7 +110,7 @@ function App() {
       case 'home':
         return <HomeView onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
       case 'inbox':
-        return <InboxView />;
+        return <InboxView onTaskClick={(id) => setSelectedTaskId(id)} />;
       case 'timesheet':
         return <TimesheetView />;
       case 'dashboards':

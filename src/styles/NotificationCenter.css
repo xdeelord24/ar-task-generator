@@ -34,16 +34,17 @@
     min-width: 18px;
     text-align: center;
     line-height: 1.2;
-    box-shadow: 0 0 0 2px var(--bg-primary);
+    box-shadow: 0 0 0 2px var(--bg-surface);
 }
 
 .notification-dropdown {
     position: absolute;
     top: calc(100% + 8px);
-    right: 0;
+    left: 0;
+    /* Changed from right: 0 to fix off-screen clipping on left-aligned header */
     width: 380px;
     max-height: 500px;
-    background: var(--bg-primary);
+    background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
@@ -250,5 +251,5 @@
 }
 
 .dark .notification-badge {
-    box-shadow: 0 0 0 2px var(--bg-primary);
+    box-shadow: 0 0 0 2px var(--bg-surface);
 }

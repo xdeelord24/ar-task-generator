@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import '../styles/NotificationCenter.css';
+import { Bell, Clock, UserPlus, CheckCircle2, MessageSquare, AlertCircle } from 'lucide-react';
 
 interface NotificationCenterProps {
     onTaskClick?: (taskId: string) => void;
@@ -45,12 +46,12 @@ const NotificationCenter = ({ onTaskClick }: NotificationCenterProps) => {
 
     const getNotificationIcon = (type: string) => {
         switch (type) {
-            case 'overdue': return '⚠️';
-            case 'due_soon': return '⏰';
-            case 'task_assigned': return '👤';
-            case 'task_completed': return '✅';
-            case 'comment_added': return '💬';
-            default: return '🔔';
+            case 'overdue': return <AlertCircle size={16} className="text-red-500" />;
+            case 'due_soon': return <Clock size={16} className="text-orange-500" />;
+            case 'task_assigned': return <UserPlus size={16} className="text-green-500" />;
+            case 'task_completed': return <CheckCircle2 size={16} className="text-blue-500" />;
+            case 'comment_added': return <MessageSquare size={16} className="text-purple-500" />;
+            default: return <Bell size={16} className="text-gray-500" />;
         }
     };
 
@@ -76,10 +77,7 @@ const NotificationCenter = ({ onTaskClick }: NotificationCenterProps) => {
                 onClick={() => setIsOpen(!isOpen)}
                 title="Notifications"
             >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
+                <Bell size={20} />
                 {unreadCount > 0 && (
                     <span className="notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
                 )}
@@ -116,10 +114,7 @@ const NotificationCenter = ({ onTaskClick }: NotificationCenterProps) => {
                     <div className="notification-list">
                         {notifications.length === 0 ? (
                             <div className="notification-empty">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                                </svg>
+                                <Bell size={48} className="opacity-50 mb-3" />
                                 <p>No notifications</p>
                             </div>
                         ) : (

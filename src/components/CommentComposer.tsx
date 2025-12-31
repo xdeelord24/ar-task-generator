@@ -127,14 +127,28 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
         }
     };
 
+    const handleCursorUpdate = (e: any) => {
+        setCursorPosition(e.target.selectionStart);
+    };
+
     const handleSelectMention = (member: any) => {
         const name = member.user_name || member.name || '';
         const lastAt = commentText.lastIndexOf('@', cursorPosition - 1);
-        // Insert as bold markdown to ensure it's visually distinct and easy to parse
-        const newText = commentText.slice(0, lastAt) + '**@' + name + '** ' + commentText.slice(cursorPosition);
-        setCommentText(newText);
-        setShowMentions(false);
-        textareaRef.current?.focus();
+        if (lastAt !== -1) {
+            const newText = commentText.slice(0, lastAt) + '**@' + name + '** ' + commentText.slice(cursorPosition);
+            setCommentText(newText);
+            setShowMentions(false);
+            // Timeout to allow render to catch up before focusing
+            setTimeout(() => {
+                if (textareaRef.current) {
+                    textareaRef.current.focus();
+                    // Set cursor at the end of the new insertion
+                    const newCursorPos = lastAt + name.length + 5; // **@ + name + ** + space
+                    textareaRef.current.selectionStart = newCursorPos;
+                    textareaRef.current.selectionEnd = newCursorPos;
+                }
+            }, 0);
+        }
     };
 
     const handlePaste = (e: React.ClipboardEvent) => {
@@ -164,10 +178,10 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
                     bottom: '100%',
                     left: 0,
                     width: '200px',
-                    backgroundColor: 'white',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border)',
                     borderRadius: '8px',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    boxShadow: 'var(--shadow-lg)',
                     zIndex: 1000,
                     marginBottom: '8px',
                     maxHeight: '200px',
@@ -184,19 +198,22 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '8px',
-                                borderBottom: idx < filteredMembers.length - 1 ? '1px solid #f1f5f9' : 'none',
-                                fontSize: '13px'
+                                borderBottom: idx < filteredMembers.length - 1 ? '1px solid var(--border)' : 'none',
+                                fontSize: '13px',
+                                color: 'var(--text-main)'
                             }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                         >
                             <div style={{
                                 width: '20px',
                                 height: '20px',
                                 borderRadius: '50%',
-                                backgroundColor: '#f1f5f9',
+                                backgroundColor: 'var(--bg-secondary)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: '#64748b'
+                                color: 'var(--text-secondary)'
                             }}>
                                 <UserIcon size={12} />
                             </div>
@@ -227,6 +244,9 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
                     placeholder="Write a comment... use @AI to ask AI, @Name to mention"
                     value={commentText}
                     onChange={handleTextChange}
+                    onSelect={handleCursorUpdate}
+                    onClick={handleCursorUpdate}
+                    onKeyUp={handleCursorUpdate}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey && !showMentions) {
                             e.preventDefault();

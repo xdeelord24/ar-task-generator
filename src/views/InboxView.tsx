@@ -15,7 +15,11 @@ import {
 } from 'lucide-react';
 import '../styles/InboxView.css';
 
-const InboxView: React.FC = () => {
+interface InboxViewProps {
+    onTaskClick?: (taskId: string) => void;
+}
+
+const InboxView: React.FC<InboxViewProps> = ({ onTaskClick }) => {
     const { token } = useAuthStore();
     const {
         notifications,
@@ -187,7 +191,16 @@ const InboxView: React.FC = () => {
                 ) : (
                     <div className="inbox-list">
                         {filteredItems.map(item => (
-                            <div key={item.id} className={`inbox-item ${!item.isRead ? 'unread' : ''}`}>
+                            <div
+                                key={item.id}
+                                className={`inbox-item ${!item.isRead ? 'unread' : ''}`}
+                                onClick={() => {
+                                    if (item.raw.taskId && onTaskClick) {
+                                        onTaskClick(item.raw.taskId);
+                                    }
+                                }}
+                                style={{ cursor: item.raw.taskId ? 'pointer' : 'default' }}
+                            >
                                 <div className="item-icon">
                                     {getIconForType(item.type)}
                                 </div>
@@ -203,7 +216,10 @@ const InboxView: React.FC = () => {
                                             <div className="invite-actions">
                                                 <button
                                                     className="btn-accept-invite"
-                                                    onClick={() => handleAcceptInvitation(item.raw)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAcceptInvitation(item.raw);
+                                                    }}
                                                 >
                                                     Accept Invitation
                                                 </button>
@@ -215,7 +231,10 @@ const InboxView: React.FC = () => {
                                     {item.type !== 'invite' && (
                                         <button
                                             className="action-btn"
-                                            onClick={() => item.isRead ? clearNotification(item.id) : markNotificationAsRead(item.id)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                item.isRead ? clearNotification(item.id) : markNotificationAsRead(item.id);
+                                            }}
                                             title={item.isRead ? "Clear" : "Mark as read"}
                                         >
                                             {item.isRead ? <Archive size={16} /> : <Check size={16} />}
