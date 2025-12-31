@@ -34,7 +34,28 @@ const CommentItem: React.FC<CommentItemProps> = React.memo(({ comment, onImageCl
                                     rel="noopener noreferrer"
                                     style={{ color: 'var(--primary)', textDecoration: 'underline' }}
                                 />
-                            )
+                            ),
+                            strong: ({ node, children, ...props }) => {
+                                const content = children?.toString() || '';
+                                if (content.startsWith('@')) {
+                                    return (
+                                        <span className="mention-pill" style={{
+                                            backgroundColor: '#e0f2fe',
+                                            color: '#0369a1',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            fontWeight: 600,
+                                            fontSize: '0.9em',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            cursor: 'default'
+                                        }}>
+                                            {children}
+                                        </span>
+                                    );
+                                }
+                                return <strong {...props}>{children}</strong>;
+                            }
                         }}
                     >
                         {comment.text}

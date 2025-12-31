@@ -1434,7 +1434,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                     onImageClick={(src) => setPreviewImage(src)}
                                     onAIRequest={handleAIResponse}
                                     activityFeedRef={activityFeedRef}
-                                    currentUserName="Jundee"
+                                    currentUserName={currentUser?.name || "Jundee"}
+                                    workspaceMembers={workspaceMembers}
                                 />
                             )}
 

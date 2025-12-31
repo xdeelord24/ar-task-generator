@@ -7,7 +7,6 @@ import {
     AtSign,
     CheckCircle2,
     Clock,
-    Filter,
     Search,
     Mail,
     UserPlus,
@@ -87,7 +86,9 @@ const InboxView: React.FC = () => {
         })),
         ...notifications.map(notif => ({
             id: notif.id,
-            type: notif.type === 'task_assigned' ? 'assigned' : 'mention', // Simplified mapping
+            type: notif.type === 'task_assigned' ? 'assigned' :
+                notif.type === 'mention' ? 'mention' :
+                    notif.type === 'overdue' ? 'overdue' : 'all',
             title: notif.title,
             message: notif.message,
             time: notif.createdAt,

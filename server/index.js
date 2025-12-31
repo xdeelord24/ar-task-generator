@@ -502,6 +502,10 @@ app.post('/api/shared/propagate', authenticateToken, async (req, res) => {
                 const idx = state.folders.findIndex(f => f.id === data.id);
                 state.folders[idx] = { ...state.folders[idx], ...data };
             }
+        } else if (type === 'notification') {
+            state.notifications = state.notifications || [];
+            state.notifications.unshift(data);
+            console.log(`[Propagate] Added notification to User ${ownerId} State.`);
         }
 
         // 4. Save Owner State

@@ -722,6 +722,9 @@ export const useAppStore = create<AppStore>()(
                     socket.emit('realtime_update', { type: 'list', data: newList, spaceId: newList.spaceId });
                 }
 
+                const state = get();
+                const space = state.spaces.find(s => s.id === list.spaceId);
+
                 if (space && (space as any).isShared && (space as any).ownerId) {
                     const token = getAuthToken();
                     if (token) {
@@ -1325,6 +1328,17 @@ export const useAppStore = create<AppStore>()(
                         } else if (type === 'list_delete') {
                             return {
                                 lists: state.lists.filter(l => l.id !== data.id)
+                            };
+                        } else if (type === 'notification') {
+                            // Trigger Browser Notification
+                            if ('Notification' in window && Notification.permission === 'granted') {
+                                new Notification(data.title, {
+                                    body: data.message,
+                                    icon: '/favicon.ico'
+                                });
+                            }
+                            return {
+                                notifications: [data, ...state.notifications]
                             };
                         }
                         return state;

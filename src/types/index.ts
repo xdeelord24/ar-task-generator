@@ -227,7 +227,7 @@ export interface ChatSession {
   messages: Message[];
 }
 
-export type NotificationType = 'due_soon' | 'overdue' | 'task_assigned' | 'task_completed' | 'comment_added';
+export type NotificationType = 'due_soon' | 'overdue' | 'task_assigned' | 'task_completed' | 'comment_added' | 'mention';
 
 export interface Notification {
   id: string;

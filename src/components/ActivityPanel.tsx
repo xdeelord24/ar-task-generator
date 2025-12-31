@@ -13,6 +13,7 @@ interface ActivityPanelProps {
     onAIRequest: (query: string) => Promise<void>;
     activityFeedRef: React.RefObject<HTMLDivElement>;
     currentUserName: string;
+    workspaceMembers: any[];
 }
 
 const ActivityPanel: React.FC<ActivityPanelProps> = ({
@@ -22,7 +23,8 @@ const ActivityPanel: React.FC<ActivityPanelProps> = ({
     onImageClick,
     onAIRequest,
     activityFeedRef,
-    currentUserName
+    currentUserName,
+    workspaceMembers
 }) => {
     return (
         <div className="activity-panel">
@@ -66,6 +68,8 @@ const ActivityPanel: React.FC<ActivityPanelProps> = ({
                 taskId={task.id}
                 isSubtask={isSubtask}
                 onAIRequest={onAIRequest}
+                workspaceMembers={workspaceMembers}
+                taskName={task.name}
             />
         </div>
     );
