@@ -57,11 +57,21 @@ function App() {
 
   // Check for due dates and sync shared data periodically
   useEffect(() => {
-    const { checkDueDates, syncSharedData } = useAppStore.getState();
+    const { checkDueDates, syncSharedData, refreshRooms } = useAppStore.getState();
 
     // Initial runs
     checkDueDates();
     syncSharedData();
+    refreshRooms();
+
+    // Watch spaces length for new shared spaces
+    const unsubscribe = useAppStore.subscribe(
+      (state) => {
+        // We just trigger refresh on any state change that might affect spaces
+        // setupSocket logic is idempotent for rooms anyway
+        state.refreshRooms();
+      }
+    );
 
     // Check due dates every 5 minutes
     const dueInterval = setInterval(() => {
@@ -74,12 +84,20 @@ function App() {
     }, 30 * 1000);
 
     return () => {
+      unsubscribe();
       clearInterval(dueInterval);
       clearInterval(syncInterval);
     };
   }, []);
 
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { isAuthenticated, user: currentUser } = useAuthStore();
+  const { setupSocket } = useAppStore();
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      setupSocket(currentUser.id);
+    }
+  }, [isAuthenticated, currentUser, setupSocket]);
 
   useEffect(() => {
     // Check if we have a token in local storage on mount (simple persistence handled by store middleware)

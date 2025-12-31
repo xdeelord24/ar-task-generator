@@ -3,6 +3,9 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { serverStorage, getAuthToken } from './storage';
 import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard, Clip, Notification, NotificationSettings, Agent } from '../types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { io, Socket } from 'socket.io-client';
+
+let socket: Socket | null = null;
 
 // --- Helper: Agent Condition Checker ---
 const checkAgentCondition = (agent: Agent, task: Task): boolean => {
@@ -272,6 +275,8 @@ interface AppStore extends AppState {
     updateAgent: (id: string, updates: Partial<Agent>) => void;
     deleteAgent: (id: string) => void;
     syncSharedData: () => Promise<void>;
+    setupSocket: (userId: string) => void;
+    refreshRooms: () => void;
 }
 
 export const DEFAULT_STATUSES: Status[] = [
@@ -421,6 +426,12 @@ export const useAppStore = create<AppStore>()(
                 // Propagate to Owner if Shared Space
                 const currentState = get();
                 const space = currentState.spaces.find(s => s.id === task.spaceId);
+
+                // Real-time broadcast
+                if (socket) {
+                    socket.emit('realtime_update', { type: 'task', data: newTask, spaceId: newTask.spaceId });
+                }
+
                 if (space && (space as any).isShared && (space as any).ownerId) {
                     const token = getAuthToken();
                     if (token) {
@@ -469,6 +480,11 @@ export const useAppStore = create<AppStore>()(
                 const updatedTask = state.tasks.find(t => t.id === taskId);
 
                 if (updatedTask) {
+                    // Real-time broadcast
+                    if (socket) {
+                        socket.emit('realtime_update', { type: 'task', data: updatedTask, spaceId: updatedTask.spaceId });
+                    }
+
                     // Propagate to Owner if Shared Space
                     const space = state.spaces.find(s => s.id === updatedTask.spaceId);
                     if (space && (space as any).isShared && (space as any).ownerId) {
@@ -504,9 +520,21 @@ export const useAppStore = create<AppStore>()(
                     }
                 }
             },
-            deleteTask: (taskId) => set((state) => ({
-                tasks: state.tasks.filter((task) => task.id !== taskId)
-            })),
+            deleteTask: (taskId) => {
+                const state = get();
+                const task = state.tasks.find(t => t.id === taskId);
+
+                if (task) {
+                    // Real-time broadcast
+                    if (socket) {
+                        socket.emit('realtime_update', { type: 'task_delete', data: { id: taskId }, spaceId: task.spaceId });
+                    }
+                }
+
+                set((state) => ({
+                    tasks: state.tasks.filter((task) => task.id !== taskId)
+                }));
+            },
             duplicateTask: (taskId) => set((state) => {
                 const task = state.tasks.find(t => t.id === taskId);
                 if (!task) return state;
@@ -550,6 +578,11 @@ export const useAppStore = create<AppStore>()(
                             }).catch(e => console.error('[AppStore] Failed to propagate subtask:', e));
                         }
                     }
+
+                    // Real-time broadcast
+                    if (socket) {
+                        socket.emit('realtime_update', { type: 'task', data: updatedTask, spaceId: updatedTask.spaceId });
+                    }
                 }
             },
             updateSubtask: (taskId, subtaskId, updates) => {
@@ -566,6 +599,11 @@ export const useAppStore = create<AppStore>()(
                 const state = get();
                 const updatedTask = state.tasks.find(t => t.id === taskId);
                 if (updatedTask) {
+                    // Real-time broadcast
+                    if (socket) {
+                        socket.emit('realtime_update', { type: 'task', data: updatedTask, spaceId: updatedTask.spaceId });
+                    }
+
                     const space = state.spaces.find(s => s.id === updatedTask.spaceId);
                     if (space && (space as any).isShared && (space as any).ownerId) {
                         const token = getAuthToken();
@@ -603,6 +641,11 @@ export const useAppStore = create<AppStore>()(
                                 body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
                             }).catch(e => console.error('[AppStore] Failed to propagate subtask deletion:', e));
                         }
+                    }
+
+                    // Real-time broadcast
+                    if (socket) {
+                        socket.emit('realtime_update', { type: 'task', data: updatedTask, spaceId: updatedTask.spaceId });
                     }
                 }
             },
@@ -674,9 +717,11 @@ export const useAppStore = create<AppStore>()(
                     lists: [...state.lists, newList]
                 }));
 
-                // Propagate to Owner if Shared Space
-                const state = get();
-                const space = state.spaces.find(s => s.id === list.spaceId);
+                // Real-time broadcast
+                if (socket) {
+                    socket.emit('realtime_update', { type: 'list', data: newList, spaceId: newList.spaceId });
+                }
+
                 if (space && (space as any).isShared && (space as any).ownerId) {
                     const token = getAuthToken();
                     if (token) {
@@ -695,13 +740,43 @@ export const useAppStore = create<AppStore>()(
                     }
                 }
             },
-            updateList: (listId, updates) => set((state) => ({
-                lists: state.lists.map(l => l.id === listId ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l)
-            })),
-            deleteList: (listId) => set((state) => ({
-                lists: state.lists.filter(l => l.id !== listId),
-                tasks: state.tasks.filter(t => t.listId !== listId)
-            })),
+            updateList: (listId, updates) => {
+                set((state) => ({
+                    lists: state.lists.map(l => l.id === listId ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l)
+                }));
+
+                // Real-time broadcast
+                const list = get().lists.find(l => l.id === listId);
+                if (list && socket) {
+                    socket.emit('realtime_update', { type: 'list', data: list, spaceId: list.spaceId });
+                }
+
+                // Propagate
+                if (list) {
+                    const space = get().spaces.find(s => s.id === list.spaceId);
+                    if (space && (space as any).isShared && (space as any).ownerId) {
+                        const token = getAuthToken();
+                        if (token) {
+                            fetch('http://localhost:3001/api/shared/propagate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'list', data: list })
+                            }).catch(e => console.error('[AppStore] Failed to propagate list update:', e));
+                        }
+                    }
+                }
+            },
+            deleteList: (listId) => {
+                const list = get().lists.find(l => l.id === listId);
+                if (list && socket) {
+                    socket.emit('realtime_update', { type: 'list_delete', data: { id: listId }, spaceId: list.spaceId });
+                }
+
+                set((state) => ({
+                    lists: state.lists.filter(l => l.id !== listId),
+                    tasks: state.tasks.filter(t => t.listId !== listId)
+                }));
+            },
             updateSpace: (spaceId, updates) => set((state) => ({
                 spaces: state.spaces.map(s => s.id === spaceId ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s)
             })),
@@ -1205,6 +1280,70 @@ export const useAppStore = create<AppStore>()(
                 } catch (e) {
                     console.error('[AppStore] Sync failed:', e);
                 }
+            },
+
+            setupSocket: (userId) => {
+                if (socket) return;
+
+                socket = io('http://localhost:3001', {
+                    transports: ['websocket', 'polling'],
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000,
+                });
+
+                socket.on('connect', () => {
+                    console.log('[Socket] Connected as', userId);
+                    socket?.emit('join_room', userId);
+                    get().refreshRooms();
+                });
+
+                socket.on('shared_update', ({ type, data }) => {
+                    console.log('[Socket] Received shared update:', type, data.id);
+                    set((state) => {
+                        if (type === 'task') {
+                            const exists = state.tasks.find(t => t.id === data.id);
+                            if (exists) {
+                                return {
+                                    tasks: state.tasks.map(t => t.id === data.id ? { ...t, ...data } : t)
+                                };
+                            } else {
+                                return { tasks: [data, ...state.tasks] };
+                            }
+                        } else if (type === 'task_delete') {
+                            return {
+                                tasks: state.tasks.filter(t => t.id !== data.id)
+                            };
+                        } else if (type === 'list') {
+                            const exists = state.lists.find(l => l.id === data.id);
+                            if (exists) {
+                                return {
+                                    lists: state.lists.map(l => l.id === data.id ? { ...l, ...data } : l)
+                                };
+                            } else {
+                                return { lists: [...state.lists, data] };
+                            }
+                        } else if (type === 'list_delete') {
+                            return {
+                                lists: state.lists.filter(l => l.id !== data.id)
+                            };
+                        }
+                        return state;
+                    });
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('[Socket] Disconnected');
+                    socket = null;
+                });
+            },
+
+            refreshRooms: () => {
+                if (!socket) return;
+                const state = get();
+                state.spaces.forEach(s => {
+                    socket?.emit('join_room', `space:${s.id}`);
+                    console.log(`[Socket] Joined room: space:${s.id}`);
+                });
             },
         }),
         {

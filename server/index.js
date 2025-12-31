@@ -4,13 +4,48 @@ import { DatabaseHandler } from './database.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 const app = express();
 const port = 3001;
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+    path: '/socket.io/',
+    cors: {
+        origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+        methods: ["GET", "POST"],
+        credentials: true
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000
+});
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-it';
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+// --- WebSocket Logic ---
+io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+
+    // Join room (can be userId or space:spaceId)
+    socket.on('join_room', (room) => {
+        socket.join(room);
+        console.log(`Socket ${socket.id} joined room: ${room}`);
+    });
+
+    // Handle broadcast updates from clients
+    socket.on('realtime_update', ({ type, data, spaceId }) => {
+        if (!spaceId) return;
+        console.log(`[Socket] Broadcasting ${type} ${data.id} to space:${spaceId}`);
+        socket.to(`space:${spaceId}`).emit('shared_update', { type, data });
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
+    });
+});
 
 const dbHandler = new DatabaseHandler('./database.sqlite');
 
@@ -474,6 +509,11 @@ app.post('/api/shared/propagate', authenticateToken, async (req, res) => {
         ownerStateJson.state = state;
         await dbHandler.set(ownerKey, ownerStateJson);
 
+        // 5. Emit Real-time update via Socket.io
+        io.to(ownerId).emit('shared_update', { type, data });
+        // Also emit to the space room if we implement room per space (future proofing)
+        if (spaceId) io.to(`space:${spaceId}`).emit('shared_update', { type, data });
+
         res.json({ success: true });
 
     } catch (error) {
@@ -586,6 +626,6 @@ app.get('/api/shared', authenticateToken, async (req, res) => {
     }
 });
 
-app.listen(port, () => {
+httpServer.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
