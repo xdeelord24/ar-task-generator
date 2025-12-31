@@ -112,11 +112,103 @@ const DashboardView: React.FC = () => {
         });
     };
 
+    const handleCreateTemplate = (type: 'Task Management' | 'AI Team Center' | 'Project Management') => {
+        const items: any[] = []; // Using any[] to match the loose typing in addNewChart, but ideally should be DashboardItem[]
+
+        if (type === 'Task Management') {
+            items.push(
+                {
+                    id: crypto.randomUUID(),
+                    type: 'stat',
+                    title: 'Total Tasks',
+                    size: 'small',
+                    config: { metric: 'total' }
+                },
+                {
+                    id: crypto.randomUUID(),
+                    type: 'stat',
+                    title: 'Completed',
+                    size: 'small',
+                    config: { metric: 'completed' }
+                },
+                {
+                    id: crypto.randomUUID(),
+                    type: 'stat',
+                    title: 'Urgent',
+                    size: 'small',
+                    config: { metric: 'urgent' }
+                },
+                {
+                    id: crypto.randomUUID(),
+                    type: 'stat',
+                    title: 'In Progress',
+                    size: 'small',
+                    config: { metric: 'inprogress' }
+                },
+                {
+                    id: crypto.randomUUID(),
+                    type: 'bar',
+                    title: 'Task Distribution',
+                    size: 'medium',
+                    config: {}
+                },
+                {
+                    id: crypto.randomUUID(),
+                    type: 'priority',
+                    title: 'By Priority',
+                    size: 'medium',
+                    config: {}
+                }
+            );
+        } else if (type === 'Project Management') {
+            items.push(
+                {
+                    id: crypto.randomUUID(),
+                    type: 'pie',
+                    title: 'Completion Rate',
+                    size: 'medium',
+                    config: {}
+                },
+                {
+                    id: crypto.randomUUID(),
+                    type: 'bar',
+                    title: 'Project Status',
+                    size: 'medium',
+                    config: {}
+                },
+                {
+                    id: crypto.randomUUID(),
+                    type: 'stat',
+                    title: 'Total Tasks',
+                    size: 'small',
+                    config: { metric: 'total' }
+                }
+            );
+        } else if (type === 'AI Team Center') {
+            items.push(
+                {
+                    id: crypto.randomUUID(),
+                    type: 'stat',
+                    title: 'Team Activity',
+                    size: 'medium',
+                    config: { metric: 'total' } // Placeholder
+                }
+            );
+        }
+
+        const newId = addDashboard({
+            name: type,
+            items: items
+        });
+        setCurrentDashboardId(newId);
+    };
+
     const handleCreateNew = () => {
-        addDashboard({
+        const newId = addDashboard({
             name: 'New Dashboard',
             items: []
         });
+        setCurrentDashboardId(newId);
     };
 
     const getLocationName = (spaceId?: string, listId?: string) => {
@@ -163,21 +255,21 @@ const DashboardView: React.FC = () => {
                             <button className="icon-btn"><X size={14} /></button>
                         </div>
                         <div className="template-grid">
-                            <div className="template-card" onClick={handleCreateNew}>
+                            <div className="template-card" onClick={() => handleCreateTemplate('Task Management')}>
                                 <div className="template-icon blue"><Layers size={24} /></div>
                                 <div className="template-info">
                                     <h4>Task Management</h4>
                                     <span>Manage & prioritize tasks</span>
                                 </div>
                             </div>
-                            <div className="template-card">
+                            <div className="template-card" onClick={() => handleCreateTemplate('AI Team Center')}>
                                 <div className="template-icon purple"><Activity size={24} /></div>
                                 <div className="template-info">
                                     <h4>AI Team Center</h4>
                                     <span>View team activity with AI</span>
                                 </div>
                             </div>
-                            <div className="template-card">
+                            <div className="template-card" onClick={() => handleCreateTemplate('Project Management')}>
                                 <div className="template-icon orange"><BarChart3 size={24} /></div>
                                 <div className="template-info">
                                     <h4>Project Management</h4>
