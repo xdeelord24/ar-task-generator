@@ -13,8 +13,18 @@ import {
     Flag,
     Tag as TagIcon,
     Pencil,
-    Users
+    Users,
+    Settings2,
+    Lock,
+    ArrowLeftToLine,
+    ArrowRightToLine,
+    Zap,
+    EyeOff,
+    Copy,
+    Trash2,
+    ArrowDownWideNarrow
 } from 'lucide-react';
+import ContextMenu from '../components/ContextMenu';
 import {
     DndContext,
     closestCorners,
@@ -43,7 +53,6 @@ import DatePicker from '../components/DatePicker';
 import TagMenu from '../components/TagMenu';
 import ViewHeader from '../components/ViewHeader';
 import StatusEditorModal from '../components/StatusEditorModal';
-import { Settings2 } from 'lucide-react';
 import CreateFieldSidebar from '../components/CreateFieldSidebar';
 import '../styles/ListView.css';
 import '../styles/TaskOptionsMenu.css';
@@ -60,9 +69,10 @@ interface ColumnHeaderProps {
     onSort?: () => void;
     onResize: (e: React.MouseEvent, columnId: string) => void;
     onRename?: (columnId: string, newName: string) => void;
+    onContextMenu?: (e: React.MouseEvent, columnId: string) => void;
 }
 
-const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize, onRename }) => {
+const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize, onRename, onContextMenu }) => {
     const [isEditing, setIsEditing] = React.useState(false);
     const [editValue, setEditValue] = React.useState(column.name);
     const inputRef = React.useRef<HTMLInputElement>(null);
@@ -114,6 +124,10 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize, o
             data-column={column.id}
             {...attributes}
             {...listeners}
+            onContextMenu={(e) => {
+                e.preventDefault();
+                onContextMenu?.(e, column.id);
+            }}
         >
             {isEditing ? (
                 <input
@@ -1156,6 +1170,20 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
         setOpenMenuTaskId(null);
     };
 
+    const [columnContextMenu, setColumnContextMenu] = React.useState<{
+        x: number;
+        y: number;
+        columnId: string;
+    } | null>(null);
+
+    const handleColumnContextMenu = (e: React.MouseEvent, columnId: string) => {
+        setColumnContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            columnId
+        });
+    };
+
     const activeColumns = useMemo(() => {
         const targetId = currentListId || currentSpaceId;
         return columnSettings[targetId] || columnSettings['default'] || [];
@@ -1350,6 +1378,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                     column={col}
                                     onResize={handleColumnResize}
                                     onRename={handleColumnRename}
+                                    onContextMenu={handleColumnContextMenu}
                                 />
                             ))}
                         </SortableContext>
@@ -1679,6 +1708,70 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                         onAddField={handleAddField}
                     />
                 </div>
+            )}
+
+            {columnContextMenu && (
+                <ContextMenu
+                    x={columnContextMenu.x}
+                    y={columnContextMenu.y}
+                    onClose={() => setColumnContextMenu(null)}
+                    items={[
+                        { label: 'Sort', icon: <ArrowUpDown size={14} />, onClick: () => { } },
+                        { label: 'Sort entire column', icon: <ArrowDownWideNarrow size={14} />, onClick: () => { } },
+                        { divider: true },
+                        { label: 'Edit field', icon: <Settings2 size={14} />, onClick: () => { } },
+                        { label: 'Privacy and permissions', icon: <Lock size={14} />, onClick: () => { } },
+                        { divider: true },
+                        {
+                            label: 'Move to start', icon: <ArrowLeftToLine size={14} />, onClick: () => {
+                                const targetId = currentListId || currentSpaceId;
+                                const colToMove = activeColumns.find(c => c.id === columnContextMenu.columnId);
+                                if (!colToMove) return;
+                                const otherCols = activeColumns.filter(c => c.id !== columnContextMenu.columnId);
+                                setColumnSettings(targetId, [colToMove, ...otherCols]);
+                            }
+                        },
+                        {
+                            label: 'Move to end', icon: <ArrowRightToLine size={14} />, onClick: () => {
+                                const targetId = currentListId || currentSpaceId;
+                                const colToMove = activeColumns.find(c => c.id === columnContextMenu.columnId);
+                                if (!colToMove) return;
+                                const otherCols = activeColumns.filter(c => c.id !== columnContextMenu.columnId);
+                                setColumnSettings(targetId, [...otherCols, colToMove]);
+                            }
+                        },
+                        { label: 'Automate', icon: <Zap size={14} />, onClick: () => { } },
+                        { divider: true },
+                        {
+                            label: 'Hide column', icon: <EyeOff size={14} />, onClick: () => {
+                                const targetId = currentListId || currentSpaceId;
+                                const newCols = activeColumns.map(c =>
+                                    c.id === columnContextMenu.columnId ? { ...c, visible: false } : c
+                                );
+                                setColumnSettings(targetId, newCols);
+                            }
+                        },
+                        {
+                            label: 'Duplicate', icon: <Copy size={14} />, onClick: () => {
+                                const targetId = currentListId || currentSpaceId;
+                                const colToDup = activeColumns.find(c => c.id === columnContextMenu.columnId);
+                                if (!colToDup) return;
+                                const newCol = { ...colToDup, id: colToDup.id + '_copy' + Date.now(), name: colToDup.name + ' (Copy)' };
+                                const oldIndex = activeColumns.findIndex(c => c.id === columnContextMenu.columnId);
+                                const newCols = [...activeColumns];
+                                newCols.splice(oldIndex + 1, 0, newCol);
+                                setColumnSettings(targetId, newCols);
+                            }
+                        },
+                        {
+                            label: 'Delete field', icon: <Trash2 size={14} />, danger: true, onClick: () => {
+                                const targetId = currentListId || currentSpaceId;
+                                const newCols = activeColumns.filter(c => c.id !== columnContextMenu.columnId);
+                                setColumnSettings(targetId, newCols);
+                            }
+                        },
+                    ]}
+                />
             )}
         </div>
     );

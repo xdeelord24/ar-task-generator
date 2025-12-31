@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback, useLayoutEffect } from 'react'
 import ReactDOM from 'react-dom';
 
 export interface ContextMenuItem {
-    label: string;
+    label?: string;
     icon?: React.ReactNode;
-    onClick?: () => void; // Made optional for items with submenus
+    onClick?: () => void;
     danger?: boolean;
     divider?: boolean;
     className?: string;
@@ -88,74 +88,79 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose, level =
         >
             {items.map((item, index) => (
                 <React.Fragment key={index}>
-                    {item.divider && <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />}
-                    <button
-                        ref={el => { itemRefs.current[index] = el; }}
-                        className={item.className}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (item.subItems) {
-                                // Maybe toggle on click? For now hover is primary
-                            } else if (item.onClick) {
-                                item.onClick();
-                                onClose();
-                            }
-                        }}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: '8px',
-                            width: '100%',
-                            padding: '8px 12px',
-                            borderRadius: '4px',
-                            border: 'none',
-                            background: activeSubMenu?.index === index ? 'var(--bg-hover)' : 'transparent',
-                            color: item.danger ? 'var(--error)' : 'var(--text-main)',
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            transition: 'background 0.2s',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'var(--bg-hover)';
-                            if (item.subItems) {
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                setActiveSubMenu({ index, rect });
-                            } else {
-                                setActiveSubMenu(null);
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (activeSubMenu?.index !== index) {
-                                e.currentTarget.style.background = 'transparent';
-                            }
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {item.icon}
-                            {item.label}
-                        </div>
-                        {item.rightContent}
-                        {item.subItems && (
-                            <div style={{ marginLeft: 'auto' }}>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="9 18 15 12 9 6"></polyline>
-                                </svg>
-                            </div>
-                        )}
-                    </button>
-                    {item.subItems && activeSubMenu?.index === index && (
-                        <ContextMenu
-                            key={`submenu-${index}`}
-                            x={activeSubMenu.rect.right + 2} // Slight gap
-                            y={activeSubMenu.rect.top}
-                            items={item.subItems}
-                            onClose={onClose}
-                            level={level + 1}
-                            anchorRect={activeSubMenu.rect}
-                        />
+                    {item.divider ? (
+                        <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />
+                    ) : (
+                        <>
+                            <button
+                                ref={el => { itemRefs.current[index] = el; }}
+                                className={item.className}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (item.subItems) {
+                                        // Maybe toggle on click? For now hover is primary
+                                    } else if (item.onClick) {
+                                        item.onClick();
+                                        onClose();
+                                    }
+                                }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: '8px',
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    borderRadius: '4px',
+                                    border: 'none',
+                                    background: activeSubMenu?.index === index ? 'var(--bg-hover)' : 'transparent',
+                                    color: item.danger ? 'var(--error)' : 'var(--text-main)',
+                                    fontSize: '13px',
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    transition: 'background 0.2s',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'var(--bg-hover)';
+                                    if (item.subItems) {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setActiveSubMenu({ index, rect });
+                                    } else {
+                                        setActiveSubMenu(null);
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (activeSubMenu?.index !== index) {
+                                        e.currentTarget.style.background = 'transparent';
+                                    }
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {item.icon}
+                                    {item.label}
+                                </div>
+                                {item.rightContent}
+                                {item.subItems && (
+                                    <div style={{ marginLeft: 'auto' }}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="9 18 15 12 9 6"></polyline>
+                                        </svg>
+                                    </div>
+                                )}
+                            </button>
+                            {item.subItems && activeSubMenu?.index === index && (
+                                <ContextMenu
+                                    key={`submenu-${index}`}
+                                    x={activeSubMenu.rect.right + 2} // Slight gap
+                                    y={activeSubMenu.rect.top}
+                                    items={item.subItems}
+                                    onClose={onClose}
+                                    level={level + 1}
+                                    anchorRect={activeSubMenu.rect}
+                                />
+                            )}
+                        </>
                     )}
                 </React.Fragment>
             ))}
