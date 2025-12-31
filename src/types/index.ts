@@ -18,6 +18,7 @@ export interface Subtask {
   dueDate?: string;
   createdAt: string;
   updatedAt: string;
+  customFieldValues?: Record<string, any>;
 }
 
 export interface Comment {
@@ -83,6 +84,7 @@ export interface Task {
   timeEntries?: TimeEntry[];
   relationships?: Relationship[];
   linkedDocId?: string;
+  customFieldValues?: Record<string, any>;
 }
 
 export interface Space {
@@ -135,6 +137,8 @@ export interface ColumnSetting {
   name: string;
   visible: boolean;
   width?: number;
+  type?: string;
+  calculationType?: 'sum' | 'avg' | 'min' | 'max' | 'count' | 'none';
 }
 
 export interface SavedView {

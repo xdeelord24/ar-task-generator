@@ -163,6 +163,164 @@
     opacity: 0.6;
 }
 
+/* Configuration Step Styles */
+.selected-field-type {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
+}
+
+.dropdown-icon {
+    color: var(--text-tertiary);
+    margin-left: 4px;
+}
+
+.config-content {
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.config-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.config-field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.config-field label span {
+    color: #ef4444;
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.placeholder-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--text-tertiary);
+}
+
+.input-with-icon input {
+    width: 100%;
+    padding: 10px 12px 10px 40px;
+    border-radius: 8px;
+    border: 1px solid #3b82f6;
+    background: var(--bg-main);
+    color: var(--text-main);
+    font-size: 14px;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.fill-method-toggle {
+    display: flex;
+    background: var(--bg-hover);
+    padding: 4px;
+    border-radius: 10px;
+    gap: 4px;
+}
+
+.toggle-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.toggle-btn.active {
+    background: var(--bg-surface);
+    color: var(--text-main);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.toggle-btn svg {
+    color: #8b5cf6;
+}
+
+.config-section-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 14px;
+    transition: color 0.2s;
+}
+
+.config-section-link:hover {
+    color: var(--primary);
+}
+
+.config-footer {
+    display: flex;
+    gap: 12px;
+}
+
+.cancel-btn {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.cancel-btn:hover {
+    background: var(--bg-hover);
+}
+
+.create-confirm-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: #60a5fa;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.create-confirm-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.create-confirm-btn:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
 .add-existing-btn:hover {
     background: var(--bg-hover);
 }

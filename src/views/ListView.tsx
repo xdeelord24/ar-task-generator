@@ -6,6 +6,7 @@ import {
     Filter,
     ArrowUpDown,
     ChevronRight,
+    ChevronDown,
     Calendar as CalendarIcon,
     MoreHorizontal,
     GripVertical,
@@ -58,9 +59,35 @@ interface ColumnHeaderProps {
     column: ColumnSetting;
     onSort?: () => void;
     onResize: (e: React.MouseEvent, columnId: string) => void;
+    onRename?: (columnId: string, newName: string) => void;
 }
 
-const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize }) => {
+const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize, onRename }) => {
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [editValue, setEditValue] = React.useState(column.name);
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        if (isEditing && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [isEditing]);
+
+    const handleBlur = () => {
+        setIsEditing(false);
+        if (editValue.trim() && editValue !== column.name && onRename) {
+            onRename(column.id, editValue.trim());
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') handleBlur();
+        if (e.key === 'Escape') {
+            setEditValue(column.name);
+            setIsEditing(false);
+        }
+    };
     const {
         attributes,
         listeners,
@@ -88,7 +115,19 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize })
             {...attributes}
             {...listeners}
         >
-            <span>{column.name}</span>
+            {isEditing ? (
+                <input
+                    ref={inputRef}
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={handleBlur}
+                    onKeyDown={handleKeyDown}
+                    className="column-name-edit-input"
+                    onClick={(e) => e.stopPropagation()}
+                />
+            ) : (
+                <span onDoubleClick={() => onRename && setIsEditing(true)}>{column.name}</span>
+            )}
             <ArrowUpDown size={12} className="sort-icon" />
             <div
                 className="column-resizer"
@@ -105,6 +144,67 @@ interface ActivePopover {
     field: 'priority' | 'date' | 'tags' | 'assignees';
     element: HTMLElement;
 }
+
+const CalculationRow: React.FC<{
+    columns: ColumnSetting[];
+    tasks: Task[];
+    onCalculationChange: (columnId: string, type: ColumnSetting['calculationType']) => void;
+    isTableMode?: boolean;
+}> = ({ columns, tasks, onCalculationChange, isTableMode }) => {
+    const renderCalculationValue = (col: ColumnSetting) => {
+        if (!col.calculationType || col.calculationType === 'none') {
+            return (
+                <div className="calculation-trigger" onClick={(e) => {
+                    e.stopPropagation();
+                    onCalculationChange(col.id, 'sum');
+                }}>
+                    Calculate <ChevronDown size={12} />
+                </div>
+            );
+        }
+
+        const values = tasks
+            .map(t => t.customFieldValues?.[col.id])
+            .filter(v => typeof v === 'number') as number[];
+
+        let result: number | string = 0;
+        switch (col.calculationType) {
+            case 'sum': result = values.reduce((a, b) => a + b, 0); break;
+            case 'avg': result = values.length ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2) : 0; break;
+            case 'min': result = values.length ? Math.min(...values) : 0; break;
+            case 'max': result = values.length ? Math.max(...values) : 0; break;
+            case 'count': result = values.length; break;
+        }
+
+        return (
+            <div className="calculation-value" onClick={() => {
+                const types: ColumnSetting['calculationType'][] = ['sum', 'avg', 'min', 'max', 'count', 'none'];
+                const currentIndex = types.indexOf(col.calculationType);
+                const nextType = types[(currentIndex + 1) % types.length];
+                onCalculationChange(col.id, nextType);
+            }}>
+                <span className="calc-label">{col.calculationType.toUpperCase()}:</span> {result}
+            </div>
+        );
+    };
+
+    return (
+        <div className="calculation-row">
+            <div className="drag-handle-placeholder" style={{ width: 30 }}></div>
+            {isTableMode && <div className="task-cell index-cell" style={{ width: 50 }}></div>}
+            {columns.filter(c => c.visible).map(col => (
+                <div key={col.id} className="task-cell calculation-cell" style={{
+                    width: col.width,
+                    flex: (!col.width && col.id === 'name') ? 1 : 'none',
+                    justifyContent: col.type === 'number' ? 'flex-end' : 'flex-start'
+                }}>
+                    {col.type === 'number' && renderCalculationValue(col)}
+                </div>
+            ))}
+            <div style={{ width: 50 }}></div>
+        </div>
+    );
+};
 
 interface SortableRowProps {
     task: Task;
@@ -341,8 +441,41 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                         <span className="status-pill">{task.status}</span>
                     </div>
                 );
-            default:
-                return <div className="task-cell" style={{ width: col.width }}></div>;
+            default: {
+                if (col.type === 'number') {
+                    const value = task.customFieldValues?.[col.id] || '';
+                    return (
+                        <div className="task-cell" style={{ width: col.width }}>
+                            <input
+                                type="number"
+                                value={value}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    onUpdateSubtask(parentId, task.id, {
+                                        customFieldValues: {
+                                            ...(task.customFieldValues || {}),
+                                            [col.id]: val === '' ? undefined : Number(val)
+                                        }
+                                    });
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                    width: '100%',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'inherit',
+                                    padding: 0,
+                                    outline: 'none',
+                                    textAlign: 'right'
+                                }}
+                                placeholder="--"
+                            />
+                        </div>
+                    );
+                }
+                const displayValue = task.customFieldValues?.[col.id] ?? '-';
+                return <div className="task-cell" style={{ width: col.width }}>{displayValue}</div>;
+            }
         }
     };
 
@@ -748,8 +881,41 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                         <span className="status-pill">{task.status}</span>
                     </div>
                 );
-            default:
-                return <div className="task-cell" style={{ width: col.width }}>-</div>;
+            default: {
+                if (col.type === 'number') {
+                    const value = task.customFieldValues?.[col.id] || '';
+                    return (
+                        <div className="task-cell" style={{ width: col.width }}>
+                            <input
+                                type="number"
+                                value={value}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    onUpdateTask(task.id, {
+                                        customFieldValues: {
+                                            ...(task.customFieldValues || {}),
+                                            [col.id]: val === '' ? undefined : Number(val)
+                                        }
+                                    });
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                    width: '100%',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'inherit',
+                                    padding: 0,
+                                    outline: 'none',
+                                    textAlign: 'right'
+                                }}
+                                placeholder="--"
+                            />
+                        </div>
+                    );
+                }
+                const displayValue = task.customFieldValues?.[col.id] ?? '-';
+                return <div className="task-cell" style={{ width: col.width }}>{displayValue}</div>;
+            }
         }
     };
 
@@ -920,21 +1086,31 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
         const targetId = currentListId || currentSpaceId;
         const currentCols = columnSettings[targetId] || columnSettings['default'] || [];
 
-        // Check if field already exists
-        if (currentCols.some(c => c.id === field.id)) {
-            alert('This column already exists.');
-            return;
-        }
-
-        const newCols = [...currentCols, {
-            id: field.id,
+        const newCols: ColumnSetting[] = [...currentCols, {
+            id: field.id + '_' + Date.now(),
             name: field.name,
             visible: true,
-            width: 150
+            width: 150,
+            type: field.type,
+            calculationType: (field.type === 'number' ? 'sum' : 'none') as ColumnSetting['calculationType']
         }];
 
         setColumnSettings(targetId, newCols);
         setIsCreateFieldOpen(false);
+    };
+
+    const handleColumnRename = (columnId: string, newName: string) => {
+        const targetId = currentListId || currentSpaceId;
+        const currentCols = columnSettings[targetId] || columnSettings['default'] || [];
+        const newCols = currentCols.map(c => c.id === columnId ? { ...c, name: newName } : c);
+        setColumnSettings(targetId, newCols);
+    };
+
+    const handleColumnCalculationChange = (columnId: string, calcType: ColumnSetting['calculationType']) => {
+        const targetId = currentListId || currentSpaceId;
+        const currentCols = columnSettings[targetId] || columnSettings['default'] || [];
+        const newCols = currentCols.map(c => c.id === columnId ? { ...c, calculationType: calcType } : c);
+        setColumnSettings(targetId, newCols);
     };
 
     React.useEffect(() => {
@@ -981,8 +1157,9 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
     };
 
     const activeColumns = useMemo(() => {
-        return columnSettings[currentSpaceId] || columnSettings['default'] || [];
-    }, [columnSettings, currentSpaceId]);
+        const targetId = currentListId || currentSpaceId;
+        return columnSettings[targetId] || columnSettings['default'] || [];
+    }, [columnSettings, currentListId, currentSpaceId]);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -1168,7 +1345,12 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                             strategy={horizontalListSortingStrategy}
                         >
                             {activeColumns.filter(c => c.visible).map(col => (
-                                <SortableColumnHeader key={col.id} column={col} onResize={handleColumnResize} />
+                                <SortableColumnHeader
+                                    key={col.id}
+                                    column={col}
+                                    onResize={handleColumnResize}
+                                    onRename={handleColumnRename}
+                                />
                             ))}
                         </SortableContext>
                         <button
@@ -1261,9 +1443,12 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                             menuMousePos={menuMousePos}
                                         />
                                     ))}
-                                    <button className="btn-inline-add" onClick={onAddTask}>
-                                        <Plus size={14} /> New Task
-                                    </button>
+                                    <CalculationRow
+                                        columns={activeColumns}
+                                        tasks={filteredTasks}
+                                        onCalculationChange={handleColumnCalculationChange}
+                                        isTableMode={isTableMode}
+                                    />
                                 </div>
                             </SortableContext>
                         )}
@@ -1340,6 +1525,12 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                                         menuMousePos={menuMousePos}
                                                     />
                                                 ))}
+                                                <CalculationRow
+                                                    columns={activeColumns}
+                                                    tasks={statusTasks}
+                                                    onCalculationChange={handleColumnCalculationChange}
+                                                    isTableMode={isTableMode}
+                                                />
                                                 <button className="btn-inline-add" onClick={onAddTask}>
                                                     <Plus size={14} /> New Task
                                                 </button>

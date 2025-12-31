@@ -1,10 +1,11 @@
 import React from 'react';
 import {
-    X, Search, ChevronLeft, List, Type, Calendar, AlignLeft,
+    X, Search, ChevronLeft, ChevronRight, List, Type, Calendar, AlignLeft,
     Hash, Tag, CheckSquare, DollarSign, Globe, FunctionSquare,
     FileText, BarChart, Paperclip, Users, User, Settings2,
     Mail, Phone, LayoutGrid, Languages, Smile, MapPin,
-    Star, ThumbsUp, PenTool, Layers, MousePointer2, ClipboardList, Shirt
+    Star, ThumbsUp, PenTool, Layers, MousePointer2, ClipboardList, Shirt,
+    Sparkles, ChevronDown
 } from 'lucide-react';
 import '../styles/CreateFieldSidebar.css';
 
@@ -60,13 +61,34 @@ const allFields = [
 ];
 
 const CreateFieldSidebar: React.FC<CreateFieldSidebarProps> = ({ onClose, onAddField }) => {
+    const [step, setStep] = React.useState<'select' | 'configure'>('select');
+    const [selectedField, setSelectedField] = React.useState<any>(null);
     const [searchQuery, setSearchQuery] = React.useState('');
+    const [fieldConfig, setFieldConfig] = React.useState({
+        name: '',
+        fillMethod: 'manual' as 'manual' | 'ai'
+    });
+
+    const handleSelectField = (field: any) => {
+        setSelectedField(field);
+        setFieldConfig({ ...fieldConfig, name: field.name });
+        setStep('configure');
+    };
+
+    const handleCreate = () => {
+        if (!fieldConfig.name.trim()) return;
+        onAddField({
+            id: selectedField.id,
+            name: fieldConfig.name,
+            type: selectedField.id
+        });
+    };
 
     const renderFieldItem = (field: any) => (
         <button
             key={field.id}
             className="field-type-item"
-            onClick={() => onAddField({ id: field.id, name: field.name, type: field.id })}
+            onClick={() => handleSelectField(field)}
         >
             <field.icon size={18} style={{ color: field.color }} />
             <span>{field.name}</span>
@@ -79,6 +101,76 @@ const CreateFieldSidebar: React.FC<CreateFieldSidebarProps> = ({ onClose, onAddF
     const filteredSuggested = filterFields(suggestedFields);
     const filteredAI = filterFields(aiFields);
     const filteredAll = filterFields(allFields);
+
+    if (step === 'configure' && selectedField) {
+        return (
+            <div className="create-field-sidebar configuration-step">
+                <div className="sidebar-header">
+                    <button className="back-btn" onClick={() => setStep('select')}>
+                        <ChevronLeft size={20} />
+                    </button>
+                    <div className="selected-field-type">
+                        <selectedField.icon size={18} style={{ color: selectedField.color }} />
+                        <span>{selectedField.name}</span>
+                        <ChevronDown size={14} className="dropdown-icon" />
+                    </div>
+                    <button className="close-btn" onClick={onClose}>
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="sidebar-content config-content">
+                    <div className="config-field">
+                        <label>Field name <span>*</span></label>
+                        <div className="input-with-icon">
+                            <Smile size={18} className="placeholder-icon" />
+                            <input
+                                type="text"
+                                placeholder="Enter name..."
+                                value={fieldConfig.name}
+                                onChange={(e) => setFieldConfig({ ...fieldConfig, name: e.target.value })}
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+
+                    <div className="config-field">
+                        <label>Fill method</label>
+                        <div className="fill-method-toggle">
+                            <button
+                                className={`toggle-btn ${fieldConfig.fillMethod === 'manual' ? 'active' : ''}`}
+                                onClick={() => setFieldConfig({ ...fieldConfig, fillMethod: 'manual' })}
+                            >
+                                Manual fill
+                            </button>
+                            <button
+                                className={`toggle-btn ${fieldConfig.fillMethod === 'ai' ? 'active' : ''}`}
+                                onClick={() => setFieldConfig({ ...fieldConfig, fillMethod: 'ai' })}
+                            >
+                                <Sparkles size={14} /> Fill with AI
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="config-section-link">
+                        <span>More settings and permissions</span>
+                        <ChevronRight size={16} />
+                    </div>
+                </div>
+
+                <div className="sidebar-footer config-footer">
+                    <button className="cancel-btn" onClick={() => setStep('select')}>Cancel</button>
+                    <button
+                        className="create-confirm-btn"
+                        onClick={handleCreate}
+                        disabled={!fieldConfig.name.trim()}
+                    >
+                        Create
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="create-field-sidebar">
