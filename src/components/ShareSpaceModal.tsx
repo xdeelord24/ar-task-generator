@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { X, Link, Lock, ChevronDown, User, Check, AlertCircle } from 'lucide-react';
 import '../styles/ShareSpaceModal.css';
@@ -15,8 +15,29 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
     const [isLoading, setIsLoading] = useState(false);
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [message, setMessage] = useState('');
+    const [members, setMembers] = useState<any[]>([]);
 
     const { token } = useAuthStore();
+
+    const fetchMembers = async () => {
+        try {
+            const res = await fetch(`http://localhost:3001/api/resource/members?resourceType=space&resourceId=${spaceId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setMembers(data);
+            }
+        } catch (e) {
+            console.error('Failed to fetch members', e);
+        }
+    };
+
+    useEffect(() => {
+        if (token) {
+            fetchMembers();
+        }
+    }, [token, spaceId]);
 
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -48,6 +69,7 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
             setStatus('success');
             setMessage('Invitation sent successfully!');
             setEmail('');
+            fetchMembers(); // Refresh list
             setTimeout(() => setStatus('idle'), 3000);
         } catch (err: any) {
             setStatus('error');
@@ -162,27 +184,45 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <div className="member-avatars-small" style={{ display: 'flex' }}>
-                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#64748b', color: 'white', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>RM</div>
-                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#6366f1', color: 'white', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '-8px' }}>JM</div>
-                                    </div>
-                                    <div style={{ width: 36, height: 20, background: '#3b82f6', borderRadius: '10px', position: 'relative' }}>
-                                        <div style={{ width: 16, height: 16, background: 'white', borderRadius: '50%', position: 'absolute', right: 2, top: 2 }}></div>
-                                    </div>
+                                    <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Owner</span>
                                 </div>
                             </div>
 
                             {/* People Group */}
-                            <div className="member-item" style={{ marginTop: '12px' }}>
-                                <div className="member-info">
+                            <div className="member-item" style={{ marginTop: '12px', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
+                                <div className="member-info" style={{ width: '100%' }}>
                                     <div style={{ width: 32, display: 'flex', justifyContent: 'center' }}><User size={18} /></div>
                                     <div className="member-details">
-                                        <span className="member-name">People</span>
+                                        <span className="member-name">People ({members.length})</span>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#6366f1', color: 'white', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>JM</div>
-                                </div>
+                                {members.length > 0 ? (
+                                    <div style={{ width: '100%', paddingLeft: '32px' }}>
+                                        {members.map(m => (
+                                            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '13px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#6366f1', color: 'white', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        {m.invited_email ? m.invited_email.slice(0, 2).toUpperCase() : '?'}
+                                                    </div>
+                                                    <span>{m.invited_email}</span>
+                                                </div>
+                                                <span style={{
+                                                    fontSize: '11px',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '10px',
+                                                    background: m.status === 'accepted' ? '#dcfce7' : '#fef9c3',
+                                                    color: m.status === 'accepted' ? '#166534' : '#854d0e'
+                                                }}>
+                                                    {m.status}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ paddingLeft: '32px', fontSize: '13px', color: 'var(--text-tertiary)' }}>
+                                        No one invited yet
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -193,15 +193,20 @@ app.post('/api/storage/:key', authenticateToken, async (req, res) => {
     try {
         const { key } = req.params;
         let storageKey = key;
+        const bodyLen = JSON.stringify(req.body).length;
+
+        console.log(`[Storage] POST /api/storage/${key} - Body Size: ${bodyLen} bytes - User: ${req.user ? req.user.email : 'None'}`);
 
         if (req.user && req.user.id) {
             storageKey = `user:${req.user.id}:${key}`;
         } else {
+            console.log(`[Storage] Warning: Unauthenticated write to global key: ${key}`);
             // Optional: Block write if not authenticated
             // return res.status(401).json({ error: 'Unauthorized' });
         }
 
         await dbHandler.set(storageKey, req.body);
+        console.log(`[Storage] Saved key: ${storageKey}`);
         res.json({ success: true });
     } catch (error) {
         console.error('Error saving data:', error);
@@ -223,6 +228,20 @@ app.post('/api/invite', authenticateToken, async (req, res) => {
 
         // Check if invited user exists (optional, could invite by email pending registration)
         // For now, we allow inviting any email.
+
+        // Check if already shared/invited
+        const existing = await dbHandler.db.get(`
+            SELECT id, status FROM shared_resources 
+            WHERE resource_type = ? AND resource_id = ? AND invited_email = ?
+        `, resourceType, resourceId, email);
+
+        if (existing) {
+            if (existing.status === 'accepted') {
+                return res.status(409).json({ error: 'User already has access to this resource.' });
+            } else {
+                return res.status(409).json({ error: 'User is already invited.' });
+            }
+        }
 
         const id = randomUUID();
         // Insert directly into db via raw query or add method to dbHandler
@@ -255,6 +274,28 @@ app.get('/api/invitations', authenticateToken, async (req, res) => {
     }
 });
 
+// Get Resource Members
+app.get('/api/resource/members', authenticateToken, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        const { resourceType, resourceId } = req.query;
+
+        if (!resourceType || !resourceId) {
+            return res.status(400).json({ error: 'Missing parameters' });
+        }
+
+        const members = await dbHandler.db.all(`
+            SELECT * FROM shared_resources 
+            WHERE resource_type = ? AND resource_id = ?
+        `, resourceType, resourceId);
+
+        res.json(members);
+    } catch (error) {
+        console.error('Get resource members error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 // Accept Invitation
 app.post('/api/invitations/:id/accept', authenticateToken, async (req, res) => {
     try {
@@ -274,7 +315,122 @@ app.post('/api/invitations/:id/accept', authenticateToken, async (req, res) => {
     }
 });
 
+// Leave Shared Resource
+app.post('/api/shared/leave', authenticateToken, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        const { resourceType, resourceId } = req.body;
+
+        await dbHandler.db.run(`
+            DELETE FROM shared_resources 
+            WHERE resource_type = ? AND resource_id = ? AND invited_email = ?
+        `, resourceType, resourceId, req.user.email);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Leave shared resource error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 // Get Shared Data
+// Propagate Updates (Allow shared users to write to owner's state)
+app.post('/api/shared/propagate', authenticateToken, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        const { ownerId, type, data } = req.body;
+
+        if (!ownerId || !type || !data) {
+            return res.status(400).json({ error: 'Missing fields' });
+        }
+
+        console.log(`[Propagate] User ${req.user.email} updating Owner ${ownerId} - Type: ${type}`);
+
+        // 1. Verify Permission (Is the user allowed to edit thisOwner's space?)
+        // In a real app, we should check specifically if 'data.spaceId' is a space shared with this user.
+        // For 'list', 'task', etc., they usually have a spaceId.
+        const spaceId = data.spaceId;
+        if (spaceId) {
+            const hasAccess = await dbHandler.db.get(`
+                SELECT id FROM shared_resources 
+                WHERE resource_type = 'space' AND resource_id = ? AND invited_email = ? AND status = 'accepted'
+            `, spaceId, req.user.email);
+
+            if (!hasAccess) {
+                // strict check: if not shared explicitly, maybe they own it? (but this endpoint is for shared updates)
+                if (req.user.id === ownerId) {
+                    // Self-update? acceptable but usually goes through normal storage sync.
+                } else {
+                    return res.status(403).json({ error: 'Access denied: You are not a member of this space.' });
+                }
+            }
+        }
+
+        // 2. Fetch Owner's State
+        const ownerKey = `user:${ownerId}:ar-generator-app-storage`;
+        const ownerStateRaw = await dbHandler.get(ownerKey);
+
+        let ownerStateJson = { state: {} };
+        if (ownerStateRaw) {
+            try {
+                ownerStateJson = typeof ownerStateRaw === 'string' ? JSON.parse(ownerStateRaw) : ownerStateRaw;
+            } catch (e) {
+                console.error('[Propagate] Failed to parse owner state', e);
+                return res.status(500).json({ error: 'Owner state corrupted' });
+            }
+        }
+
+        const state = ownerStateJson.state || {}; // Ensure state object exists
+
+        // 3. Apply Update
+        // strategy: just push the new item to the list
+        if (type === 'list') {
+            state.lists = state.lists || [];
+            // Check duplicates
+            const exists = state.lists.find(l => l.id === data.id);
+            if (!exists) {
+                state.lists.push(data);
+                console.log(`[Propagate] Added list ${data.name} to Owner State.`);
+            } else {
+                console.log(`[Propagate] List ${data.id} already exists.`);
+                // Update it?
+                const idx = state.lists.findIndex(l => l.id === data.id);
+                state.lists[idx] = { ...state.lists[idx], ...data };
+            }
+        } else if (type === 'task') {
+            state.tasks = state.tasks || [];
+            const exists = state.tasks.find(t => t.id === data.id);
+            if (!exists) {
+                state.tasks.push(data);
+                console.log(`[Propagate] Added task ${data.name} to Owner State.`);
+            } else {
+                const idx = state.tasks.findIndex(t => t.id === data.id);
+                state.tasks[idx] = { ...state.tasks[idx], ...data };
+            }
+        } else if (type === 'folder') {
+            state.folders = state.folders || [];
+            const exists = state.folders.find(f => f.id === data.id);
+            if (!exists) {
+                state.folders.push(data);
+            } else {
+                const idx = state.folders.findIndex(f => f.id === data.id);
+                state.folders[idx] = { ...state.folders[idx], ...data };
+            }
+        }
+
+        // 4. Save Owner State
+        // Ensure structure is preserved
+        ownerStateJson.state = state;
+        await dbHandler.set(ownerKey, JSON.stringify(ownerStateJson));
+
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('Propagate error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 app.get('/api/shared', authenticateToken, async (req, res) => {
     try {
         if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
@@ -293,57 +449,77 @@ app.get('/api/shared', authenticateToken, async (req, res) => {
 
         // 2. For each record, fetch owner's state and extract specific resource
         for (const record of sharedRecords) {
-            const ownerKey = `user:${record.owner_id}:app-storage`;
-            const ownerStateRaw = await dbHandler.get(ownerKey);
+            // FIX: Key must match the client's storage name (ar-generator-app-storage)
+            const ownerKey = `user:${record.owner_id}:ar-generator-app-storage`;
+            let ownerStateRaw = await dbHandler.get(ownerKey);
 
-            console.log(`[Shared] Looking for ${record.resource_type} ${record.resource_id} in ${ownerKey}`);
+            console.log(`[Shared] Processing share ${record.id} for resource ${record.resource_type} ${record.resource_id}`);
 
-            if (ownerStateRaw && ownerStateRaw.state) {
-                const ownerState = ownerStateRaw.state;
-
-                if (record.resource_type === 'space') {
-                    const space = ownerState.spaces?.find(s => s.id === record.resource_id);
-                    if (space) {
-                        console.log(`[Shared] Found space: ${space.name}`);
-
-                        // Add the space
-                        sharedData.spaces.push({
-                            ...space,
-                            isShared: true,
-                            ownerId: record.owner_id,
-                            permission: record.permission,
-                            name: `${space.name} (Shared)` // Ensure naming consistency here if trusted
-                        });
-
-                        // Fetch related Folders
-                        const spaceFolders = ownerState.folders?.filter(f => f.spaceId === space.id) || [];
-                        spaceFolders.forEach(f => {
-                            sharedData.folders = sharedData.folders || [];
-                            sharedData.folders.push({ ...f, isShared: true });
-                        });
-
-                        // Fetch related Lists
-                        const spaceLists = ownerState.lists?.filter(l => l.spaceId === space.id) || [];
-                        spaceLists.forEach(l => {
-                            sharedData.lists = sharedData.lists || [];
-                            sharedData.lists.push({ ...l, isShared: true });
-                        });
-
-                        // Fetch Tasks for those lists
-                        const listIds = new Set(spaceLists.map(l => l.id));
-                        const spaceTasks = ownerState.tasks?.filter(t => listIds.has(t.listId)) || [];
-                        spaceTasks.forEach(t => {
-                            sharedData.tasks = sharedData.tasks || [];
-                            sharedData.tasks.push({ ...t, isShared: true });
-                        });
-
-                    } else {
-                        console.log(`[Shared] Space not found in owner state. Available spaces:`, ownerState.spaces?.map(s => s.id));
+            if (ownerStateRaw) {
+                // robustness: dbHandler.get returns parsed JSON (Object), but if double-encoded it might be a string
+                if (typeof ownerStateRaw === 'string') {
+                    try {
+                        ownerStateRaw = JSON.parse(ownerStateRaw);
+                    } catch (e) {
+                        console.error('[Shared] Failed to parse ownerStateRaw:', e);
                     }
                 }
-                // Handle other types similarly...
+
+                if (ownerStateRaw && ownerStateRaw.state) {
+                    const ownerState = ownerStateRaw.state;
+
+                    if (record.resource_type === 'space') {
+                        const space = ownerState.spaces?.find(s => s.id === record.resource_id);
+                        if (space) {
+                            console.log(`[Shared] Found space: ${space.name}`);
+
+                            // Add the space
+                            sharedData.spaces.push({
+                                ...space,
+                                isShared: true,
+                                ownerId: record.owner_id,
+                                permission: record.permission,
+                                name: `${space.name} (Shared)`
+                            });
+
+                            // Init arrays if needed
+                            sharedData.folders = sharedData.folders || [];
+                            sharedData.lists = sharedData.lists || [];
+                            sharedData.tasks = sharedData.tasks || [];
+
+                            // Fetch related Folders
+                            const spaceFolders = ownerState.folders?.filter(f => f.spaceId === space.id) || [];
+                            spaceFolders.forEach(f => {
+                                sharedData.folders.push({ ...f, isShared: true });
+                            });
+
+                            // Fetch related Lists
+                            const spaceLists = ownerState.lists?.filter(l => l.spaceId === space.id) || [];
+                            spaceLists.forEach(l => {
+                                sharedData.lists.push({ ...l, isShared: true });
+                            });
+
+                            // Fetch Tasks for those lists
+                            const listIds = new Set(spaceLists.map(l => l.id));
+                            // Also include tasks directly in space (if applicable in data model, usually tasks are in lists, but check spaceId)
+                            const spaceTasks = ownerState.tasks?.filter(t => listIds.has(t.listId) || t.spaceId === space.id) || [];
+
+                            spaceTasks.forEach(t => {
+                                sharedData.tasks.push({ ...t, isShared: true });
+                            });
+
+                        } else {
+                            console.log(`[Shared] Space ${record.resource_id} not found in owner ${record.owner_id} state.`);
+                            // Optional: Check if we have spaces at all
+                            console.log(`[Shared] Owner has ${ownerState.spaces?.length} spaces.`);
+                        }
+                    }
+                    // Handle other types similarly...
+                } else {
+                    console.log(`[Shared] Owner state invalid (no .state) for key: ${ownerKey}`);
+                }
             } else {
-                console.log(`[Shared] Owner state invalid or empty for key: ${ownerKey}`, ownerStateRaw);
+                console.log(`[Shared] Owner state not found for key: ${ownerKey}`);
             }
         }
 

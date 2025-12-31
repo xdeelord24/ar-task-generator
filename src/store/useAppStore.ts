@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { serverStorage } from './storage';
+import { serverStorage, getAuthToken } from './storage';
 import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard, Clip, Notification, NotificationSettings, Agent } from '../types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -223,6 +223,7 @@ interface AppStore extends AppState {
     deleteList: (listId: string) => void;
     updateSpace: (spaceId: string, updates: Partial<Space>) => void;
     deleteSpace: (spaceId: string) => void;
+    leaveSpace: (spaceId: string) => Promise<void>;
     setCurrentSpaceId: (spaceId: string) => void;
     setCurrentListId: (listId: string | null) => void;
     setCurrentView: (view: ViewType) => void;
@@ -416,6 +417,27 @@ export const useAppStore = create<AppStore>()(
                 // 1. Immediate Update (Optimistic)
                 set((state) => ({ tasks: [newTask, ...state.tasks] }));
 
+                // Propagate to Owner if Shared Space
+                const currentState = get();
+                const space = currentState.spaces.find(s => s.id === task.spaceId);
+                if (space && (space as any).isShared && (space as any).ownerId) {
+                    const token = getAuthToken();
+                    if (token) {
+                        fetch('http://localhost:3001/api/shared/propagate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                ownerId: (space as any).ownerId,
+                                type: 'task',
+                                data: newTask
+                            })
+                        }).catch(e => console.error('[AppStore] Failed to propagate task to owner:', e));
+                    }
+                }
+
                 // 2. Process Agents
                 // We reference 'get()' to ensure we have fresh state including agents
                 const freshState = get();
@@ -521,14 +543,39 @@ export const useAppStore = create<AppStore>()(
                 }]
             })),
             setFolders: (folders) => set({ folders }),
-            addFolder: (folder) => set((state) => ({
-                folders: [...state.folders, {
+            addFolder: (folder) => {
+                const newFolder = {
                     ...folder,
                     id: crypto.randomUUID(),
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
-                }]
-            })),
+                };
+
+                set((state) => ({
+                    folders: [...state.folders, newFolder]
+                }));
+
+                // Propagate to Owner if Shared Space
+                const state = get();
+                const space = state.spaces.find(s => s.id === folder.spaceId);
+                if (space && (space as any).isShared && (space as any).ownerId) {
+                    const token = getAuthToken();
+                    if (token) {
+                        fetch('http://localhost:3001/api/shared/propagate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                ownerId: (space as any).ownerId,
+                                type: 'folder',
+                                data: newFolder
+                            })
+                        }).catch(e => console.error('[AppStore] Failed to propagate folder to owner:', e));
+                    }
+                }
+            },
             updateFolder: (folderId, updates) => set((state) => ({
                 folders: state.folders.map(f => f.id === folderId ? { ...f, ...updates, updatedAt: new Date().toISOString() } : f)
             })),
@@ -537,16 +584,41 @@ export const useAppStore = create<AppStore>()(
                 lists: state.lists.map(l => l.folderId === folderId ? { ...l, folderId: undefined } : l) // Move lists to root of space
             })),
             setLists: (lists) => set({ lists }),
-            addList: (list) => set((state) => ({
-                lists: [...state.lists, {
+            addList: (list) => {
+                const newList = {
                     ...list,
                     id: crypto.randomUUID(),
                     taskCount: 0,
                     statuses: DEFAULT_STATUSES,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
-                }]
-            })),
+                };
+
+                set((state) => ({
+                    lists: [...state.lists, newList]
+                }));
+
+                // Propagate to Owner if Shared Space
+                const state = get();
+                const space = state.spaces.find(s => s.id === list.spaceId);
+                if (space && (space as any).isShared && (space as any).ownerId) {
+                    const token = getAuthToken();
+                    if (token) {
+                        fetch('http://localhost:3001/api/shared/propagate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                ownerId: (space as any).ownerId,
+                                type: 'list',
+                                data: newList
+                            })
+                        }).catch(e => console.error('[AppStore] Failed to propagate list to owner:', e));
+                    }
+                }
+            },
             updateList: (listId, updates) => set((state) => ({
                 lists: state.lists.map(l => l.id === listId ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l)
             })),
@@ -563,6 +635,33 @@ export const useAppStore = create<AppStore>()(
                 folders: state.folders.filter(f => f.spaceId !== spaceId),
                 lists: state.lists.filter(l => l.spaceId !== spaceId)
             })),
+            leaveSpace: async (spaceId) => {
+                // Remove locally
+                set((state) => ({
+                    spaces: state.spaces.filter(s => s.id !== spaceId),
+                    tasks: state.tasks.filter(t => t.spaceId !== spaceId),
+                    folders: state.folders.filter(f => f.spaceId !== spaceId),
+                    lists: state.lists.filter(l => l.spaceId !== spaceId),
+                    currentSpaceId: state.currentSpaceId === spaceId ? 'everything' : state.currentSpaceId
+                }));
+
+                // Call API
+                const token = getAuthToken();
+                if (token) {
+                    try {
+                        await fetch('http://localhost:3001/api/shared/leave', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ resourceType: 'space', resourceId: spaceId })
+                        });
+                    } catch (e) {
+                        console.error('Leave space API error', e);
+                    }
+                }
+            },
             setCurrentSpaceId: (spaceId) => set({ currentSpaceId: spaceId }),
             setCurrentListId: (listId) => set({ currentListId: listId }),
             setCurrentView: (view) => set({ currentView: view }),

@@ -97,7 +97,7 @@ class BrowserDatabase {
 
 const browserDb = new BrowserDatabase();
 
-const getAuthToken = () => {
+export const getAuthToken = () => {
     try {
         const authStorage = localStorage.getItem('auth-storage');
         if (authStorage) {
@@ -193,16 +193,36 @@ export const serverStorage: StateStorage = {
                                 const localList = lState[listName] || [];
                                 const serverList = sState[listName] || [];
                                 const localIds = new Set(localList.map((i: any) => i.id));
+                                const localMap = new Map(localList.map((i: any) => [i.id, i]));
 
                                 let addedCount = 0;
+                                let updatedCount = 0;
+
                                 serverList.forEach((sItem: any) => {
                                     if (!localIds.has(sItem.id)) {
                                         localList.push(sItem);
                                         addedCount++;
+                                    } else {
+                                        // Item exists, but if it is shared, we must ensure metadata is present
+                                        const localItem = localMap.get(sItem.id);
+                                        if (sItem.isShared && localItem) {
+                                            // Merge shared props
+                                            Object.assign(localItem, {
+                                                isShared: true,
+                                                ownerId: sItem.ownerId,
+                                                permission: sItem.permission,
+                                                // Update name/color if changed by owner? 
+                                                // Ideally yes, but let's stick to metadata for now to avoid overwriting local user prefs if any
+                                                name: sItem.name,
+                                                color: sItem.color,
+                                                icon: sItem.icon
+                                            });
+                                            updatedCount++;
+                                        }
                                     }
                                 });
-                                if (addedCount > 0) {
-                                    console.log(`[Storage] Merged ${addedCount} new ${listName} from server.`);
+                                if (addedCount > 0 || updatedCount > 0) {
+                                    console.log(`[Storage] Merged ${addedCount} new, ${updatedCount} updated ${listName} from server.`);
                                     lState[listName] = localList;
                                 }
                             };
@@ -220,6 +240,21 @@ export const serverStorage: StateStorage = {
                             await browserDb.set(name, localDataStr);
                             if (typeof localStorage !== 'undefined') {
                                 try { localStorage.setItem(name, localDataStr); } catch (e) { }
+                            }
+
+                            // CRITICAL FIX: Push the merged state back to Server!
+                            // If Local had items (like a new space) that Server missed, Server needs this update.
+                            // We do this in background.
+                            const token = getAuthToken();
+                            if (token) {
+                                fetch(`${SERVER_URL}/${name}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                    },
+                                    body: localDataStr,
+                                }).catch(e => console.error('[Storage] Auto-sync to server failed:', e));
                             }
                         }
                         // IMPORTANT: Even if merge happens, we return localDataStr which is now updated

@@ -93,6 +93,9 @@ export interface Space {
   statuses?: Status[];
   createdAt?: string;
   updatedAt?: string;
+  isShared?: boolean;
+  ownerId?: string;
+  permission?: string;
 }
 
 export interface Folder {

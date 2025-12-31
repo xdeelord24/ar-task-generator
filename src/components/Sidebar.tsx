@@ -44,7 +44,8 @@ import {
     MoreHorizontal,
     EyeOff,
     Copy,
-    Archive
+    Archive,
+    LogOut
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import ContextMenu, { useContextMenu } from './ContextMenu';
@@ -109,7 +110,8 @@ const Sidebar: React.FC = () => {
         currentDashboardId,
         setCurrentDashboardId,
         updateDashboard,
-        deleteDashboard
+        deleteDashboard,
+        leaveSpace
     } = useAppStore();
 
     const [isCreateSpaceOpen, setIsCreateSpaceOpen] = React.useState(false);
@@ -265,7 +267,12 @@ const Sidebar: React.FC = () => {
                                         { divider: true, label: '', onClick: () => { } },
                                         { label: 'Duplicate', icon: <Copy size={14} />, onClick: () => { } },
                                         { label: 'Archive', icon: <Archive size={14} />, onClick: () => { } },
-                                        { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => deleteSpace(space.id), danger: true },
+                                        {
+                                            label: space.isShared ? 'Leave Space' : 'Delete',
+                                            icon: space.isShared ? <LogOut size={14} /> : <Trash2 size={14} />,
+                                            onClick: () => space.isShared ? leaveSpace(space.id) : deleteSpace(space.id),
+                                            danger: true
+                                        },
                                         {
                                             label: 'Sharing & Permissions',
                                             icon: null,
