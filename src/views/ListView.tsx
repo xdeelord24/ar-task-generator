@@ -55,9 +55,10 @@ interface ListViewProps {
 interface ColumnHeaderProps {
     column: ColumnSetting;
     onSort?: () => void;
+    onResize: (e: React.MouseEvent, columnId: string) => void;
 }
 
-const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column }) => {
+const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize }) => {
     const {
         attributes,
         listeners,
@@ -70,7 +71,9 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column }) => {
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        width: column.width || 150,
+        width: column.width,
+        flex: column.id === 'name' && !column.width ? 1 : 'none',
+        minWidth: column.id === 'name' ? 'unset' : undefined,
         opacity: isDragging ? 0.5 : 1,
     };
 
@@ -85,6 +88,12 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column }) => {
         >
             <span>{column.name}</span>
             <ArrowUpDown size={12} className="sort-icon" />
+            <div
+                className="column-resizer"
+                onMouseDown={(e) => onResize(e, column.id)}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+            />
         </div>
     );
 };
@@ -184,7 +193,12 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
         switch (col.id) {
             case 'name':
                 return (
-                    <div className="task-cell name-cell" style={{ width: col.width || 350, overflow: 'visible', paddingLeft: '48px' }}>
+                    <div className="task-cell name-cell" style={{
+                        width: col.width,
+                        flex: (!col.width && col.id === 'name') ? 1 : 'none',
+                        minWidth: col.id === 'name' ? 'unset' : undefined,
+                        overflow: 'visible', paddingLeft: '48px'
+                    }}>
                         <div className="task-cell-inner" style={{ overflow: 'visible' }}>
                             <div className="subtask-indent-line"></div>
                             <input
@@ -249,7 +263,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                 );
             case 'assignee':
                 return (
-                    <div className="task-cell assignee-cell" style={{ width: col.width || 150 }}>
+                    <div className="task-cell assignee-cell" style={{ width: col.width }}>
                         <div className="assignee-avatar">
                             {task.assignee?.[0] || '?'}
                         </div>
@@ -258,7 +272,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                 );
             case 'dueDate':
                 return (
-                    <div className="task-cell date-cell" style={{ width: col.width || 130 }}>
+                    <div className="task-cell date-cell" style={{ width: col.width }}>
                         <div
                             className={`date-badge-interactive ${task.dueDate ? getDateStatus(task.dueDate) : 'empty'}`}
                             onClick={(e) => {
@@ -284,7 +298,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                 );
             case 'priority':
                 return (
-                    <div className="task-cell priority-cell" style={{ width: col.width || 110, overflow: 'visible', position: 'relative' }}>
+                    <div className="task-cell priority-cell" style={{ width: col.width, overflow: 'visible', position: 'relative' }}>
                         <div
                             className="priority-badge-interactive"
                             style={{ color: getPriorityColor(task.priority), display: 'flex', alignItems: 'center' }}
@@ -318,12 +332,12 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                 );
             case 'status':
                 return (
-                    <div className="task-cell status-cell" style={{ width: col.width || 130 }}>
+                    <div className="task-cell status-cell" style={{ width: col.width }}>
                         <span className="status-pill">{task.status}</span>
                     </div>
                 );
             default:
-                return <div className="task-cell" style={{ width: col.width || 100 }}></div>;
+                return <div className="task-cell" style={{ width: col.width }}></div>;
         }
     };
 
@@ -480,7 +494,12 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
         switch (col.id) {
             case 'name':
                 return (
-                    <div className="task-cell name-cell" style={{ width: col.width || 350, overflow: 'visible' }}>
+                    <div className="task-cell name-cell" style={{
+                        width: col.width,
+                        flex: (!col.width && col.id === 'name') ? 1 : 'none',
+                        minWidth: col.id === 'name' ? 'unset' : undefined,
+                        overflow: 'visible'
+                    }}>
                         <div className="task-cell-inner" style={{ overflow: 'visible' }}>
                             <div
                                 style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: 4 }}
@@ -605,7 +624,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 );
             case 'assignee':
                 return (
-                    <div className="task-cell assignee-cell" style={{ width: col.width || 150, position: 'relative', overflow: 'visible' }}>
+                    <div className="task-cell assignee-cell" style={{ width: col.width, position: 'relative', overflow: 'visible' }}>
                         <div
                             className="involved-stack"
                             style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -659,7 +678,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 );
             case 'dueDate':
                 return (
-                    <div className="task-cell date-cell" style={{ width: col.width || 130, position: 'relative', overflow: 'visible' }}>
+                    <div className="task-cell date-cell" style={{ width: col.width, position: 'relative', overflow: 'visible' }}>
                         <div
                             className={`date-badge-interactive ${task.dueDate ? getDateStatus(task.dueDate) : 'empty'}`}
                             onClick={(e) => {
@@ -685,7 +704,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 );
             case 'priority':
                 return (
-                    <div className="task-cell priority-cell" style={{ width: col.width || 110, position: 'relative', overflow: 'visible' }}>
+                    <div className="task-cell priority-cell" style={{ width: col.width, position: 'relative', overflow: 'visible' }}>
                         <div
                             className="priority-badge-interactive"
                             style={{ color: getPriorityColor(task.priority) }}
@@ -718,12 +737,12 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 );
             case 'status':
                 return (
-                    <div className="task-cell status-cell" style={{ width: col.width || 130 }}>
+                    <div className="task-cell status-cell" style={{ width: col.width }}>
                         <span className="status-pill">{task.status}</span>
                     </div>
                 );
             default:
-                return <div className="task-cell" style={{ width: col.width || 100 }}>-</div>;
+                return <div className="task-cell" style={{ width: col.width }}>-</div>;
         }
     };
 
@@ -1033,6 +1052,41 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
         }
     };
 
+    const handleColumnResize = (e: React.MouseEvent, columnId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const startX = e.pageX;
+        const column = activeColumns.find(c => c.id === columnId);
+        if (!column) return;
+
+        // Get actual current width from DOM to avoid jumping
+        const headerCell = (e.currentTarget as HTMLElement).parentElement;
+        const startWidth = headerCell ? headerCell.getBoundingClientRect().width : (column.width || 150);
+
+        const onMouseMove = (moveEvent: MouseEvent) => {
+            const delta = moveEvent.pageX - startX;
+            const newWidth = Math.max(50, startWidth + delta);
+
+            const newColumns = activeColumns.map(c =>
+                c.id === columnId ? { ...c, width: newWidth } : c
+            );
+            setColumnSettings(currentSpaceId || 'default', newColumns);
+        };
+
+        const onMouseUp = () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    };
+
     return (
         <div className="view-container list-view">
             <ViewHeader />
@@ -1075,7 +1129,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                             strategy={horizontalListSortingStrategy}
                         >
                             {activeColumns.filter(c => c.visible).map(col => (
-                                <SortableColumnHeader key={col.id} column={col} />
+                                <SortableColumnHeader key={col.id} column={col} onResize={handleColumnResize} />
                             ))}
                         </SortableContext>
                         <div className="column-header-cell actions-cell" style={{ width: 50 }}></div>
