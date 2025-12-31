@@ -49,6 +49,13 @@ export class DatabaseHandler {
                     permission TEXT DEFAULT 'view', -- 'view', 'edit'
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
+                CREATE TABLE IF NOT EXISTS pending_updates (
+                    id TEXT PRIMARY KEY,
+                    owner_id TEXT NOT NULL,
+                    type TEXT NOT NULL, -- 'list', 'task', etc
+                    data TEXT NOT NULL, -- JSON
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
             `);
 
             console.log('Database schema initialized: tables ready.');
@@ -85,6 +92,29 @@ export class DatabaseHandler {
             acc[row.key] = JSON.parse(row.value);
             return acc;
         }, {});
+    }
+
+    // --- Pending Updates (Sync) ---
+
+    async addPendingUpdate(ownerId, type, data) {
+        if (!this.db) throw new Error('Database not initialized');
+        const id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+        await this.db.run(`
+            INSERT INTO pending_updates (id, owner_id, type, data) VALUES (?, ?, ?, ?)
+        `, id, ownerId, type, JSON.stringify(data));
+        console.log(`[DB] Added pending update ${id} for owner ${ownerId}`);
+        return id;
+    }
+
+    async getPendingUpdates(ownerId) {
+        if (!this.db) throw new Error('Database not initialized');
+        const rows = await this.db.all('SELECT * FROM pending_updates WHERE owner_id = ?', ownerId);
+        return rows.map(r => ({ ...r, data: JSON.parse(r.data) }));
+    }
+
+    async clearPendingUpdate(id) {
+        if (!this.db) throw new Error('Database not initialized');
+        await this.db.run('DELETE FROM pending_updates WHERE id = ?', id);
     }
 
     // --- User Methods ---

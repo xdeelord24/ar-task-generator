@@ -157,6 +157,15 @@ export const serverStorage: StateStorage = {
                             if (sharedRes.ok) {
                                 const sharedData = await sharedRes.json();
                                 // Merge shared data into serverJson (which might be empty if new user)
+                                // Self-healing: if serverJson is a string (double encoded), parse it
+                                if (typeof serverJson === 'string') {
+                                    try {
+                                        serverJson = JSON.parse(serverJson);
+                                    } catch (e) {
+                                        console.error('[Storage] Failed to parse double-encoded serverJson', e);
+                                    }
+                                }
+
                                 if (!serverJson) serverJson = { state: {}, version: 0 };
                                 if (!serverJson.state) serverJson.state = {};
 
@@ -165,9 +174,17 @@ export const serverStorage: StateStorage = {
                                 const mergeShared = (listName: string, items: any[]) => {
                                     if (!items || items.length === 0) return;
                                     if (!sState[listName]) sState[listName] = [];
-                                    const existingIds = new Set(sState[listName].map((i: any) => i.id));
+
+                                    const existingMap = new Map(sState[listName].map((i: any) => [i.id, i]));
+
                                     items.forEach(item => {
-                                        if (!existingIds.has(item.id)) sState[listName].push(item);
+                                        if (existingMap.has(item.id)) {
+                                            // Overwrite/Augment existing item with shared data (Authority)
+                                            const existing = existingMap.get(item.id);
+                                            Object.assign(existing as object, item);
+                                        } else {
+                                            sState[listName].push(item);
+                                        }
                                     });
                                 };
 

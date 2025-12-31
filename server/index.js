@@ -174,13 +174,39 @@ app.get('/api/storage/:key', authenticateToken, async (req, res) => {
     try {
         const { key } = req.params;
         let storageKey = key;
+        let userId = req.user ? req.user.id : null;
 
         // If authenticated, use user-scoped key
         if (req.user && req.user.id) {
             storageKey = `user:${req.user.id}:${key}`;
         }
 
-        const data = await dbHandler.get(storageKey);
+        let data = await dbHandler.get(storageKey);
+
+        // SYNC: Merge Pending Updates if any
+        if (userId && data && data.state) {
+            const pending = await dbHandler.getPendingUpdates(userId);
+            if (pending.length > 0) {
+                console.log(`[Sync] Merging ${pending.length} pending updates for User ${userId}`);
+                const state = data.state;
+
+                pending.forEach(p => {
+                    const collection = p.type + 's'; // list -> lists
+                    if (!state[collection]) state[collection] = [];
+
+                    const list = state[collection];
+                    const existsIdx = list.findIndex(i => i.id === p.data.id);
+                    if (existsIdx >= 0) {
+                        list[existsIdx] = { ...list[existsIdx], ...p.data };
+                    } else {
+                        list.push(p.data);
+                    }
+                });
+                // We do NOT save back to DB here, we just send merged view to client.
+                // Client will save back eventually.
+            }
+        }
+
         res.json(data);
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -197,8 +223,11 @@ app.post('/api/storage/:key', authenticateToken, async (req, res) => {
 
         console.log(`[Storage] POST /api/storage/${key} - Body Size: ${bodyLen} bytes - User: ${req.user ? req.user.email : 'None'}`);
 
+        let userId = null;
+
         if (req.user && req.user.id) {
             storageKey = `user:${req.user.id}:${key}`;
+            userId = req.user.id;
         } else {
             console.log(`[Storage] Warning: Unauthenticated write to global key: ${key}`);
             // Optional: Block write if not authenticated
@@ -206,6 +235,26 @@ app.post('/api/storage/:key', authenticateToken, async (req, res) => {
         }
 
         await dbHandler.set(storageKey, req.body);
+
+        // SYNC: Clear processed pending updates
+        if (userId) {
+            const pending = await dbHandler.getPendingUpdates(userId);
+            if (pending.length > 0) {
+                const state = req.body.state || {};
+                for (const p of pending) {
+                    const collection = p.type + 's';
+                    const list = state[collection];
+                    if (list) {
+                        const found = list.find(i => i.id === p.data.id);
+                        if (found) {
+                            await dbHandler.clearPendingUpdate(p.id);
+                            console.log(`[Sync] Cleared pending update ${p.id} (merged by client)`);
+                        }
+                    }
+                }
+            }
+        }
+
         console.log(`[Storage] Saved key: ${storageKey}`);
         res.json({ success: true });
     } catch (error) {
@@ -421,7 +470,7 @@ app.post('/api/shared/propagate', authenticateToken, async (req, res) => {
         // 4. Save Owner State
         // Ensure structure is preserved
         ownerStateJson.state = state;
-        await dbHandler.set(ownerKey, JSON.stringify(ownerStateJson));
+        await dbHandler.set(ownerKey, ownerStateJson);
 
         res.json({ success: true });
 
