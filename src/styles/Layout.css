@@ -61,7 +61,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  z-index: 100;
+  z-index: 3000;
   box-shadow: var(--shadow-sm);
   position: relative;
 }

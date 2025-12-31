@@ -109,14 +109,23 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize, o
         isDragging
     } = useSortable({ id: column.id });
 
+    // FIX: Do not apply transform to sticky 'name' column to prevent breaking position: sticky
+    // We accept that the name column won't animate during reordering, but it will remain sticky.
     const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
+        transform: column.id === 'name' ? undefined : CSS.Transform.toString(transform),
+        transition: column.id === 'name' ? undefined : transition,
         width: column.width,
         flex: column.id === 'name' && !column.width ? 1 : 'none',
         minWidth: (column.id === 'name' || column.id === 'dueDate' || column.id === 'priority' || column.id === 'status') ? 'unset' : undefined,
         opacity: isDragging ? 0.5 : 1,
         left: column.id === 'name' ? (30 + (isTableMode ? 50 : 0)) : undefined,
+        zIndex: isDragging ? 10 : undefined,
+    };
+
+    const handleResizeMouseDown = (e: React.MouseEvent | React.PointerEvent) => {
+        e.stopPropagation(); // Stop drag start
+        e.preventDefault(); // Prevent text selection etc
+        onResize(e as React.MouseEvent, column.id);
     };
 
     return (
@@ -148,8 +157,8 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize, o
             <ArrowUpDown size={12} className="sort-icon" />
             <div
                 className="column-resizer"
-                onMouseDown={(e) => onResize(e, column.id)}
-                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={handleResizeMouseDown}
+                onPointerDown={handleResizeMouseDown}
                 onClick={(e) => e.stopPropagation()}
             />
         </div>
@@ -752,10 +761,11 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
     };
 
     const style = {
-        transform: CSS.Transform.toString(transform),
+        transform: transform ? CSS.Transform.toString(transform) : undefined,
         transition,
         opacity: isDragging ? 0.3 : 1,
-        zIndex: isDragging ? 1 : (activePopover?.taskId === task.id ? 50 : 0),
+        zIndex: isDragging ? 500 : (activePopover?.taskId === task.id ? 50 : 0),
+        position: 'relative' as const, // Ensure z-index works
     };
 
     const priorities: Task['priority'][] = ['urgent', 'high', 'medium', 'low'];
@@ -1542,7 +1552,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
         <div className="view-container list-view">
             <ViewHeader />
 
-            <div className="toolbar">
+            <div className="toolbar" style={{ marginBottom: 24 }}>
                 <div className="toolbar-left">
                     <button className="btn-secondary" style={{ padding: '6px 14px', fontSize: '13px' }}><Filter size={14} /> Filter</button>
                     <button className="btn-secondary" style={{ padding: '6px 14px', fontSize: '13px' }}><ArrowUpDown size={14} /> Sort</button>
