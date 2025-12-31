@@ -160,6 +160,34 @@
     border-right: 1px solid var(--border-light);
     flex-shrink: 0;
     overflow: hidden;
+    background-color: inherit;
+}
+
+.sticky-column {
+    position: sticky !important;
+    z-index: 10;
+    background-color: var(--bg-surface) !important;
+    border-right: 1px solid var(--border-light);
+}
+
+.subtask-item-row .sticky-column {
+    background-color: var(--bg-sidebar) !important;
+}
+
+.sticky-column-header {
+    z-index: 30 !important;
+}
+
+.name-cell.sticky-column {
+    box-shadow: 4px 0 8px -4px rgba(0, 0, 0, 0.1);
+}
+
+.drag-handle-sticky {
+    left: 0;
+}
+
+.index-cell-sticky {
+    left: 30px;
 }
 
 .name-cell {

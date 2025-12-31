@@ -71,9 +71,10 @@ interface ColumnHeaderProps {
     onResize: (e: React.MouseEvent, columnId: string) => void;
     onRename?: (columnId: string, newName: string) => void;
     onContextMenu?: (e: React.MouseEvent, columnId: string) => void;
+    isTableMode?: boolean;
 }
 
-const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize, onRename, onContextMenu }) => {
+const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize, onRename, onContextMenu, isTableMode }) => {
     const [isEditing, setIsEditing] = React.useState(false);
     const [editValue, setEditValue] = React.useState(column.name);
     const inputRef = React.useRef<HTMLInputElement>(null);
@@ -115,13 +116,14 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize, o
         flex: column.id === 'name' && !column.width ? 1 : 'none',
         minWidth: (column.id === 'name' || column.id === 'dueDate' || column.id === 'priority' || column.id === 'status') ? 'unset' : undefined,
         opacity: isDragging ? 0.5 : 1,
+        left: column.id === 'name' ? (30 + (isTableMode ? 50 : 0)) : undefined,
     };
 
     return (
         <div
             ref={setNodeRef}
             style={style}
-            className="column-header-cell"
+            className={`column-header-cell ${column.id === 'name' ? 'sticky-column sticky-column-header name-cell' : ''}`}
             data-column={column.id}
             {...attributes}
             {...listeners}
@@ -232,13 +234,14 @@ const CalculationRow: React.FC<{
 
     return (
         <div className="calculation-row">
-            <div className="drag-handle-placeholder" style={{ width: 30 }}></div>
-            {isTableMode && <div className="task-cell index-cell" style={{ width: 50 }}></div>}
+            <div className="drag-handle-placeholder sticky-column drag-handle-sticky" style={{ width: 30 }}></div>
+            {isTableMode && <div className="task-cell index-cell sticky-column index-cell-sticky" style={{ width: 50 }}></div>}
             {columns.filter(c => c.visible).map(col => (
-                <div key={col.id} className="task-cell calculation-cell" style={{
+                <div key={col.id} className={`task-cell calculation-cell ${col.id === 'name' ? 'sticky-column' : ''}`} style={{
                     width: col.width,
                     flex: (!col.width && col.id === 'name') ? 1 : 'none',
-                    justifyContent: col.type === 'number' ? 'flex-end' : 'flex-start'
+                    justifyContent: col.type === 'number' ? 'flex-end' : 'flex-start',
+                    left: col.id === 'name' ? 30 + (isTableMode ? 50 : 0) : undefined
                 }}>
                     {(col.type === 'number' || col.type === 'money' || col.type === 'checkbox') && renderCalculationValue(col)}
                 </div>
@@ -340,11 +343,12 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
         switch (col.id) {
             case 'name':
                 return (
-                    <div className="task-cell name-cell" style={{
+                    <div className="task-cell name-cell sticky-column" style={{
                         width: col.width,
                         flex: (!col.width && col.id === 'name') ? 1 : 'none',
                         minWidth: col.id === 'name' ? 'unset' : undefined,
-                        overflow: 'visible', paddingLeft: '48px'
+                        overflow: 'visible', paddingLeft: '48px',
+                        left: 30 + (isTableMode ? 50 : 0)
                     }}>
                         <div className="task-cell-inner" style={{ overflow: 'visible' }}>
                             <div className="subtask-indent-line"></div>
@@ -611,8 +615,8 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
             e.preventDefault();
             onOpenMenu(task.id, e.currentTarget, { x: e.clientX, y: e.clientY });
         }}>
-            <div className="drag-handle-placeholder" style={{ width: 30 }}></div>
-            {isTableMode && <div className="task-cell index-cell" style={{ width: 50 }}></div>}
+            <div className="drag-handle-placeholder sticky-column drag-handle-sticky" style={{ width: 30 }}></div>
+            {isTableMode && <div className="task-cell index-cell sticky-column index-cell-sticky" style={{ width: 50 }}></div>}
             {columns.filter(c => c.visible).map(col => (
                 <React.Fragment key={col.id}>
                     {renderCell(col)}
@@ -761,11 +765,12 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
         switch (col.id) {
             case 'name':
                 return (
-                    <div className="task-cell name-cell" style={{
+                    <div className="task-cell name-cell sticky-column" style={{
                         width: col.width,
                         flex: (!col.width && col.id === 'name') ? 1 : 'none',
                         minWidth: col.id === 'name' ? 'unset' : undefined,
-                        overflow: 'visible'
+                        overflow: 'visible',
+                        left: 30 + (isTableMode ? 50 : 0)
                     }}>
                         <div className="task-cell-inner" style={{ overflow: 'visible' }}>
                             <div
@@ -1141,12 +1146,12 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                     onOpenMenu(task.id, e.currentTarget, { x: e.clientX, y: e.clientY });
                 }}
             >
-                <div className="drag-handle" {...attributes} {...listeners}>
+                <div className="drag-handle sticky-column drag-handle-sticky" {...attributes} {...listeners}>
                     <GripVertical size={16} />
                 </div>
 
                 {isTableMode && (
-                    <div className="task-cell index-cell" style={{ width: 50, justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
+                    <div className="task-cell index-cell sticky-column index-cell-sticky" style={{ width: 50, justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
                         {rowIndex !== undefined ? rowIndex : '-'}
                     </div>
                 )}
@@ -1214,16 +1219,17 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                     ))}
                     {isAddingSubtask && (
                         <div className="task-item-row subtask-item-row">
-                            <div className="drag-handle-placeholder" style={{ width: 30 }}></div>
-                            {isTableMode && <div className="task-cell index-cell" style={{ width: 50 }}></div>}
+                            <div className="drag-handle-placeholder sticky-column drag-handle-sticky" style={{ width: 30 }}></div>
+                            {isTableMode && <div className="task-cell index-cell sticky-column index-cell-sticky" style={{ width: 50 }}></div>}
                             {columns.filter(c => c.visible).map(col => {
                                 if (col.id === 'name') {
                                     return (
-                                        <div key={col.id} className="task-cell name-cell" style={{
+                                        <div key={col.id} className="task-cell name-cell sticky-column" style={{
                                             width: col.width,
                                             flex: (!col.width && col.id === 'name') ? 1 : 'none',
                                             minWidth: col.id === 'name' ? 'unset' : undefined,
-                                            overflow: 'visible', paddingLeft: '48px'
+                                            overflow: 'visible', paddingLeft: '48px',
+                                            left: 30 + (isTableMode ? 50 : 0)
                                         }}>
                                             <div className="task-cell-inner" style={{ overflow: 'visible' }}>
                                                 <div className="subtask-indent-line"></div>
@@ -1567,8 +1573,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                     onDragEnd={handleColumnDragEnd}
                 >
                     <div className="list-table-header">
-                        <div className="drag-handle-placeholder"></div>
-                        {isTableMode && <div className="column-header-cell" style={{ width: 50, borderRight: '1px solid var(--border)' }}></div>}
+                        <div className="drag-handle-placeholder sticky-column-header sticky-column drag-handle-sticky"></div>
+                        {isTableMode && <div className="column-header-cell sticky-column-header sticky-column index-cell-sticky" style={{ width: 50, borderRight: '1px solid var(--border)' }}></div>}
                         <SortableContext
                             items={activeColumns.filter(c => c.visible).map(c => c.id)}
                             strategy={horizontalListSortingStrategy}
@@ -1580,6 +1586,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                     onResize={handleColumnResize}
                                     onRename={handleColumnRename}
                                     onContextMenu={handleColumnContextMenu}
+                                    isTableMode={isTableMode}
                                 />
                             ))}
                         </SortableContext>
