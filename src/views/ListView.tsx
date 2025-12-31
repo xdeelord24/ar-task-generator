@@ -73,7 +73,7 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize })
         transition,
         width: column.width,
         flex: column.id === 'name' && !column.width ? 1 : 'none',
-        minWidth: column.id === 'name' ? 'unset' : undefined,
+        minWidth: (column.id === 'name' || column.id === 'dueDate' || column.id === 'priority' || column.id === 'status') ? 'unset' : undefined,
         opacity: isDragging ? 0.5 : 1,
     };
 
@@ -272,7 +272,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                 );
             case 'dueDate':
                 return (
-                    <div className="task-cell date-cell" style={{ width: col.width }}>
+                    <div className="task-cell date-cell" style={{ width: col.width, minWidth: 'unset' }}>
                         <div
                             className={`date-badge-interactive ${task.dueDate ? getDateStatus(task.dueDate) : 'empty'}`}
                             onClick={(e) => {
@@ -298,7 +298,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                 );
             case 'priority':
                 return (
-                    <div className="task-cell priority-cell" style={{ width: col.width, overflow: 'visible', position: 'relative' }}>
+                    <div className="task-cell priority-cell" style={{ width: col.width, minWidth: 'unset', overflow: 'visible', position: 'relative' }}>
                         <div
                             className="priority-badge-interactive"
                             style={{ color: getPriorityColor(task.priority), display: 'flex', alignItems: 'center' }}
@@ -332,7 +332,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                 );
             case 'status':
                 return (
-                    <div className="task-cell status-cell" style={{ width: col.width }}>
+                    <div className="task-cell status-cell" style={{ width: col.width, minWidth: 'unset' }}>
                         <span className="status-pill">{task.status}</span>
                     </div>
                 );
@@ -678,7 +678,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 );
             case 'dueDate':
                 return (
-                    <div className="task-cell date-cell" style={{ width: col.width, position: 'relative', overflow: 'visible' }}>
+                    <div className="task-cell date-cell" style={{ width: col.width, minWidth: 'unset', position: 'relative', overflow: 'visible' }}>
                         <div
                             className={`date-badge-interactive ${task.dueDate ? getDateStatus(task.dueDate) : 'empty'}`}
                             onClick={(e) => {
@@ -704,7 +704,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 );
             case 'priority':
                 return (
-                    <div className="task-cell priority-cell" style={{ width: col.width, position: 'relative', overflow: 'visible' }}>
+                    <div className="task-cell priority-cell" style={{ width: col.width, minWidth: 'unset', position: 'relative', overflow: 'visible' }}>
                         <div
                             className="priority-badge-interactive"
                             style={{ color: getPriorityColor(task.priority) }}
@@ -737,7 +737,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 );
             case 'status':
                 return (
-                    <div className="task-cell status-cell" style={{ width: col.width }}>
+                    <div className="task-cell status-cell" style={{ width: col.width, minWidth: 'unset' }}>
                         <span className="status-pill">{task.status}</span>
                     </div>
                 );
@@ -821,6 +821,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             onCloseMenu={onCloseMenu}
                             menuTrigger={menuTrigger}
                             onDeleteSubtask={onDeleteSubtask}
+                            isTableMode={isTableMode}
                         />
 
                     ))}
@@ -831,7 +832,12 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             {columns.filter(c => c.visible).map(col => {
                                 if (col.id === 'name') {
                                     return (
-                                        <div key={col.id} className="task-cell name-cell" style={{ width: col.width || 350, overflow: 'visible', paddingLeft: '48px' }}>
+                                        <div key={col.id} className="task-cell name-cell" style={{
+                                            width: col.width,
+                                            flex: (!col.width && col.id === 'name') ? 1 : 'none',
+                                            minWidth: col.id === 'name' ? 'unset' : undefined,
+                                            overflow: 'visible', paddingLeft: '48px'
+                                        }}>
                                             <div className="task-cell-inner" style={{ overflow: 'visible' }}>
                                                 <div className="subtask-indent-line"></div>
                                                 <input
