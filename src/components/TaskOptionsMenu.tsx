@@ -35,6 +35,7 @@ interface TaskOptionsMenuProps {
     onMove?: () => void;
     taskId: string;
     triggerElement?: HTMLElement | null;
+    mousePos?: { x: number; y: number } | null;
 }
 
 const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
@@ -47,7 +48,8 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
     onStartTimer,
     onMove,
     taskId,
-    triggerElement
+    triggerElement,
+    mousePos
 }) => {
     const [isRelationshipMenuOpen, setIsRelationshipMenuOpen] = React.useState(false);
     const menuRef = React.useRef<HTMLDivElement>(null);
@@ -58,26 +60,44 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
 
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
+        const PADDING = 10;
 
-        if (triggerElement) {
+        const menuWidth = menuRef.current.offsetWidth || 280;
+        const menuHeight = menuRef.current.offsetHeight || 400;
+
+        const newStyle: React.CSSProperties = {
+            position: 'fixed',
+            zIndex: 10000,
+            visibility: 'visible',
+            minWidth: '280px'
+        };
+
+        if (mousePos) {
+            let left = mousePos.x;
+            let top = mousePos.y;
+
+            // Adjust horizontal
+            if (left + menuWidth > viewportWidth - PADDING) {
+                left = left - menuWidth;
+            }
+            if (left < PADDING) left = PADDING;
+
+            // Adjust vertical
+            if (top + menuHeight > viewportHeight - PADDING) {
+                top = top - menuHeight;
+            }
+            if (top < PADDING) top = PADDING;
+
+            newStyle.left = `${left}px`;
+            newStyle.top = `${top}px`;
+            newStyle.bottom = 'auto';
+        } else if (triggerElement) {
             const rect = triggerElement.getBoundingClientRect();
-            const menuWidth = menuRef.current.offsetWidth;
-            const menuHeight = menuRef.current.offsetHeight;
-
-            const newStyle: React.CSSProperties = {
-                position: 'fixed',
-                zIndex: 10000,
-                width: `${menuWidth}px`,
-                visibility: 'visible'
-            };
 
             // Horizontal positioning: align right edge with trigger's right edge
             let left = rect.right - menuWidth;
-            // If that pushes it off-screen to the left (unlikely for small menus), clamp it
-            if (left < 10) left = 10;
-
-            // If aligned left, check overflow right
-            if (left + menuWidth > viewportWidth - 10) left = viewportWidth - menuWidth - 10;
+            if (left < PADDING) left = PADDING;
+            if (left + menuWidth > viewportWidth - PADDING) left = viewportWidth - menuWidth - PADDING;
 
             newStyle.left = `${left}px`;
 
@@ -85,52 +105,28 @@ const TaskOptionsMenu: React.FC<TaskOptionsMenuProps> = ({
             const spaceBelow = viewportHeight - rect.bottom;
             const spaceAbove = rect.top;
 
-            if (spaceBelow >= menuHeight + 10) {
-                // Fits below
+            if (spaceBelow >= menuHeight + PADDING) {
                 newStyle.top = `${rect.bottom + 8}px`;
-            } else if (spaceAbove >= menuHeight + 10) {
-                // Fits above
+                newStyle.bottom = 'auto';
+            } else if (spaceAbove >= menuHeight + PADDING) {
                 newStyle.bottom = `${viewportHeight - rect.top + 8}px`;
                 newStyle.top = 'auto';
             } else {
-                // Fits nowhere? Clamp to largest space or bottom edge
                 if (spaceBelow > spaceAbove) {
                     newStyle.top = `${rect.bottom + 8}px`;
-                    // Could set max-height here: newStyle.maxHeight = spaceBelow - 20
-                    newStyle.maxHeight = `${spaceBelow - 20}px`;
+                    newStyle.maxHeight = `${spaceBelow - PADDING * 2}px`;
                     newStyle.overflowY = 'auto';
                 } else {
                     newStyle.bottom = `${viewportHeight - rect.top + 8}px`;
                     newStyle.top = 'auto';
-                    newStyle.maxHeight = `${spaceAbove - 20}px`;
+                    newStyle.maxHeight = `${spaceAbove - PADDING * 2}px`;
                     newStyle.overflowY = 'auto';
                 }
             }
-
-            setStyle(newStyle);
-        } else {
-            // Legacy/Fallback: relative to parent
-            const rect = menuRef.current.getBoundingClientRect();
-            const newStyle: React.CSSProperties = { visibility: 'visible' };
-
-            if (rect.bottom > viewportHeight) {
-                newStyle.top = 'auto';
-                newStyle.bottom = '100%';
-                newStyle.marginTop = '0';
-                newStyle.marginBottom = '8px';
-            }
-
-            if (rect.right > viewportWidth) {
-                newStyle.right = '0';
-                newStyle.left = 'auto';
-            } else if (rect.left < 0) {
-                newStyle.left = '0';
-                newStyle.right = 'auto';
-            }
-
-            setStyle(newStyle);
         }
-    }, [triggerElement, isRelationshipMenuOpen]);
+
+        setStyle(newStyle);
+    }, [triggerElement, mousePos, isRelationshipMenuOpen]);
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(window.location.href);

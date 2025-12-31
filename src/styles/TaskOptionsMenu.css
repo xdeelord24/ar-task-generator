@@ -77,10 +77,9 @@
     color: var(--text-main);
 }
 
-/* Layout for items WITHOUT chevron: label on the right */
+/* Layout for items WITHOUT chevron: ensured left alignment */
 .menu-item:not(.has-chevron) .menu-label {
-    text-align: right;
-    color: var(--text-secondary);
+    text-align: left;
 }
 
 .menu-item .chevron-right {

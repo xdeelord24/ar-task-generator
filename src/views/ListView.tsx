@@ -111,7 +111,7 @@ interface SortableRowProps {
     getPriorityColor: (priority: Task['priority']) => string;
     getDateStatus: (dateStr?: string) => string | null;
     tags: Tag[];
-    onOpenMenu: (taskId: string, trigger: HTMLElement) => void;
+    onOpenMenu: (taskId: string, trigger: HTMLElement, mousePos?: { x: number, y: number }) => void;
     isMenuOpen: boolean;
     onCloseMenu: () => void;
     onDuplicate: (taskId: string) => void;
@@ -129,6 +129,7 @@ interface SortableRowProps {
 
     rowIndex?: number;
     isTableMode?: boolean;
+    menuMousePos?: { x: number, y: number } | null;
 }
 
 const priorities: any[] = ['low', 'medium', 'high', 'urgent'];
@@ -144,10 +145,11 @@ interface SubtaskRowItemProps {
     onUpdateSubtask: (parentId: string, subtaskId: string, updates: any) => void;
     activePopover: ActivePopover | null;
     setActivePopover: (popover: ActivePopover | null) => void;
-    onOpenMenu: (taskId: string, trigger: HTMLElement) => void;
+    onOpenMenu: (taskId: string, trigger: HTMLElement, mousePos?: { x: number, y: number }) => void;
     isMenuOpen: boolean;
     onCloseMenu: () => void;
     menuTrigger: HTMLElement | null;
+    menuMousePos?: { x: number, y: number } | null;
 
     onDeleteSubtask: (parentId: string, subtaskId: string) => void;
     isTableMode?: boolean;
@@ -167,6 +169,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
     isMenuOpen,
     onCloseMenu,
     menuTrigger,
+    menuMousePos,
     onDeleteSubtask,
     tags,
     isTableMode
@@ -344,7 +347,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
     return (
         <div className="task-item-row subtask-item-row" onClick={() => onTaskClick(task.id)} onContextMenu={(e) => {
             e.preventDefault();
-            onOpenMenu(task.id, e.currentTarget);
+            onOpenMenu(task.id, e.currentTarget, { x: e.clientX, y: e.clientY });
         }}>
             <div className="drag-handle-placeholder" style={{ width: 30 }}></div>
             {isTableMode && <div className="task-cell index-cell" style={{ width: 50 }}></div>}
@@ -377,6 +380,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                         onDuplicate={() => { }}
                         onArchive={() => { }}
                         triggerElement={menuTrigger}
+                        mousePos={menuMousePos}
                         onConvertToDoc={() => { }}
                         onStartTimer={() => { }}
                     />
@@ -418,6 +422,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
     onAddSubtask,
     onDeleteSubtask,
     menuTrigger,
+    menuMousePos,
     openMenuTaskId,
     rowIndex,
     isTableMode
@@ -753,7 +758,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                 onClick={() => onTaskClick(task.id)}
                 onContextMenu={(e) => {
                     e.preventDefault();
-                    onOpenMenu(task.id, e.currentTarget);
+                    onOpenMenu(task.id, e.currentTarget, { x: e.clientX, y: e.clientY });
                 }}
             >
                 <div className="drag-handle" {...attributes} {...listeners}>
@@ -796,6 +801,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             onConvertToDoc={() => onConvertToDoc(task)}
                             onStartTimer={onStartTimer}
                             triggerElement={menuTrigger}
+                            mousePos={menuMousePos}
                         />
                     )}
                 </div>
@@ -820,6 +826,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             isMenuOpen={openMenuTaskId === st.id}
                             onCloseMenu={onCloseMenu}
                             menuTrigger={menuTrigger}
+                            menuMousePos={menuMousePos}
                             onDeleteSubtask={onDeleteSubtask}
                             isTableMode={isTableMode}
                         />
@@ -899,6 +906,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
     const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
     const [menuTrigger, setMenuTrigger] = React.useState<HTMLElement | null>(null);
+    const [menuMousePos, setMenuMousePos] = React.useState<{ x: number, y: number } | null>(null);
     const [activePopover, setActivePopover] = React.useState<ActivePopover | null>(null);
     const [isAddingGroup, setIsAddingGroup] = React.useState(false);
     const [newGroupName, setNewGroupName] = React.useState('');
@@ -909,6 +917,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
         const handleClickOutside = () => {
             setOpenMenuTaskId(null);
             setMenuTrigger(null);
+            setMenuMousePos(null);
             setActivePopover(null);
         };
         // Only attach if menu or popover is open
@@ -1166,14 +1175,16 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                             getPriorityColor={getPriorityColor}
                                             getDateStatus={getDateStatus}
                                             tags={tags}
-                                            onOpenMenu={(id, trigger) => {
+                                            onOpenMenu={(id, trigger, mousePos) => {
                                                 setOpenMenuTaskId(id);
                                                 setMenuTrigger(trigger);
+                                                setMenuMousePos(mousePos || null);
                                             }}
                                             isMenuOpen={openMenuTaskId === task.id}
                                             onCloseMenu={() => {
                                                 setOpenMenuTaskId(null);
                                                 setMenuTrigger(null);
+                                                setMenuMousePos(null);
                                             }}
                                             onDuplicate={duplicateTask}
                                             onArchive={archiveTask}
@@ -1195,6 +1206,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                             onDeleteSubtask={deleteSubtask}
                                             openMenuTaskId={openMenuTaskId}
                                             menuTrigger={menuTrigger}
+                                            menuMousePos={menuMousePos}
                                         />
                                     ))}
                                     <button className="btn-inline-add" onClick={onAddTask}>
@@ -1241,14 +1253,16 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                                         getPriorityColor={getPriorityColor}
                                                         getDateStatus={getDateStatus}
                                                         tags={tags}
-                                                        onOpenMenu={(id, trigger) => {
+                                                        onOpenMenu={(id, trigger, mousePos) => {
                                                             setOpenMenuTaskId(id);
                                                             setMenuTrigger(trigger);
+                                                            setMenuMousePos(mousePos || null);
                                                         }}
                                                         isMenuOpen={openMenuTaskId === task.id}
                                                         onCloseMenu={() => {
                                                             setOpenMenuTaskId(null);
                                                             setMenuTrigger(null);
+                                                            setMenuMousePos(null);
                                                         }}
                                                         onDuplicate={duplicateTask}
                                                         onArchive={archiveTask}
@@ -1264,12 +1278,14 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                                             startTimer(task.id);
                                                             setOpenMenuTaskId(null);
                                                             setMenuTrigger(null);
+                                                            setMenuMousePos(null);
                                                         }}
                                                         onUpdateSubtask={updateSubtask}
                                                         onAddSubtask={(taskId, name) => addSubtask(taskId, { name, status: 'TO DO' })}
                                                         onDeleteSubtask={deleteSubtask}
                                                         openMenuTaskId={openMenuTaskId}
                                                         menuTrigger={menuTrigger}
+                                                        menuMousePos={menuMousePos}
                                                     />
                                                 ))}
                                                 <button className="btn-inline-add" onClick={onAddTask}>
@@ -1315,14 +1331,16 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                                     getPriorityColor={getPriorityColor}
                                                     getDateStatus={getDateStatus}
                                                     tags={tags}
-                                                    onOpenMenu={(id, trigger) => {
+                                                    onOpenMenu={(id, trigger, mousePos) => {
                                                         setOpenMenuTaskId(id);
                                                         setMenuTrigger(trigger);
+                                                        setMenuMousePos(mousePos || null);
                                                     }}
                                                     isMenuOpen={openMenuTaskId === task.id}
                                                     onCloseMenu={() => {
                                                         setOpenMenuTaskId(null);
                                                         setMenuTrigger(null);
+                                                        setMenuMousePos(null);
                                                     }}
                                                     onDuplicate={duplicateTask}
                                                     onArchive={archiveTask}
@@ -1338,12 +1356,14 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                                         startTimer(task.id);
                                                         setOpenMenuTaskId(null);
                                                         setMenuTrigger(null);
+                                                        setMenuMousePos(null);
                                                     }}
                                                     onUpdateSubtask={updateSubtask}
                                                     onAddSubtask={(taskId, name) => addSubtask(taskId, { name, status: 'TO DO' })}
                                                     onDeleteSubtask={deleteSubtask}
                                                     openMenuTaskId={openMenuTaskId}
                                                     menuTrigger={menuTrigger}
+                                                    menuMousePos={menuMousePos}
                                                 />
                                             ))}
                                         </div>
