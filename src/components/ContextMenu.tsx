@@ -4,11 +4,12 @@ import ReactDOM from 'react-dom';
 export interface ContextMenuItem {
     label: string;
     icon?: React.ReactNode;
-    onClick: () => void;
+    onClick?: () => void; // Made optional for items with submenus
     danger?: boolean;
     divider?: boolean;
     className?: string;
     rightContent?: React.ReactNode;
+    subItems?: ContextMenuItem[];
 }
 
 interface ContextMenuProps {
@@ -16,13 +17,17 @@ interface ContextMenuProps {
     y: number;
     items: ContextMenuItem[];
     onClose: () => void;
+    level?: number; // For recursive styling/logic if needed
 }
 
-const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
+const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose, level = 0 }) => {
     const [position, setPosition] = useState({ x, y });
+    const [activeSubMenu, setActiveSubMenu] = useState<{ index: number; rect: DOMRect } | null>(null);
+    const menuRef = React.useRef<HTMLDivElement>(null);
+    const itemRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
 
     useEffect(() => {
-        const menu = document.getElementById('context-menu');
+        const menu = menuRef.current;
         if (menu) {
             const rect = menu.getBoundingClientRect();
             let newX = x;
@@ -35,19 +40,24 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
                 newY = y - rect.height;
             }
 
+            // Adjust for submenus (level > 0) to appear to the right or left
+            if (level > 0) {
+                // Logic handled by parent passing correct x/y, but we might need tweaks
+            }
+
             setPosition({ x: newX, y: newY });
         }
-    }, [x, y]);
+    }, [x, y, level]);
 
     return ReactDOM.createPortal(
         <div
-            id="context-menu"
-            className="context-menu"
+            ref={menuRef}
+            className={`context-menu level-${level}`}
             style={{
                 position: 'fixed',
                 top: position.y,
                 left: position.x,
-                zIndex: 9999,
+                zIndex: 9999 + level,
                 background: 'var(--bg-surface)',
                 borderRadius: '8px',
                 boxShadow: 'var(--shadow-lg)',
@@ -61,12 +71,16 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
                 <React.Fragment key={index}>
                     {item.divider && <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />}
                     <button
+                        ref={el => { itemRefs.current[index] = el; }}
                         className={item.className}
                         onClick={(e) => {
                             e.stopPropagation();
-                            console.log('ContextMenu: Item clicked', item.label);
-                            item.onClick();
-                            onClose();
+                            if (item.subItems) {
+                                // Maybe toggle on click? For now hover is primary
+                            } else if (item.onClick) {
+                                item.onClick();
+                                onClose();
+                            }
                         }}
                         style={{
                             display: 'flex',
@@ -77,7 +91,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
                             padding: '8px 12px',
                             borderRadius: '4px',
                             border: 'none',
-                            background: 'transparent',
+                            background: activeSubMenu?.index === index ? 'var(--bg-hover)' : 'transparent',
                             color: item.danger ? 'var(--error)' : 'var(--text-main)',
                             fontSize: '13px',
                             fontWeight: 500,
@@ -86,13 +100,17 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
                             transition: 'background 0.2s',
                         }}
                         onMouseEnter={(e) => {
-                            if (!item.className?.includes('btn-primary')) {
-                                e.currentTarget.style.background = 'var(--bg-hover)'
+                            e.currentTarget.style.background = 'var(--bg-hover)';
+                            if (item.subItems) {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setActiveSubMenu({ index, rect });
+                            } else {
+                                setActiveSubMenu(null);
                             }
                         }}
                         onMouseLeave={(e) => {
-                            if (!item.className?.includes('btn-primary')) {
-                                e.currentTarget.style.background = 'transparent'
+                            if (activeSubMenu?.index !== index) {
+                                e.currentTarget.style.background = 'transparent';
                             }
                         }}
                     >
@@ -101,7 +119,24 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
                             {item.label}
                         </div>
                         {item.rightContent}
+                        {item.subItems && (
+                            <div style={{ marginLeft: 'auto' }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </div>
+                        )}
                     </button>
+                    {item.subItems && activeSubMenu?.index === index && (
+                        <ContextMenu
+                            key={`submenu-${index}`}
+                            x={activeSubMenu.rect.right + 2} // Slight gap
+                            y={activeSubMenu.rect.top}
+                            items={item.subItems}
+                            onClose={onClose}
+                            level={level + 1}
+                        />
+                    )}
                 </React.Fragment>
             ))}
         </div>,

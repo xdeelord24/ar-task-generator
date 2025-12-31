@@ -45,7 +45,10 @@ import {
     EyeOff,
     Copy,
     Archive,
-    LogOut
+    LogOut,
+    Download,
+    StickyNote,
+    Clipboard
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import ContextMenu, { useContextMenu } from './ContextMenu';
@@ -253,7 +256,22 @@ const Sidebar: React.FC = () => {
                                         { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingSpace(space) },
                                         { label: 'Copy link', icon: <Link size={14} />, onClick: () => console.log('Copy link') },
                                         { divider: true, label: '', onClick: () => { } },
-                                        { label: 'Create new', icon: <Plus size={14} />, onClick: () => setCreateListSpaceId(space.id) },
+                                        {
+                                            label: 'Create new',
+                                            icon: <Plus size={14} />,
+                                            subItems: [
+                                                { label: 'List', icon: <ListIcon size={14} />, onClick: () => setCreateListSpaceId(space.id) },
+                                                { label: 'Doc', icon: <FileText size={14} />, onClick: () => console.log('Create Doc') },
+                                                { label: 'Form', icon: <Clipboard size={14} />, onClick: () => console.log('Create Form') },
+                                                { label: 'Dashboard', icon: <BarChart2 size={14} />, onClick: () => { setCreateListSpaceId(space.id); /* TODO: specific dashboard creation */ } },
+                                                { label: 'Whiteboard', icon: <StickyNote size={14} />, onClick: () => console.log('Create Whiteboard') },
+                                                { divider: true, label: '', onClick: () => { } },
+                                                { label: 'Folder', icon: <Folder size={14} />, onClick: () => setCreateFolderSpaceId(space.id) },
+                                                { divider: true, label: '', onClick: () => { } },
+                                                { label: 'From template', icon: <Wand2 size={14} />, onClick: () => console.log('From Template') },
+                                                { label: 'Import', icon: <Download size={14} />, onClick: () => console.log('Import') },
+                                            ]
+                                        },
                                         { label: 'Color & Icon', icon: <Droplet size={14} />, onClick: () => setEditingSpace(space) },
                                         { label: 'Templates', icon: <Wand2 size={14} />, onClick: () => { } },
                                         { label: 'Automations', icon: <Zap size={14} />, onClick: () => { } },
@@ -326,6 +344,7 @@ const Sidebar: React.FC = () => {
                                                                         className={`nav-item list-item ${currentListId === list.id ? 'active' : ''}`}
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
+                                                                            setCurrentSpaceId(space.id);
                                                                             setCurrentListId(list.id);
                                                                             if (!['list', 'kanban', 'calendar', 'gantt'].includes(currentView)) {
                                                                                 setCurrentView('list');
@@ -406,6 +425,7 @@ const Sidebar: React.FC = () => {
                                                     className={`nav-item list-item ${currentListId === list.id ? 'active' : ''}`}
                                                     onClick={(e) => {
                                                         e.preventDefault();
+                                                        setCurrentSpaceId(space.id); // Ensure correct space is active
                                                         setCurrentListId(list.id);
                                                         if (!['list', 'kanban', 'calendar', 'gantt'].includes(currentView)) {
                                                             setCurrentView('list');

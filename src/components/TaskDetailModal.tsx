@@ -170,13 +170,18 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
 
     useEffect(() => {
         const fetchMembers = async () => {
+            // Reset members immediately to avoid stale data from previous task/space
+            setWorkspaceMembers([]);
+
             if (!task?.spaceId || !token) return;
+
+            let allMembers: any[] = [];
+
             try {
                 // Fetch space members
                 const spaceRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=space&resourceId=${task.spaceId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                let allMembers = [];
                 if (spaceRes.ok) {
                     allMembers = await spaceRes.json();
                 }
@@ -217,6 +222,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             }
         };
         fetchMembers();
+
+        return () => {
+            setWorkspaceMembers([]);
+        };
     }, [task?.spaceId, task?.listId, token]);
 
     useEffect(() => {

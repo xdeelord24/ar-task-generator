@@ -283,12 +283,10 @@ const SortableCard: React.FC<SortableCardProps> = ({
                     <AssigneeMenu
                         taskId={task.id}
                         spaceId={task.spaceId}
+                        listId={task.listId}
                         assignees={task.assignees || []}
                         onUpdateAssignees={(newAssignees) => {
                             onUpdateTask(task.id, { assignees: newAssignees });
-                            // Keep menu open for multiple selections potentially, or close?
-                            // Usually for multi-select prefer keeping open, but if standard is close, user can reopen.
-                            // For now, let's keep it open to allow multiple changes, user clicks outside to close.
                         }}
                         onClose={() => setActivePopover(null)}
                         triggerElement={activePopover.element}

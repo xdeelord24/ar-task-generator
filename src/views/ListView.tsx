@@ -635,6 +635,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             <AssigneeMenu
                                 taskId={task.id}
                                 spaceId={task.spaceId}
+                                listId={task.listId}
                                 assignees={task.assignees || []}
                                 onUpdateAssignees={(newAssignees) => {
                                     onUpdateTask(task.id, { assignees: newAssignees });

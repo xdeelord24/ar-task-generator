@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Check } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
+import { useAppStore } from '../store/useAppStore'; // Add import
 import '../styles/AssigneeMenu.css';
 
 interface AssigneeMenuProps {
     taskId: string;
     spaceId: string;
+    listId?: string; // Add listId
     assignees: string[]; // Current assignee names
     onUpdateAssignees: (newAssignees: string[]) => void;
     onClose: () => void;
@@ -15,6 +17,7 @@ interface AssigneeMenuProps {
 
 const AssigneeMenu: React.FC<AssigneeMenuProps> = ({
     spaceId,
+    listId,
     assignees,
     onUpdateAssignees,
     onClose,
@@ -30,6 +33,7 @@ const AssigneeMenu: React.FC<AssigneeMenuProps> = ({
     // Fetch members when mounted
     useEffect(() => {
         const fetchMembers = async () => {
+            setMembers([]); // Reset to avoid stale data
             if (!spaceId || !token) return;
             setLoading(true);
             try {
@@ -37,12 +41,41 @@ const AssigneeMenu: React.FC<AssigneeMenuProps> = ({
                 const spaceRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=space&resourceId=${spaceId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+                let allMembers: any[] = [];
                 if (spaceRes.ok) {
-                    const data = await spaceRes.json();
-
-                    // Also robustly fetch owner if needed, but for now rely on the recent backend fix which includes owner in this endpoint
-                    setMembers(data);
+                    allMembers = await spaceRes.json();
                 }
+
+                // If listId is provided, fetch list members and merge
+                if (listId) {
+                    const listRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=list&resourceId=${listId}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (listRes.ok) {
+                        const listMembers = await listRes.json();
+                        listMembers.forEach((lm: any) => {
+                            if (!allMembers.find((am: any) => am.id === lm.id)) {
+                                allMembers.push(lm);
+                            }
+                        });
+                    }
+                }
+
+                // Safety net: Check if we have the space locally and can identify the owner (Frontend Override)
+                const space = useAppStore.getState().spaces.find(s => s.id === spaceId);
+                if (space && space.ownerId && space.ownerName) {
+                    if (!allMembers.find((am: any) => am.id === space.ownerId || am.user_id === space.ownerId)) {
+                        allMembers.push({
+                            id: space.ownerId,
+                            user_id: space.ownerId,
+                            user_name: space.ownerName,
+                            name: space.ownerName,
+                            role: 'owner'
+                        });
+                    }
+                }
+
+                setMembers(allMembers);
             } catch (error) {
                 console.error('Failed to fetch members for assignee menu', error);
             } finally {
@@ -50,7 +83,7 @@ const AssigneeMenu: React.FC<AssigneeMenuProps> = ({
             }
         };
         fetchMembers();
-    }, [spaceId, token]);
+    }, [spaceId, listId, token]);
 
     // Positioning Logic (reused from TagMenu)
     React.useLayoutEffect(() => {
