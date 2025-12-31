@@ -14,6 +14,7 @@ export interface Subtask {
   status: string;
   priority?: Priority;
   assignee?: string;
+  assignees?: string[];
   dueDate?: string;
   createdAt: string;
   updatedAt: string;
@@ -71,6 +72,7 @@ export interface Task {
   spaceId: string;
   listId?: string;
   assignee?: string;
+  assignees?: string[];
   startDate?: string;
   dueDate?: string;
   createdAt: string;
@@ -96,6 +98,7 @@ export interface Space {
   isShared?: boolean;
   ownerId?: string;
   permission?: string;
+  ownerName?: string;
 }
 
 export interface Folder {

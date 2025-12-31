@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Image as ImageIcon, Sparkles, Send, X } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 
 interface CommentComposerProps {
     taskId: string;
@@ -30,9 +31,10 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
             formattedText += '\n\n' + pastedImages.map(img => `![Image](${img})`).join('\n\n');
         }
 
+        const currentUser = useAuthStore.getState().user;
         addComment(taskId, {
-            userId: 'user-1',
-            userName: 'Jundee',
+            userId: currentUser?.id || 'guest',
+            userName: currentUser?.name || 'Guest',
             text: formattedText
         });
 

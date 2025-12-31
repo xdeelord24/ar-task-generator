@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { format, parseISO } from 'date-fns';
 import type { Task, Subtask } from '../types';
 import PremiumDatePicker from './PremiumDatePicker';
@@ -153,6 +154,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [isEnhancingTitle, setIsEnhancingTitle] = useState(false);
     const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
     const [isPriorityPickerOpen, setIsPriorityPickerOpen] = useState(false);
+    const [isAssigneePickerOpen, setIsAssigneePickerOpen] = useState(false);
+    const [workspaceMembers, setWorkspaceMembers] = useState<any[]>([]);
+    const [assigneeSearch, setAssigneeSearch] = useState('');
+    const { token, user: currentUser } = useAuthStore();
     const activityFeedRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     const titleSuggestionRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -160,6 +165,45 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             activityFeedRef.current.scrollTop = activityFeedRef.current.scrollHeight;
         }
     }, [task?.comments, sidebarTab]);
+
+
+
+    useEffect(() => {
+        const fetchMembers = async () => {
+            if (!task?.spaceId || !token) return;
+            try {
+                // Fetch space members
+                const spaceRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=space&resourceId=${task.spaceId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                let allMembers = [];
+                if (spaceRes.ok) {
+                    allMembers = await spaceRes.json();
+                }
+
+                // If task is in a list, also fetch list members
+                if (task.listId) {
+                    const listRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=list&resourceId=${task.listId}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (listRes.ok) {
+                        const listMembers = await listRes.json();
+                        // Merge and de-duplicate
+                        listMembers.forEach((lm: any) => {
+                            if (!allMembers.find((am: any) => am.id === lm.id)) {
+                                allMembers.push(lm);
+                            }
+                        });
+                    }
+                }
+
+                setWorkspaceMembers(allMembers);
+            } catch (e) {
+                console.error('Failed to fetch members', e);
+            }
+        };
+        fetchMembers();
+    }, [task?.spaceId, task?.listId, token]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -796,13 +840,220 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                 <div className="meta-item">
                                     <span className="meta-label">Assignees</span>
                                     <div className="meta-inline-val">
-                                        <div className="assignee-avatar-xs">{task.assignee?.[0] || 'U'}</div>
-                                        <input
-                                            className="meta-inline-input"
-                                            value={task.assignee || ''}
-                                            onChange={(e) => handleUpdate({ assignee: e.target.value })}
-                                            placeholder="Unassigned"
-                                        />
+                                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                                            <div
+                                                className="assignee-display-trigger"
+                                                onClick={() => setIsAssigneePickerOpen(!isAssigneePickerOpen)}
+                                                style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
+                                            >
+                                                <div className="involved-stack" style={{ display: 'flex', alignItems: 'center' }}>
+                                                    {(task.assignees && task.assignees.length > 0) ? (
+                                                        <>
+                                                            {task.assignees.slice(0, 3).map((name, idx) => (
+                                                                <div
+                                                                    key={idx}
+                                                                    className="assignee-avatar-xs"
+                                                                    style={{
+                                                                        margin: 0,
+                                                                        marginLeft: idx === 0 ? 0 : '-8px',
+                                                                        border: '2px solid var(--bg-main)',
+                                                                        zIndex: 10 - idx
+                                                                    }}
+                                                                >
+                                                                    {name.charAt(0).toUpperCase()}
+                                                                </div>
+                                                            ))}
+                                                            {task.assignees.length > 3 && (
+                                                                <div className="assignee-avatar-xs" style={{ marginLeft: '-8px', fontSize: '10px', background: 'var(--bg-active)', border: '2px solid var(--bg-main)' }}>
+                                                                    +{task.assignees.length - 3}
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : task.assignee ? (
+                                                        <div className="assignee-avatar-xs" style={{ margin: 0 }}>
+                                                            {task.assignee.charAt(0).toUpperCase()}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="assignee-avatar-xs" style={{ margin: 0 }}>
+                                                            <Users size={12} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span className="meta-inline-input-text" style={{ fontSize: '14px', color: (task.assignees?.length || task.assignee) ? 'var(--text-main)' : 'var(--text-tertiary)' }}>
+                                                    {task.assignees && task.assignees.length > 0
+                                                        ? task.assignees.length === 1 ? task.assignees[0] : `${task.assignees.length} Assignees`
+                                                        : task.assignee || 'Unassigned'}
+                                                </span>
+                                                <ChevronDown size={14} style={{ opacity: 0.5 }} />
+                                            </div>
+
+                                            {isAssigneePickerOpen && (
+                                                <>
+                                                    <div className="dropdown-overlay-transparent" onClick={() => setIsAssigneePickerOpen(false)} />
+                                                    <div className="assignee-picker-dropdown">
+                                                        <div className="picker-search-container">
+                                                            <Search size={14} />
+                                                            <input
+                                                                autoFocus
+                                                                placeholder="Search users..."
+                                                                value={assigneeSearch}
+                                                                onChange={(e) => setAssigneeSearch(e.target.value)}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
+                                                        </div>
+                                                        <div className="picker-options-list">
+                                                            <div
+                                                                className="picker-option"
+                                                                onClick={() => {
+                                                                    handleUpdate({ assignees: [], assignee: undefined });
+                                                                }}
+                                                            >
+                                                                <div className="assignee-avatar-xs"><Trash2 size={12} /></div>
+                                                                <span>Unassigned</span>
+                                                            </div>
+
+                                                            {/* Owner */}
+                                                            {(() => {
+                                                                const space = spaces.find(s => s.id === task.spaceId);
+                                                                const isMe = space?.ownerId === currentUser?.id || !space?.ownerId;
+                                                                const ownerDisplayName = space?.ownerName || (isMe ? (currentUser?.name || 'Me') : 'Workspace Owner');
+                                                                const ownerStoredName = space?.ownerName || (isMe ? (currentUser?.name || currentUser?.email || 'Me') : 'Workspace Owner');
+
+                                                                if (assigneeSearch && !ownerDisplayName.toLowerCase().includes(assigneeSearch.toLowerCase())) return null;
+
+                                                                const isSelected = task.assignees?.includes(ownerStoredName) || task.assignee === ownerStoredName;
+
+                                                                return (
+                                                                    <div
+                                                                        className={`picker-option ${isSelected ? 'active' : ''}`}
+                                                                        onClick={() => {
+                                                                            const currentAssignees = task.assignees || (task.assignee ? [task.assignee] : []);
+                                                                            const newAssignees = currentAssignees.includes(ownerStoredName)
+                                                                                ? currentAssignees.filter(a => a !== ownerStoredName)
+                                                                                : [...currentAssignees, ownerStoredName];
+                                                                            handleUpdate({ assignees: newAssignees, assignee: newAssignees[0] });
+                                                                        }}
+                                                                    >
+                                                                        <div className="assignee-avatar-xs" style={{ background: isMe ? 'var(--primary)' : '#10b981', color: 'white' }}>{ownerDisplayName[0]?.toUpperCase()}</div>
+                                                                        <div className="member-item-info">
+                                                                            <span className="member-name">{ownerDisplayName} {isMe ? '(Me)' : ''}</span>
+                                                                            <span className="member-meta">Owner</span>
+                                                                        </div>
+                                                                        {isSelected && <Check size={14} style={{ marginLeft: 'auto', color: 'var(--primary)' }} />}
+                                                                    </div>
+                                                                );
+                                                            })()}
+
+                                                            {/* Members */}
+                                                            {workspaceMembers
+                                                                .filter(m => {
+                                                                    const name = m.user_name || m.invited_email;
+                                                                    return !assigneeSearch || name.toLowerCase().includes(assigneeSearch.toLowerCase());
+                                                                })
+                                                                .map(m => {
+                                                                    const name = m.user_name || m.invited_email;
+                                                                    const isAccepted = m.status === 'accepted';
+                                                                    const isSelected = task.assignees?.includes(name) || task.assignee === name;
+
+                                                                    return (
+                                                                        <div
+                                                                            key={m.id}
+                                                                            className={`picker-option ${isSelected ? 'active' : ''}`}
+                                                                            onClick={() => {
+                                                                                const currentAssignees = task.assignees || (task.assignee ? [task.assignee] : []);
+                                                                                const newAssignees = currentAssignees.includes(name)
+                                                                                    ? currentAssignees.filter(a => a !== name)
+                                                                                    : [...currentAssignees, name];
+                                                                                handleUpdate({ assignees: newAssignees, assignee: newAssignees[0] });
+                                                                            }}
+                                                                        >
+                                                                            <div className="assignee-avatar-xs" style={{ background: isAccepted ? '#6366f1' : '#94a3b8', color: 'white' }}>
+                                                                                {name[0].toUpperCase()}
+                                                                            </div>
+                                                                            <div className="member-item-info">
+                                                                                <span className="member-name" style={{ opacity: isAccepted ? 1 : 0.7 }}>{name}</span>
+                                                                                <span className="member-meta">{isAccepted ? 'Member' : 'Invited (Pending)'}</span>
+                                                                            </div>
+                                                                            {isSelected && <Check size={14} style={{ marginLeft: 'auto', color: 'var(--primary)' }} />}
+                                                                        </div>
+                                                                    );
+                                                                })
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="meta-item">
+                                    <span className="meta-label">Involved</span>
+                                    <div className="meta-inline-val">
+                                        {(() => {
+                                            const space = spaces.find(s => s.id === task.spaceId);
+                                            const isOwner = space?.ownerId === currentUser?.id || !space?.ownerId;
+                                            const ownerName = space?.ownerName || (isOwner ? (currentUser?.name || 'Me') : 'Workspace Owner');
+                                            const involvedAvatars = [
+                                                { name: ownerName, role: 'Owner', isOwner: true },
+                                                ...workspaceMembers.map(m => ({
+                                                    name: m.user_name || m.invited_email,
+                                                    role: m.status === 'accepted' ? 'Member' : 'Pending',
+                                                    isOwner: false
+                                                }))
+                                            ];
+
+                                            return (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div className="involved-stack" style={{ display: 'flex', alignItems: 'center' }}>
+                                                        {involvedAvatars.slice(0, 5).map((person, idx) => (
+                                                            <div
+                                                                key={idx}
+                                                                className="involved-avatar-xs"
+                                                                title={`${person.name} (${person.role})`}
+                                                                style={{
+                                                                    width: '24px',
+                                                                    height: '24px',
+                                                                    borderRadius: '50%',
+                                                                    background: person.isOwner ? 'var(--primary)' : '#6366f1',
+                                                                    color: 'white',
+                                                                    fontSize: '10px',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    border: '2px solid var(--bg-main)',
+                                                                    marginLeft: idx === 0 ? 0 : '-8px',
+                                                                    zIndex: 10 - idx
+                                                                }}
+                                                            >
+                                                                {person.name[0]?.toUpperCase() || '?'}
+                                                            </div>
+                                                        ))}
+                                                        {involvedAvatars.length > 5 && (
+                                                            <div style={{
+                                                                width: '24px',
+                                                                height: '24px',
+                                                                borderRadius: '50%',
+                                                                background: 'var(--bg-active)',
+                                                                color: 'var(--text-tertiary)',
+                                                                fontSize: '10px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                border: '2px solid var(--bg-main)',
+                                                                marginLeft: '-8px',
+                                                                zIndex: 1
+                                                            }}>
+                                                                +{involvedAvatars.length - 5}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                                                        {involvedAvatars.length} people involved
+                                                    </span>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                                 <div className="meta-item">
@@ -1023,8 +1274,29 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                     </div>
                                                 </div>
                                                 <div className="st-cell-assignee">
-                                                    <div className="icon-box-st">
-                                                        <Users size={14} />
+                                                    <div className="involved-stack" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        {(st.assignees && st.assignees.length > 0) ? (
+                                                            <>
+                                                                {st.assignees.slice(0, 2).map((name, idx) => (
+                                                                    <div key={idx} className="assignee-avatar-xs" style={{ margin: 0, marginLeft: idx === 0 ? 0 : '-6px', border: '1.5px solid var(--bg-surface)', width: '20px', height: '20px', fontSize: '10px' }}>
+                                                                        {name[0].toUpperCase()}
+                                                                    </div>
+                                                                ))}
+                                                                {st.assignees.length > 2 && (
+                                                                    <div className="assignee-avatar-xs" style={{ marginLeft: '-6px', width: '20px', height: '20px', fontSize: '9px', background: 'var(--bg-active)', border: '1.5px solid var(--bg-surface)' }}>
+                                                                        +{st.assignees.length - 2}
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        ) : st.assignee ? (
+                                                            <div className="assignee-avatar-xs" style={{ margin: 0, width: '20px', height: '20px', fontSize: '10px' }}>
+                                                                {st.assignee[0].toUpperCase()}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="icon-box-st">
+                                                                <Users size={14} />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="st-cell-prio">

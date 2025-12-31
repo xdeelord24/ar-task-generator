@@ -220,21 +220,33 @@ export const serverStorage: StateStorage = {
                                         localList.push(sItem);
                                         addedCount++;
                                     } else {
-                                        // Item exists, but if it is shared, we must ensure metadata is present
+                                        // Item exists. Check if Server is newer.
                                         const localItem = localMap.get(sItem.id);
-                                        if (sItem.isShared && localItem) {
-                                            // Merge shared props
-                                            Object.assign(localItem, {
-                                                isShared: true,
-                                                ownerId: sItem.ownerId,
-                                                permission: sItem.permission,
-                                                // Update name/color if changed by owner? 
-                                                // Ideally yes, but let's stick to metadata for now to avoid overwriting local user prefs if any
-                                                name: sItem.name,
-                                                color: sItem.color,
-                                                icon: sItem.icon
-                                            });
-                                            updatedCount++;
+
+                                        if (localItem) {
+                                            // Helper to safely parse dates
+                                            const getMTime = (item: any) => item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
+
+                                            const serverTime = getMTime(sItem);
+                                            const localTime = getMTime(localItem);
+
+                                            // Update if Server is strictly newer, OR if it's a shared item (syncs metadata)
+                                            if (serverTime > localTime) {
+                                                // Server wins - Overwrite local item properties with server properties
+                                                Object.assign(localItem, sItem);
+                                                updatedCount++;
+                                            } else if (sItem.isShared) {
+                                                // Even if not newer (or equal), ensure shared metadata is synced
+                                                Object.assign(localItem, {
+                                                    isShared: true,
+                                                    ownerId: sItem.ownerId,
+                                                    ownerName: sItem.ownerName,
+                                                    permission: sItem.permission,
+                                                    name: sItem.name,
+                                                    color: sItem.color,
+                                                    icon: sItem.icon
+                                                });
+                                            }
                                         }
                                     }
                                 });

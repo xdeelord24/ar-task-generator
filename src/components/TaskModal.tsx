@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useAuthStore } from '../store/useAuthStore';
 import {
     X, Calendar, Flag, Users, Tag, MoreHorizontal,
     Sparkles, Paperclip, Bell, ChevronDown, Maximize2, Minimize2,
-    FileText, LayoutDashboard, Square, ListTodo, Plus,
+    Check, FileText, LayoutDashboard, Square, ListTodo, Plus,
     Table, Columns, List, File, User, MessageSquare, PenTool,
     AtSign, ArrowRight, CornerDownLeft, Copy, RotateCcw, ThumbsUp, ThumbsDown, ChevronLeft,
     UserPlus, Eye, CalendarDays, Inbox, CircleDot, GitMerge, Hash, Box, RotateCw
@@ -60,7 +61,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
     const [taskType, setTaskType] = useState<TaskType>('task');
     const [selectedSpaceId, setSelectedSpaceId] = useState(currentSpaceId === 'everything' ? 'team-space' : currentSpaceId);
     const [selectedListId, setSelectedListId] = useState(currentListId || undefined);
-    const [assignee, setAssignee] = useState<string | undefined>(undefined);
+    const [assignees, setAssignees] = useState<string[]>([]);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
     // Dropdown visibility states
@@ -70,7 +71,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
     const [showPriorityMenu, setShowPriorityMenu] = useState(false);
     const [showTagMenu, setShowTagMenu] = useState(false);
 
-    const mockUsers = ['Jundee', 'Alice', 'Bob', 'Charlie'];
+    const [workspaceMembers, setWorkspaceMembers] = useState<any[]>([]);
+    const { token, user: currentUser } = useAuthStore();
     const availableTags = useAppStore(state => state.tags);
     const allSpaces = spaces.filter(s => s.id !== 'everything');
 
@@ -99,6 +101,42 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
     const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
     const suggestionTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const suggestionsRef = React.useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const fetchMembers = async () => {
+            if (!selectedSpaceId || !token) return;
+            try {
+                // Fetch space members
+                const spaceRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=space&resourceId=${selectedSpaceId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                let allMembers = [];
+                if (spaceRes.ok) {
+                    allMembers = await spaceRes.json();
+                }
+
+                // If a list is selected, also fetch list members
+                if (selectedListId) {
+                    const listRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=list&resourceId=${selectedListId}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (listRes.ok) {
+                        const listMembers = await listRes.json();
+                        listMembers.forEach((lm: any) => {
+                            if (!allMembers.find((am: any) => am.id === lm.id)) {
+                                allMembers.push(lm);
+                            }
+                        });
+                    }
+                }
+
+                setWorkspaceMembers(allMembers);
+            } catch (e) {
+                console.error('Failed to fetch members', e);
+            }
+        };
+        fetchMembers();
+    }, [selectedSpaceId, selectedListId, token]);
 
     const handleGenerateAI = async (overridePrompt?: string) => {
         const query = overridePrompt || aiInput;
@@ -210,15 +248,16 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
         addTask({
             name,
             description,
-            spaceId: selectedSpaceId,
-            listId: selectedListId,
             status,
             priority,
-            taskType,
-            assignee,
+            spaceId: selectedSpaceId,
+            listId: selectedListId,
+            assignee: assignees[0] || undefined,
+            assignees,
             dueDate,
             startDate,
-            tags: selectedTags
+            tags: selectedTags,
+            taskType: taskType as any
         });
         onClose();
     };
@@ -714,24 +753,90 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
 
                     <div className="dropdown-container">
                         <button className="prop-btn" onClick={() => setShowAssigneeMenu(!showAssigneeMenu)}>
-                            <Users size={14} />
-                            {assignee || 'Assignee'}
+                            <div className="involved-stack" style={{ display: 'flex', alignItems: 'center' }}>
+                                {assignees.length > 0 ? (
+                                    <>
+                                        {assignees.slice(0, 2).map((name, idx) => (
+                                            <div key={idx} className="assignee-avatar-xs" style={{ margin: 0, marginLeft: idx === 0 ? 0 : '-6px', border: '1.5px solid var(--bg-surface)' }}>
+                                                {name[0].toUpperCase()}
+                                            </div>
+                                        ))}
+                                        {assignees.length > 2 && (
+                                            <div className="assignee-avatar-xs" style={{ marginLeft: '-6px', fontSize: '9px', background: 'var(--bg-active)', border: '1.5px solid var(--bg-surface)' }}>
+                                                +{assignees.length - 2}
+                                            </div>
+                                        )}
+                                    </>
+                                ) : <Users size={14} />}
+                            </div>
+                            {assignees.length === 0 ? 'Assignee' : assignees.length === 1 ? assignees[0] : `${assignees.length} Assignees`}
                         </button>
                         {showAssigneeMenu && (
                             <div className="property-dropdown assignee-dropdown">
-                                {mockUsers.map(user => (
-                                    <div
-                                        key={user}
-                                        className={`dropdown-item ${assignee === user ? 'active' : ''}`}
-                                        onClick={() => { setAssignee(user); setShowAssigneeMenu(false); }}
-                                    >
-                                        <div className="user-avatar-mini">{user[0]}</div>
-                                        {user}
-                                    </div>
-                                ))}
+                                <div className="dropdown-section">Owner</div>
+                                {(() => {
+                                    const space = spaces.find(s => s.id === selectedSpaceId);
+                                    const isMe = space?.ownerId === currentUser?.id || !space?.ownerId;
+                                    const ownerDisplayName = space?.ownerName || (isMe ? (currentUser?.name || 'Me') : 'Workspace Owner');
+                                    const ownerStoredName = space?.ownerName || (isMe ? (currentUser?.name || currentUser?.email || 'Me') : 'Workspace Owner');
+                                    const isSelected = assignees.includes(ownerStoredName);
+
+                                    return (
+                                        <div
+                                            className={`dropdown-item ${isSelected ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setAssignees(prev =>
+                                                    prev.includes(ownerStoredName)
+                                                        ? prev.filter(a => a !== ownerStoredName)
+                                                        : [...prev, ownerStoredName]
+                                                );
+                                            }}
+                                        >
+                                            <div className="user-avatar-mini" style={{ background: isMe ? 'var(--primary)' : '#10b981' }}>{ownerDisplayName[0]?.toUpperCase()}</div>
+                                            <div style={{ flex: 1 }}>{ownerDisplayName} {isMe && '(Me)'}</div>
+                                            {isSelected && <Check size={14} style={{ color: 'var(--primary)' }} />}
+                                        </div>
+                                    );
+                                })()}
+
+                                {workspaceMembers.length > 0 && (
+                                    <>
+                                        <div className="dropdown-divider"></div>
+                                        <div className="dropdown-section">Members</div>
+                                        {workspaceMembers.map(m => {
+                                            const name = m.user_name || m.invited_email;
+                                            const isAccepted = m.status === 'accepted';
+                                            const isSelected = assignees.includes(name);
+
+                                            return (
+                                                <div
+                                                    key={m.id}
+                                                    className={`dropdown-item ${isSelected ? 'active' : ''}`}
+                                                    onClick={() => {
+                                                        setAssignees(prev =>
+                                                            prev.includes(name)
+                                                                ? prev.filter(a => a !== name)
+                                                                : [...prev, name]
+                                                        );
+                                                    }}
+                                                    style={{ opacity: isAccepted ? 1 : 0.7 }}
+                                                >
+                                                    <div className="user-avatar-mini" style={{ background: isAccepted ? '#6366f1' : '#94a3b8' }}>
+                                                        {name[0].toUpperCase()}
+                                                    </div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div>{name}</div>
+                                                        <div style={{ fontSize: '10px', opacity: 0.6 }}>{isAccepted ? 'Member' : 'Pending'}</div>
+                                                    </div>
+                                                    {isSelected && <Check size={14} style={{ color: 'var(--primary)' }} />}
+                                                </div>
+                                            );
+                                        })}
+                                    </>
+                                )}
                                 <div className="dropdown-divider"></div>
-                                <div className="dropdown-item" onClick={() => { setAssignee(undefined); setShowAssigneeMenu(false); }}>
-                                    Unassign
+                                <div className="dropdown-item" onClick={() => { setAssignees([]); setShowAssigneeMenu(false); }}>
+                                    Unassign All
                                 </div>
                             </div>
                         )}

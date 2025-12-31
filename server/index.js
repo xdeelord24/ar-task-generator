@@ -334,8 +334,10 @@ app.get('/api/resource/members', authenticateToken, async (req, res) => {
         }
 
         const members = await dbHandler.db.all(`
-            SELECT * FROM shared_resources 
-            WHERE resource_type = ? AND resource_id = ?
+            SELECT sr.*, u.name as user_name, u.avatar_url 
+            FROM shared_resources sr
+            LEFT JOIN users u ON sr.invited_email = u.email
+            WHERE sr.resource_type = ? AND sr.resource_id = ?
         `, resourceType, resourceId);
 
         res.json(members);
@@ -498,7 +500,10 @@ app.get('/api/shared', authenticateToken, async (req, res) => {
 
         // 2. For each record, fetch owner's state and extract specific resource
         for (const record of sharedRecords) {
-            // FIX: Key must match the client's storage name (ar-generator-app-storage)
+            // Fetch owner name
+            const ownerUser = await dbHandler.db.get("SELECT name FROM users WHERE id = ?", record.owner_id);
+            const ownerName = ownerUser ? ownerUser.name : 'Unknown Owner';
+
             const ownerKey = `user:${record.owner_id}:ar-generator-app-storage`;
             let ownerStateRaw = await dbHandler.get(ownerKey);
 
@@ -527,6 +532,7 @@ app.get('/api/shared', authenticateToken, async (req, res) => {
                                 ...space,
                                 isShared: true,
                                 ownerId: record.owner_id,
+                                ownerName: ownerName,
                                 permission: record.permission,
                                 name: `${space.name} (Shared)`
                             });

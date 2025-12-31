@@ -248,8 +248,29 @@ const SortableCard: React.FC<SortableCardProps> = ({
                             <span><MessageSquare size={14} /> {task.comments.length}</span>
                         )}
                     </div>
-                    <div className="assignee-avatar-small">
-                        {task.assignee?.[0] || '?'}
+                    <div className="involved-stack" style={{ display: 'flex', alignItems: 'center' }}>
+                        {(task.assignees && task.assignees.length > 0) ? (
+                            <>
+                                {task.assignees.slice(0, 2).map((name, idx) => (
+                                    <div key={idx} className="assignee-avatar-xs" style={{ margin: 0, marginLeft: idx === 0 ? 0 : '-6px', border: '1.5px solid var(--bg-surface)' }}>
+                                        {name[0].toUpperCase()}
+                                    </div>
+                                ))}
+                                {task.assignees.length > 2 && (
+                                    <div className="assignee-avatar-xs" style={{ marginLeft: '-6px', fontSize: '9px', background: 'var(--bg-active)', border: '1.5px solid var(--bg-surface)' }}>
+                                        +{task.assignees.length - 2}
+                                    </div>
+                                )}
+                            </>
+                        ) : task.assignee ? (
+                            <div className="assignee-avatar-xs" style={{ margin: 0 }}>
+                                {task.assignee[0].toUpperCase()}
+                            </div>
+                        ) : (
+                            <div className="assignee-avatar-xs" style={{ margin: 0, opacity: 0.3 }}>
+                                <User size={12} />
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -282,12 +303,24 @@ const SortableCard: React.FC<SortableCardProps> = ({
                                                 <span>{subtask.status || 'TO DO'}</span>
                                             </div>
 
-                                            <div className="subtask-option-icon" title="Assignee">
-                                                {subtask.assignee ? (
-                                                    <div className="assignee-avatar-xs">{subtask.assignee[0]}</div>
-                                                ) : (
-                                                    <User size={12} />
-                                                )}
+                                            <div className="subtask-option-icon" title="Assignees">
+                                                <div className="involved-stack" style={{ display: 'flex', alignItems: 'center' }}>
+                                                    {(subtask.assignees && subtask.assignees.length > 0) ? (
+                                                        <>
+                                                            {subtask.assignees.slice(0, 2).map((name, idx) => (
+                                                                <div key={idx} className="assignee-avatar-xs" style={{ margin: 0, marginLeft: idx === 0 ? 0 : '-6px', border: '1.5px solid var(--bg-surface)', width: '14px', height: '14px', fontSize: '8px' }}>
+                                                                    {name[0].toUpperCase()}
+                                                                </div>
+                                                            ))}
+                                                        </>
+                                                    ) : subtask.assignee ? (
+                                                        <div className="assignee-avatar-xs" style={{ margin: 0, width: '14px', height: '14px', fontSize: '8px' }}>
+                                                            {subtask.assignee[0].toUpperCase()}
+                                                        </div>
+                                                    ) : (
+                                                        <User size={12} />
+                                                    )}
+                                                </div>
                                             </div>
 
                                             <div className="subtask-option-icon" title="Due Date">

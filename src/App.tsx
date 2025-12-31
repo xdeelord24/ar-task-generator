@@ -22,7 +22,7 @@ import { useAuthStore } from './store/useAuthStore';
 import { AuthModal } from './components/AuthModal';
 
 function App() {
-  const { currentView, theme, accentColor, checkDueDates } = useAppStore();
+  const { currentView, theme, accentColor } = useAppStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [initialStatus, setInitialStatus] = useState<string | undefined>(undefined);
@@ -55,18 +55,29 @@ function App() {
     root.style.setProperty('--primary-hover', accentColor + 'ee');
   }, [theme, accentColor]);
 
-  // Check for due dates on mount and periodically
+  // Check for due dates and sync shared data periodically
   useEffect(() => {
-    // Check immediately on mount
-    checkDueDates();
+    const { checkDueDates, syncSharedData } = useAppStore.getState();
 
-    // Check every 5 minutes
-    const interval = setInterval(() => {
+    // Initial runs
+    checkDueDates();
+    syncSharedData();
+
+    // Check due dates every 5 minutes
+    const dueInterval = setInterval(() => {
       checkDueDates();
     }, 5 * 60 * 1000);
 
-    return () => clearInterval(interval);
-  }, [checkDueDates]);
+    // Sync shared data every 30 seconds for real-time collaboration feel
+    const syncInterval = setInterval(() => {
+      syncSharedData();
+    }, 30 * 1000);
+
+    return () => {
+      clearInterval(dueInterval);
+      clearInterval(syncInterval);
+    };
+  }, []);
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 

@@ -593,10 +593,35 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
             case 'assignee':
                 return (
                     <div className="task-cell assignee-cell" style={{ width: col.width || 150 }}>
-                        <div className="assignee-avatar">
-                            {task.assignee?.[0] || '?'}
+                        <div className="involved-stack" style={{ display: 'flex', alignItems: 'center' }}>
+                            {(task.assignees && task.assignees.length > 0) ? (
+                                <>
+                                    {task.assignees.slice(0, 2).map((name, idx) => (
+                                        <div key={idx} className="assignee-avatar-xs" style={{ margin: 0, marginLeft: idx === 0 ? 0 : '-6px', border: '1.5px solid var(--bg-main)' }}>
+                                            {name[0].toUpperCase()}
+                                        </div>
+                                    ))}
+                                    {task.assignees.length > 2 && (
+                                        <div className="assignee-avatar-xs" style={{ marginLeft: '-6px', fontSize: '9px', background: 'var(--bg-active)', border: '1.5px solid var(--bg-main)' }}>
+                                            +{task.assignees.length - 2}
+                                        </div>
+                                    )}
+                                </>
+                            ) : task.assignee ? (
+                                <div className="assignee-avatar-xs" style={{ margin: 0 }}>
+                                    {task.assignee[0].toUpperCase()}
+                                </div>
+                            ) : (
+                                <div className="assignee-avatar-xs" style={{ margin: 0, opacity: 0.3 }}>
+                                    ?
+                                </div>
+                            )}
                         </div>
-                        <span>{task.assignee || 'Unassigned'}</span>
+                        <span style={{ fontSize: '13px', marginLeft: '4px' }}>
+                            {task.assignees && task.assignees.length > 0
+                                ? task.assignees.length === 1 ? task.assignees[0] : `${task.assignees.length} people`
+                                : task.assignee || 'Unassigned'}
+                        </span>
                     </div>
                 );
             case 'dueDate':

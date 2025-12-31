@@ -271,6 +271,7 @@ interface AppStore extends AppState {
     addAgent: (agent: Omit<Agent, 'id' | 'createdAt' | 'updatedAt' | 'creatorId' | 'creatorName'>) => void;
     updateAgent: (id: string, updates: Partial<Agent>) => void;
     deleteAgent: (id: string) => void;
+    syncSharedData: () => Promise<void>;
 }
 
 export const DEFAULT_STATUSES: Status[] = [
@@ -468,6 +469,26 @@ export const useAppStore = create<AppStore>()(
                 const updatedTask = state.tasks.find(t => t.id === taskId);
 
                 if (updatedTask) {
+                    // Propagate to Owner if Shared Space
+                    const space = state.spaces.find(s => s.id === updatedTask.spaceId);
+                    if (space && (space as any).isShared && (space as any).ownerId) {
+                        const token = getAuthToken();
+                        if (token) {
+                            fetch('http://localhost:3001/api/shared/propagate', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                    ownerId: (space as any).ownerId,
+                                    type: 'task',
+                                    data: updatedTask
+                                })
+                            }).catch(e => console.error('[AppStore] Failed to propagate task update:', e));
+                        }
+                    }
+
                     const activeAgents = state.agents.filter(a => a.isEnabled && a.trigger.type === 'task_updated');
 
                     for (const agent of activeAgents) {
@@ -503,33 +524,88 @@ export const useAppStore = create<AppStore>()(
             archiveTask: (taskId) => set((state) => ({
                 tasks: state.tasks.map(t => t.id === taskId ? { ...t, status: 'COMPLETED' } : t)
             })),
-            addSubtask: (taskId, subtask) => set((state) => ({
-                tasks: state.tasks.map((task) =>
-                    task.id === taskId ? {
-                        ...task,
-                        subtasks: [...(task.subtasks || []), { ...subtask, id: crypto.randomUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
-                        updatedAt: new Date().toISOString()
-                    } : task
-                )
-            })),
-            updateSubtask: (taskId, subtaskId, updates) => set((state) => ({
-                tasks: state.tasks.map((task) =>
-                    task.id === taskId ? {
-                        ...task,
-                        subtasks: task.subtasks?.map(st => st.id === subtaskId ? { ...st, ...updates, updatedAt: new Date().toISOString() } : st),
-                        updatedAt: new Date().toISOString()
-                    } : task
-                )
-            })),
-            deleteSubtask: (taskId, subtaskId) => set((state) => ({
-                tasks: state.tasks.map((task) =>
-                    task.id === taskId ? {
-                        ...task,
-                        subtasks: task.subtasks?.filter(st => st.id !== subtaskId),
-                        updatedAt: new Date().toISOString()
-                    } : task
-                )
-            })),
+            addSubtask: (taskId, subtask) => {
+                set((state) => ({
+                    tasks: state.tasks.map((task) =>
+                        task.id === taskId ? {
+                            ...task,
+                            subtasks: [...(task.subtasks || []), { ...subtask, id: crypto.randomUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+                            updatedAt: new Date().toISOString()
+                        } : task
+                    )
+                }));
+
+                // Propagate
+                const state = get();
+                const updatedTask = state.tasks.find(t => t.id === taskId);
+                if (updatedTask) {
+                    const space = state.spaces.find(s => s.id === updatedTask.spaceId);
+                    if (space && (space as any).isShared && (space as any).ownerId) {
+                        const token = getAuthToken();
+                        if (token) {
+                            fetch('http://localhost:3001/api/shared/propagate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
+                            }).catch(e => console.error('[AppStore] Failed to propagate subtask:', e));
+                        }
+                    }
+                }
+            },
+            updateSubtask: (taskId, subtaskId, updates) => {
+                set((state) => ({
+                    tasks: state.tasks.map((task) =>
+                        task.id === taskId ? {
+                            ...task,
+                            subtasks: task.subtasks?.map(st => st.id === subtaskId ? { ...st, ...updates, updatedAt: new Date().toISOString() } : st),
+                            updatedAt: new Date().toISOString()
+                        } : task
+                    )
+                }));
+                // Propagate
+                const state = get();
+                const updatedTask = state.tasks.find(t => t.id === taskId);
+                if (updatedTask) {
+                    const space = state.spaces.find(s => s.id === updatedTask.spaceId);
+                    if (space && (space as any).isShared && (space as any).ownerId) {
+                        const token = getAuthToken();
+                        if (token) {
+                            fetch('http://localhost:3001/api/shared/propagate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
+                            }).catch(e => console.error('[AppStore] Failed to propagate subtask update:', e));
+                        }
+                    }
+                }
+            },
+            deleteSubtask: (taskId, subtaskId) => {
+                set((state) => ({
+                    tasks: state.tasks.map((task) =>
+                        task.id === taskId ? {
+                            ...task,
+                            subtasks: task.subtasks?.filter(st => st.id !== subtaskId),
+                            updatedAt: new Date().toISOString()
+                        } : task
+                    )
+                }));
+                // Propagate
+                const state = get();
+                const updatedTask = state.tasks.find(t => t.id === taskId);
+                if (updatedTask) {
+                    const space = state.spaces.find(s => s.id === updatedTask.spaceId);
+                    if (space && (space as any).isShared && (space as any).ownerId) {
+                        const token = getAuthToken();
+                        if (token) {
+                            fetch('http://localhost:3001/api/shared/propagate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
+                            }).catch(e => console.error('[AppStore] Failed to propagate subtask deletion:', e));
+                        }
+                    }
+                }
+            },
             setSpaces: (spaces) => set({ spaces }),
             addSpace: (space) => set((state) => ({
                 spaces: [...state.spaces, {
@@ -678,34 +754,114 @@ export const useAppStore = create<AppStore>()(
             setColumnSettings: (targetId, columns) => set((state) => ({
                 columnSettings: { ...state.columnSettings, [targetId]: columns }
             })),
-            addComment: (taskId, comment) => set((state) => ({
-                tasks: state.tasks.map(task => task.id === taskId ? {
-                    ...task,
-                    comments: [...(task.comments || []), { ...comment, id: crypto.randomUUID(), createdAt: new Date().toISOString() }],
-                    updatedAt: new Date().toISOString()
-                } : task)
-            })),
-            addTimeEntry: (taskId, entry) => set((state) => ({
-                tasks: state.tasks.map(task => task.id === taskId ? {
-                    ...task,
-                    timeEntries: [...(task.timeEntries || []), { ...entry, id: crypto.randomUUID() }],
-                    updatedAt: new Date().toISOString()
-                } : task)
-            })),
-            addRelationship: (taskId, relationship) => set((state) => ({
-                tasks: state.tasks.map(task => task.id === taskId ? {
-                    ...task,
-                    relationships: [...(task.relationships || []), { ...relationship, id: crypto.randomUUID() }],
-                    updatedAt: new Date().toISOString()
-                } : task)
-            })),
-            removeRelationship: (taskId, relationshipId) => set((state) => ({
-                tasks: state.tasks.map(task => task.id === taskId ? {
-                    ...task,
-                    relationships: (task.relationships || []).filter(r => r.id !== relationshipId),
-                    updatedAt: new Date().toISOString()
-                } : task)
-            })),
+            addComment: (taskId, comment) => {
+                set((state) => ({
+                    tasks: state.tasks.map(task => task.id === taskId ? {
+                        ...task,
+                        comments: [...(task.comments || []), { ...comment, id: crypto.randomUUID(), createdAt: new Date().toISOString() }],
+                        updatedAt: new Date().toISOString()
+                    } : task)
+                }));
+
+                // Propagate
+                const state = get();
+                const updatedTask = state.tasks.find(t => t.id === taskId);
+                if (updatedTask) {
+                    const space = state.spaces.find(s => s.id === updatedTask.spaceId);
+                    if (space && (space as any).isShared && (space as any).ownerId) {
+                        const token = getAuthToken();
+                        if (token) {
+                            fetch('http://localhost:3001/api/shared/propagate', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                    ownerId: (space as any).ownerId,
+                                    type: 'task',
+                                    data: updatedTask
+                                })
+                            }).catch(e => console.error('[AppStore] Failed to propagate comment:', e));
+                        }
+                    }
+                }
+            },
+            addTimeEntry: (taskId, entry) => {
+                set((state) => ({
+                    tasks: state.tasks.map(task => task.id === taskId ? {
+                        ...task,
+                        timeEntries: [...(task.timeEntries || []), { ...entry, id: crypto.randomUUID() }],
+                        updatedAt: new Date().toISOString()
+                    } : task)
+                }));
+                // Propagate
+                const state = get();
+                const updatedTask = state.tasks.find(t => t.id === taskId);
+                if (updatedTask) {
+                    const space = state.spaces.find(s => s.id === updatedTask.spaceId);
+                    if (space && (space as any).isShared && (space as any).ownerId) {
+                        const token = getAuthToken();
+                        if (token) {
+                            fetch('http://localhost:3001/api/shared/propagate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
+                            }).catch(e => console.error('[AppStore] Failed to propagate time entry:', e));
+                        }
+                    }
+                }
+            },
+            addRelationship: (taskId, relationship) => {
+                set((state) => ({
+                    tasks: state.tasks.map(task => task.id === taskId ? {
+                        ...task,
+                        relationships: [...(task.relationships || []), { ...relationship, id: crypto.randomUUID() }],
+                        updatedAt: new Date().toISOString()
+                    } : task)
+                }));
+                // Propagate
+                const state = get();
+                const updatedTask = state.tasks.find(t => t.id === taskId);
+                if (updatedTask) {
+                    const space = state.spaces.find(s => s.id === updatedTask.spaceId);
+                    if (space && (space as any).isShared && (space as any).ownerId) {
+                        const token = getAuthToken();
+                        if (token) {
+                            fetch('http://localhost:3001/api/shared/propagate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
+                            }).catch(e => console.error('[AppStore] Failed to propagate relationship:', e));
+                        }
+                    }
+                }
+            },
+            removeRelationship: (taskId, relationshipId) => {
+                set((state) => ({
+                    tasks: state.tasks.map(task => task.id === taskId ? {
+                        ...task,
+                        relationships: (task.relationships || []).filter(r => r.id !== relationshipId),
+                        updatedAt: new Date().toISOString()
+                    } : task)
+                }));
+                // Propagate
+                const state = get();
+                const updatedTask = state.tasks.find(t => t.id === taskId);
+                if (updatedTask) {
+                    const space = state.spaces.find(s => s.id === updatedTask.spaceId);
+                    if (space && (space as any).isShared && (space as any).ownerId) {
+                        const token = getAuthToken();
+                        if (token) {
+                            fetch('http://localhost:3001/api/shared/propagate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
+                            }).catch(e => console.error('[AppStore] Failed to propagate relationship removal:', e));
+                        }
+                    }
+                }
+            },
             addDoc: (doc) => {
                 const id = crypto.randomUUID();
                 set((state) => ({
@@ -993,6 +1149,63 @@ export const useAppStore = create<AppStore>()(
             deleteAgent: (id) => set((state) => ({
                 agents: state.agents.filter(a => a.id !== id)
             })),
+            syncSharedData: async () => {
+                const token = getAuthToken();
+                if (!token) return;
+
+                try {
+                    const sharedRes = await fetch('http://localhost:3001/api/shared', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (sharedRes.ok) {
+                        const sharedData = await sharedRes.json();
+
+                        set((state) => {
+                            const newState: any = {};
+                            let hasChanges = false;
+
+                            const merge = (listName: string, remoteItems: any[]) => {
+                                if (!remoteItems || remoteItems.length === 0) return;
+                                const localList = [...(state[listName as keyof AppStore] as any[])];
+                                const localMap = new Map(localList.map(i => [i.id, i]));
+                                let listChanged = false;
+
+                                remoteItems.forEach(rItem => {
+                                    if (localMap.has(rItem.id)) {
+                                        const lItem = localMap.get(rItem.id);
+                                        const rTime = rItem.updatedAt ? new Date(rItem.updatedAt).getTime() : 0;
+                                        const lTime = lItem.updatedAt ? new Date(lItem.updatedAt).getTime() : 0;
+
+                                        // Update if remote is newer OR if current local item doesn't have a timestamp
+                                        if (rTime > lTime || (!lItem.updatedAt && rItem.updatedAt)) {
+                                            Object.assign(lItem, rItem);
+                                            listChanged = true;
+                                        }
+                                    } else {
+                                        localList.push(rItem);
+                                        listChanged = true;
+                                    }
+                                });
+
+                                if (listChanged) {
+                                    newState[listName] = localList;
+                                    hasChanges = true;
+                                }
+                            };
+
+                            merge('spaces', sharedData.spaces);
+                            merge('folders', sharedData.folders);
+                            merge('lists', sharedData.lists);
+                            merge('tasks', sharedData.tasks);
+
+                            return hasChanges ? newState : state;
+                        });
+                    }
+                } catch (e) {
+                    console.error('[AppStore] Sync failed:', e);
+                }
+            },
         }),
         {
             name: 'ar-generator-app-storage',
@@ -1007,9 +1220,9 @@ export const useAppStore = create<AppStore>()(
                 }
                 return persistedState;
             },
-            onRehydrateStorage: (state) => {
+            onRehydrateStorage: () => {
                 console.log('[Zustand] Starting hydration...');
-                return (state, error) => {
+                return (_, error) => {
                     if (error) {
                         console.error('[Zustand] An error happened during hydration', error);
                     } else {

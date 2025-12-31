@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore, DEFAULT_STATUSES } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 import {
     FileText,
     Bookmark,
@@ -21,6 +22,7 @@ import { format } from 'date-fns';
 
 const SpaceOverview: React.FC = () => {
     const { spaces, lists, tasks, folders, docs, currentSpaceId, setCurrentListId, setCurrentView } = useAppStore();
+    const { user: currentUser } = useAuthStore();
     const [isCreateListOpen, setIsCreateListOpen] = useState(false);
     const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
     const [isAddBookmarkOpen, setIsAddBookmarkOpen] = useState(false);
@@ -290,9 +292,31 @@ const SpaceOverview: React.FC = () => {
                                                 <div style={{ color: 'var(--text-secondary)' }}><Filter size={14} /></div>
                                             </td>
                                             <td>
-                                                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>
-                                                    Me
-                                                </div>
+                                                {(() => {
+                                                    const listSpace = spaces.find(s => s.id === list.spaceId);
+                                                    const isOwner = listSpace?.ownerId === currentUser?.id || !listSpace?.ownerId;
+                                                    const ownerName = listSpace?.ownerName || (isOwner ? (currentUser?.name || 'Me') : 'Workspace Owner');
+                                                    return (
+                                                        <div
+                                                            className="owner-badge-xs"
+                                                            style={{
+                                                                width: '24px',
+                                                                height: '24px',
+                                                                borderRadius: '50%',
+                                                                background: isOwner ? 'var(--primary)' : '#e2e8f0',
+                                                                color: isOwner ? 'white' : 'var(--text-main)',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                fontSize: '10px',
+                                                                fontWeight: 700
+                                                            }}
+                                                            title={ownerName}
+                                                        >
+                                                            {ownerName[0]?.toUpperCase() || '?'}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
                                             <td><Plus size={14} color="var(--text-secondary)" /></td>
                                         </tr>

@@ -1640,3 +1640,108 @@
 .activity-msg tr:nth-child(even) {
     background-color: var(--bg-surface);
 }
+
+/* Assignee Picker */
+.assignee-display-trigger:hover {
+    background: var(--bg-hover);
+}
+
+.assignee-picker-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 2500;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-xl);
+    width: 280px;
+    margin-top: 8px;
+    padding: 8px;
+    animation: dropdownOpen 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes dropdownOpen {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.picker-search-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-hover);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+}
+
+.picker-search-container input {
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: var(--text-main);
+    width: 100%;
+}
+
+.picker-options-list {
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.picker-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.picker-option:hover {
+    background: var(--bg-hover);
+}
+
+.picker-option.active {
+    background: var(--bg-active);
+}
+
+.member-item-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.member-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.member-meta {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.dropdown-overlay-transparent {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2499;
+}

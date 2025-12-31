@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { X, Link, Lock, ChevronDown, User, Check, AlertCircle } from 'lucide-react';
+import { useAppStore } from '../store/useAppStore';
+import { X, Link, Lock, ChevronDown, User, Check, AlertCircle, Users } from 'lucide-react';
 import '../styles/ShareSpaceModal.css';
 
 interface ShareSpaceModalProps {
@@ -17,7 +18,16 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
     const [message, setMessage] = useState('');
     const [members, setMembers] = useState<any[]>([]);
 
-    const { token } = useAuthStore();
+    const { token, user } = useAuthStore();
+    const { spaces } = useAppStore();
+
+    const space = spaces.find(s => s.id === spaceId);
+    const isOwner = space ? (space.ownerId === user?.id || !space.ownerId) : false;
+
+    // Determine Owner Name to Display
+    const ownerName = isOwner ? (user?.name || 'My Workspace') : (space?.ownerName || 'Workspace Owner');
+    const ownerInitial = ownerName.charAt(0).toUpperCase();
+    const ownerLabel = isOwner ? 'Workspace' : 'Owner';
 
     const fetchMembers = async () => {
         try {
@@ -175,12 +185,13 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
                         <div className="member-list">
 
                             {/* Workspace */}
+                            {/* Workspace Owner */}
                             <div className="member-item">
                                 <div className="member-info">
-                                    <div className="member-avatar" style={{ background: '#10b981' }}>M</div>
+                                    <div className="member-avatar" style={{ background: '#10b981' }}>{ownerInitial}</div>
                                     <div className="member-details">
-                                        <span className="member-name">My Workspace</span>
-                                        <span className="member-email" style={{ fontSize: '11px', background: 'var(--bg-active)', padding: '2px 6px', borderRadius: '4px', width: 'fit-content' }}>Workspace</span>
+                                        <span className="member-name">{ownerName}</span>
+                                        <span className="member-email" style={{ fontSize: '11px', background: 'var(--bg-active)', padding: '2px 6px', borderRadius: '4px', width: 'fit-content' }}>{ownerLabel}</span>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -191,9 +202,9 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
                             {/* People Group */}
                             <div className="member-item" style={{ marginTop: '12px', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
                                 <div className="member-info" style={{ width: '100%' }}>
-                                    <div style={{ width: 32, display: 'flex', justifyContent: 'center' }}><User size={18} /></div>
+                                    <div style={{ width: 32, display: 'flex', justifyContent: 'center' }}><Users size={18} /></div>
                                     <div className="member-details">
-                                        <span className="member-name">People ({members.length})</span>
+                                        <span className="member-name">People ({members.length + 1})</span>
                                     </div>
                                 </div>
                                 {members.length > 0 ? (
