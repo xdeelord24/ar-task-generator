@@ -43,8 +43,10 @@ import TagMenu from '../components/TagMenu';
 import ViewHeader from '../components/ViewHeader';
 import StatusEditorModal from '../components/StatusEditorModal';
 import { Settings2 } from 'lucide-react';
+import CreateFieldSidebar from '../components/CreateFieldSidebar';
 import '../styles/ListView.css';
 import '../styles/TaskOptionsMenu.css';
+import '../styles/CreateFieldSidebar.css';
 
 interface ListViewProps {
     onAddTask: () => void;
@@ -912,6 +914,28 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
     const [newGroupName, setNewGroupName] = React.useState('');
     const [isStatusEditorOpen, setIsStatusEditorOpen] = React.useState(false);
     const [groupBy, setGroupBy] = React.useState<'status' | 'none'>(isTableMode ? 'none' : 'status');
+    const [isCreateFieldOpen, setIsCreateFieldOpen] = React.useState(false);
+
+    const handleAddField = (field: { id: string; name: string; type: string }) => {
+        const targetId = currentListId || currentSpaceId;
+        const currentCols = columnSettings[targetId] || columnSettings['default'] || [];
+
+        // Check if field already exists
+        if (currentCols.some(c => c.id === field.id)) {
+            alert('This column already exists.');
+            return;
+        }
+
+        const newCols = [...currentCols, {
+            id: field.id,
+            name: field.name,
+            visible: true,
+            width: 150
+        }];
+
+        setColumnSettings(targetId, newCols);
+        setIsCreateFieldOpen(false);
+    };
 
     React.useEffect(() => {
         const handleClickOutside = () => {
@@ -1147,7 +1171,35 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                 <SortableColumnHeader key={col.id} column={col} onResize={handleColumnResize} />
                             ))}
                         </SortableContext>
-                        <div className="column-header-cell actions-cell" style={{ width: 50 }}></div>
+                        <button
+                            className="column-header-cell add-column-btn"
+                            style={{
+                                width: 50,
+                                borderLeft: '1px solid var(--border)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                background: 'transparent',
+                                borderRight: 'none',
+                                padding: 0
+                            }}
+                            onClick={() => setIsCreateFieldOpen(true)}
+                            title="Add a Column"
+                        >
+                            <div style={{
+                                width: 24,
+                                height: 24,
+                                borderRadius: '50%',
+                                border: '1px solid var(--border-strong)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'var(--text-tertiary)'
+                            }}>
+                                <Plus size={14} />
+                            </div>
+                        </button>
                     </div>
                 </DndContext>
 
@@ -1428,6 +1480,14 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                     currentStatuses={activeStatuses}
                     onSave={handleSaveStatuses}
                 />
+            )}
+            {isCreateFieldOpen && (
+                <div className="create_field_sidebar_container">
+                    <CreateFieldSidebar
+                        onClose={() => setIsCreateFieldOpen(false)}
+                        onAddField={handleAddField}
+                    />
+                </div>
             )}
         </div>
     );

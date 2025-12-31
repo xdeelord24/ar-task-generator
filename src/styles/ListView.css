@@ -267,6 +267,25 @@
     color: var(--text-main);
 }
 
+.add-column-btn {
+    border-right: none;
+    color: var(--text-tertiary);
+    transition: all 0.2s;
+}
+
+.add-column-btn:hover {
+    background: var(--bg-hover) !important;
+    color: var(--primary);
+}
+
+.add-column-btn svg {
+    transition: transform 0.2s;
+}
+
+.add-column-btn:hover svg {
+    transform: scale(1.1);
+}
+
 .icon-btn-ghost {
     display: flex;
     align-items: center;
