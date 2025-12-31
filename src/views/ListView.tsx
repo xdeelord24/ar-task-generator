@@ -1613,7 +1613,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: 'var(--text-tertiary)'
+                                color: 'var(--text-tertiary)',
+                                background: 'var(--bg-surface)'
                             }}>
                                 <Plus size={14} />
                             </div>
