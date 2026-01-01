@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Search, Folder, Check, Layout, ChevronRight, ChevronDown } from 'lucide-react';
+import { X, Search, Folder, Check, ChevronRight, ChevronDown } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import '../styles/TaskModal.css'; // Reusing modal styles for consistency
 

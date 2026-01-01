@@ -4,7 +4,7 @@ import {
     User,
     Calendar,
     Flag,
-    X
+
 } from 'lucide-react';
 import type { Priority, Subtask } from '../types';
 

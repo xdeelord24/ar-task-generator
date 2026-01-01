@@ -473,7 +473,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
         duplicateTask,
         archiveTask,
         deleteTask,
-        addDoc
     } = useAppStore();
     const [viewDate, setViewDate] = useState(new Date());
     const [calendarMode, setCalendarMode] = useState<CalendarMode>('month');
@@ -592,10 +591,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
         return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
     };
 
-    const handleConvertToDoc = (task: Task) => {
-        // Placeholder
-        alert("Convert to Doc logic here");
-    };
+
 
     return (
         <div className="view-container calendar-view">

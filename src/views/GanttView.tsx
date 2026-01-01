@@ -172,7 +172,7 @@ const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, viewStart, 
             {...listeners}
             {...attributes}
             className={`gantt-bar ${task.status.toLowerCase().replace(' ', '-')} ${isDragging ? 'dragging' : ''}`}
-            onClick={(e) => {
+            onClick={() => {
                 if (!isResizing) onTaskClick(task.id);
             }}
             onContextMenu={(e) => {

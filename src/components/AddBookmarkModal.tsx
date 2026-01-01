@@ -17,7 +17,7 @@ interface RecentItem {
     timestamp: string;
 }
 
-const AddBookmarkModal: React.FC<AddBookmarkModalProps> = ({ onClose, spaceId }) => {
+const AddBookmarkModal: React.FC<AddBookmarkModalProps> = ({ onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const { tasks, lists, clips, dashboards, spaces } = useAppStore();
 
