@@ -613,6 +613,40 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                     );
                 }
 
+                if (col.type === 'date') {
+                    const dateVal = task.customFieldValues?.[col.id];
+                    return (
+                        <div className="task-cell date-cell" style={{ width: col.width, minWidth: 'unset', position: 'relative', overflow: 'visible' }}>
+                            <div
+                                className={`date-badge-interactive ${dateVal ? getDateStatus(dateVal) : 'empty'}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActivePopover({ taskId: task.id, field: col.id, element: e.currentTarget });
+                                }}
+                            >
+                                <CalendarIcon size={12} />
+                                {dateVal ? format(new Date(dateVal), 'MMM d') : 'Set Date'}
+                            </div>
+                            {activePopover?.taskId === task.id && activePopover?.field === col.id && (
+                                <DatePicker
+                                    initialDate={dateVal ? new Date(dateVal) : undefined}
+                                    onSelect={(date) => {
+                                        onUpdateSubtask(parentId, task.id, {
+                                            customFieldValues: {
+                                                ...(task.customFieldValues || {}),
+                                                [col.id]: date ? date.toISOString() : undefined
+                                            }
+                                        });
+                                        setActivePopover(null);
+                                    }}
+                                    onClose={() => setActivePopover(null)}
+                                    triggerElement={activePopover.element}
+                                />
+                            )}
+                        </div>
+                    );
+                }
+
                 const displayValue = task.customFieldValues?.[col.id] ?? '-';
                 return <div className="task-cell" style={{ width: col.width }}>{displayValue}</div>;
             }
@@ -1136,6 +1170,40 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                     className="custom-checkbox-input"
                                 />
                             </div>
+                        </div>
+                    );
+                }
+
+                if (col.type === 'date') {
+                    const dateVal = task.customFieldValues?.[col.id];
+                    return (
+                        <div className="task-cell date-cell" style={{ width: col.width, minWidth: 'unset', position: 'relative', overflow: 'visible' }}>
+                            <div
+                                className={`date-badge-interactive ${dateVal ? getDateStatus(dateVal) : 'empty'}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActivePopover({ taskId: task.id, field: col.id, element: e.currentTarget });
+                                }}
+                            >
+                                <CalendarIcon size={12} />
+                                {dateVal ? format(new Date(dateVal), 'MMM d') : 'Set Date'}
+                            </div>
+                            {activePopover?.taskId === task.id && activePopover?.field === col.id && (
+                                <DatePicker
+                                    initialDate={dateVal ? new Date(dateVal) : undefined}
+                                    onSelect={(date) => {
+                                        onUpdateTask(task.id, {
+                                            customFieldValues: {
+                                                ...(task.customFieldValues || {}),
+                                                [col.id]: date ? date.toISOString() : undefined
+                                            }
+                                        });
+                                        setActivePopover(null);
+                                    }}
+                                    onClose={() => setActivePopover(null)}
+                                    triggerElement={activePopover.element}
+                                />
+                            )}
                         </div>
                     );
                 }

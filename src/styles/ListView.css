@@ -113,10 +113,15 @@
     z-index: 50;
     width: fit-content;
     background: var(--bg-side);
+    transition: background-color 0.2s ease;
     /* Ensure opacity */
 }
 
 .status-header:hover {
+    background: var(--bg-hover);
+}
+
+.status-header:hover .status-header-inner {
     background: var(--bg-hover);
 }
 
@@ -149,6 +154,7 @@
     min-width: 100%;
     position: relative;
     isolation: isolate;
+    cursor: pointer;
     /* Create new stacking context */
 }
 
@@ -196,6 +202,7 @@
     background-color: var(--bg-surface) !important;
     /* Match row bg */
     border-right: 1px solid var(--border-light);
+    transition: background-color 0.2s ease;
 }
 
 .list-table-header .sticky-column {
@@ -206,6 +213,10 @@
 
 .subtask-item-row .sticky-column {
     background-color: var(--bg-sidebar) !important;
+}
+
+.task-item-row:hover .sticky-column {
+    background-color: var(--bg-hover) !important;
 }
 
 .sticky-column-header {
