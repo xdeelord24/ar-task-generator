@@ -68,7 +68,7 @@ interface ListViewProps {
 interface ColumnHeaderProps {
     column: ColumnSetting;
     onSort?: () => void;
-    onResize: (e: React.MouseEvent, columnId: string) => void;
+    onResize: (e: React.PointerEvent, columnId: string) => void;
     onRename?: (columnId: string, newName: string) => void;
     onContextMenu?: (e: React.MouseEvent, columnId: string) => void;
     isTableMode?: boolean;
@@ -111,21 +111,28 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize, o
 
     // FIX: Do not apply transform to sticky 'name' column to prevent breaking position: sticky
     // We accept that the name column won't animate during reordering, but it will remain sticky.
+    // UPDATE: We MUST apply transform for dnd to work visually. We accept sticky might break during drag.
     const style = {
-        transform: column.id === 'name' ? undefined : CSS.Transform.toString(transform),
-        transition: column.id === 'name' ? undefined : transition,
+        transform: CSS.Transform.toString(transform),
+        transition,
         width: column.width,
         flex: column.id === 'name' && !column.width ? 1 : 'none',
         minWidth: (column.id === 'name' || column.id === 'dueDate' || column.id === 'priority' || column.id === 'status') ? 'unset' : undefined,
         opacity: isDragging ? 0.5 : 1,
         left: column.id === 'name' ? (30 + (isTableMode ? 50 : 0)) : undefined,
-        zIndex: isDragging ? 10 : undefined,
+        zIndex: isDragging ? 9999 : undefined,
+        touchAction: 'none'
     };
 
-    const handleResizeMouseDown = (e: React.MouseEvent | React.PointerEvent) => {
-        e.stopPropagation(); // Stop drag start
-        e.preventDefault(); // Prevent text selection etc
-        onResize(e as React.MouseEvent, column.id);
+    const handleResizePointerDown = (e: React.PointerEvent) => {
+        // IMPORTANT: Prevent dnd-kit from picking this up as a drag start
+        e.stopPropagation();
+        e.preventDefault();
+
+        // Capture pointer to track movement even outside the element
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+
+        onResize(e, column.id);
     };
 
     return (
@@ -157,9 +164,9 @@ const SortableColumnHeader: React.FC<ColumnHeaderProps> = ({ column, onResize, o
             <ArrowUpDown size={12} className="sort-icon" />
             <div
                 className="column-resizer"
-                onMouseDown={handleResizeMouseDown}
-                onPointerDown={handleResizeMouseDown}
+                onPointerDown={handleResizePointerDown}
                 onClick={(e) => e.stopPropagation()}
+                style={{ touchAction: 'none' }}
             />
         </div>
     );
@@ -1565,7 +1572,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
         const newIndex = activeColumns.findIndex(c => c.id === over.id);
 
         const newColumns = arrayMove(activeColumns, oldIndex, newIndex);
-        setColumnSettings(currentSpaceId || 'default', newColumns);
+        const targetId = currentListId || currentSpaceId || 'default';
+        setColumnSettings(targetId, newColumns);
     };
 
 
@@ -1581,7 +1589,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
         }
     };
 
-    const handleColumnResize = (e: React.MouseEvent, columnId: string) => {
+    const handleColumnResize = (e: React.PointerEvent, columnId: string) => {
         e.preventDefault();
         e.stopPropagation();
 
@@ -1593,27 +1601,29 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
         const headerCell = (e.currentTarget as HTMLElement).parentElement;
         const startWidth = headerCell ? headerCell.getBoundingClientRect().width : (column.width || 150);
 
-        const onMouseMove = (moveEvent: MouseEvent) => {
+        const onPointerMove = (moveEvent: PointerEvent) => {
             const delta = moveEvent.pageX - startX;
-            const newWidth = Math.max(50, startWidth + delta);
+            const minWidth = columnId === 'name' ? 200 : 50;
+            const newWidth = Math.max(minWidth, startWidth + delta);
 
             const newColumns = activeColumns.map(c =>
                 c.id === columnId ? { ...c, width: newWidth } : c
             );
-            setColumnSettings(currentSpaceId || 'default', newColumns);
+            const targetId = currentListId || currentSpaceId || 'default';
+            setColumnSettings(targetId, newColumns);
         };
 
-        const onMouseUp = () => {
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
+        const onPointerUp = () => {
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
         };
 
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
     };
 
     return (
