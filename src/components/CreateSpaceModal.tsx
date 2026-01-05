@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import {
     X, Layout, Users, Lock, Star,
     Briefcase, Code, GraduationCap,
@@ -63,8 +64,9 @@ const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({ onClose, editingSpa
         onClose();
     };
 
-    return (
-        <div className="modal-overlay" onClick={onClose}>
+
+    return ReactDOM.createPortal(
+        <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
             <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
                 <div className="modal-header">
                     <h2>{editingSpace ? 'Update Space' : 'Create New Space'}</h2>
@@ -145,8 +147,10 @@ const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({ onClose, editingSpa
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
+
 };
 
 export default CreateSpaceModal;

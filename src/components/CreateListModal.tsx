@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import {
     X, Layout, Users, Lock, Star,
     Briefcase, Code, GraduationCap,
@@ -74,8 +75,9 @@ const CreateListModal: React.FC<CreateListModalProps> = ({ spaceId, folderId, on
         }
     };
 
-    return (
-        <div className="modal-overlay" onClick={onClose}>
+
+    return ReactDOM.createPortal(
+        <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
             <div className="modal-content create-list-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
                 <div className="modal-header">
                     <h3>{editingList ? 'Update List' : `Create List in ${space?.name}`}</h3>
@@ -154,8 +156,10 @@ const CreateListModal: React.FC<CreateListModalProps> = ({ spaceId, folderId, on
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
+
 };
 
 export default CreateListModal;

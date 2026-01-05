@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import {
     X, Layout, Users, Lock, Star,
     Briefcase, Code, GraduationCap,
@@ -69,8 +70,8 @@ const CreateFolderModal: React.FC<CreateFolderModalProps> = ({ spaceId, onClose,
         }
     };
 
-    return (
-        <div className="modal-overlay" onClick={onClose}>
+    return ReactDOM.createPortal(
+        <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
             <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
                 <div className="modal-header">
                     <h3>{editingFolder ? 'Update Folder' : `Create Folder in ${space?.name}`}</h3>
@@ -151,8 +152,10 @@ const CreateFolderModal: React.FC<CreateFolderModalProps> = ({ spaceId, onClose,
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
+
 };
 
 export default CreateFolderModal;
