@@ -14,7 +14,7 @@ interface ReportModalProps {
 }
 
 const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
-    const { tasks, currentSpaceId } = useAppStore();
+    const { tasks, currentSpaceId, spaces } = useAppStore();
 
     const today = new Date();
     const currentDay = today.getDate();
@@ -27,6 +27,24 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
     const initialEnd = initialPeriod === '1'
         ? format(setDate(startOfMonth(today), 14), 'yyyy-MM-14')
         : format(endOfMonth(today), 'yyyy-MM-dd');
+
+    const availableSpaces = spaces.filter(s => s.id !== 'everything');
+
+    const [selectedSpaces, setSelectedSpaces] = useState<string[]>(
+        currentSpaceId === 'everything'
+            ? availableSpaces.map(s => s.id)
+            : [currentSpaceId]
+    );
+
+    const toggleSpace = (spaceId: string) => {
+        setSelectedSpaces(prev => {
+            if (prev.includes(spaceId)) {
+                return prev.filter(id => id !== spaceId);
+            } else {
+                return [...prev, spaceId];
+            }
+        });
+    };
 
     const [formData, setFormData] = useState({
         template: 'general',
@@ -87,7 +105,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
 
     const generateReport = async () => {
         let reportTasks: Task[] = tasks.filter(t =>
-            currentSpaceId === 'everything' || t.spaceId === currentSpaceId
+            selectedSpaces.includes(t.spaceId)
         );
 
         if (formData.dateFrom && formData.dateTo) {
@@ -162,6 +180,22 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
                                     </div>
                                 </div>
                             </label>
+                        </div>
+                    </div>
+
+                    <div className="form-section">
+                        <h3>Report Scope</h3>
+                        <div className="checkbox-group">
+                            {availableSpaces.map(space => (
+                                <label key={space.id}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedSpaces.includes(space.id)}
+                                        onChange={() => toggleSpace(space.id)}
+                                    />
+                                    {space.name}
+                                </label>
+                            ))}
                         </div>
                     </div>
 
@@ -248,7 +282,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
 
                 <div className="modal-footer">
                     <button className="btn-secondary" onClick={onClose}>Cancel</button>
-                    <button className="btn-primary" onClick={generateReport}>
+                    <button className="btn-primary" onClick={generateReport} disabled={selectedSpaces.length === 0} style={{ opacity: selectedSpaces.length === 0 ? 0.5 : 1, cursor: selectedSpaces.length === 0 ? 'not-allowed' : 'pointer' }}>
                         <Download size={16} /> Generate & Download
                     </button>
                 </div>
