@@ -284,6 +284,8 @@ interface AppStore extends AppState {
     setupSocket: (userId: string) => void;
     refreshRooms: () => void;
     addExp: (amount: number) => void;
+    isTaskCompleted: (task: Task) => boolean;
+    getDoneStatus: (task: Task) => string;
 }
 
 export const DEFAULT_STATUSES: Status[] = [
@@ -291,6 +293,35 @@ export const DEFAULT_STATUSES: Status[] = [
     { id: 'inprogress', name: 'IN PROGRESS', color: '#3b82f6', type: 'inprogress' },
     { id: 'completed', name: 'COMPLETED', color: '#10b981', type: 'done' }
 ];
+
+// --- Helper: Status Resolution ---
+const getTaskStatuses = (task: Task, state: AppState): Status[] => {
+    // 1. Check List Statuses
+    if (task.listId) {
+        const list = state.lists.find(l => l.id === task.listId);
+        if (list && list.statuses && list.statuses.length > 0) return list.statuses;
+    }
+    // 2. Check Space Statuses
+    const space = state.spaces.find(s => s.id === task.spaceId);
+    if (space && space.statuses && space.statuses.length > 0) return space.statuses;
+
+    // 3. Fallback
+    return DEFAULT_STATUSES;
+};
+
+const isTaskCompleted = (task: Task, state: AppState, statusToCheck?: string): boolean => {
+    const statuses = getTaskStatuses(task, state);
+    const currentStatusName = statusToCheck ?? task.status;
+    const statusObj = statuses.find(s => s.name === currentStatusName);
+
+    // Check if type is 'done' or 'closed'
+    if (statusObj) {
+        return statusObj.type === 'done' || statusObj.type === 'closed';
+    }
+
+    // Fallback if status definition not found (should be rare)
+    return currentStatusName === 'COMPLETED';
+};
 
 export const useAppStore = create<AppStore>()(
     persist(
@@ -481,8 +512,8 @@ export const useAppStore = create<AppStore>()(
                 const taskBeforeUpdate = currentStore.tasks.find(t => t.id === taskId);
 
                 if (taskBeforeUpdate && updates.status) {
-                    const wasCompleted = taskBeforeUpdate.status === 'COMPLETED';
-                    const isNowCompleted = updates.status === 'COMPLETED';
+                    const wasCompleted = isTaskCompleted(taskBeforeUpdate, currentStore);
+                    const isNowCompleted = isTaskCompleted(taskBeforeUpdate, currentStore, updates.status);
 
                     if (isNowCompleted && !wasCompleted) {
                         currentStore.addExp(500);
@@ -606,9 +637,18 @@ export const useAppStore = create<AppStore>()(
                     )
                 };
             }),
-            archiveTask: (taskId) => set((state) => ({
-                tasks: state.tasks.map(t => t.id === taskId ? { ...t, status: 'COMPLETED' } : t)
-            })),
+            archiveTask: (taskId) => set((state) => {
+                const task = state.tasks.find(t => t.id === taskId);
+                let doneStatus = 'COMPLETED';
+                if (task) {
+                    const statuses = getTaskStatuses(task, state);
+                    const ds = statuses.find(s => s.type === 'done');
+                    if (ds) doneStatus = ds.name;
+                }
+                return {
+                    tasks: state.tasks.map(t => t.id === taskId ? { ...t, status: doneStatus } : t)
+                };
+            }),
             addSubtask: (taskId, subtask) => {
                 set((state) => ({
                     tasks: state.tasks.map((task) =>
@@ -978,15 +1018,19 @@ export const useAppStore = create<AppStore>()(
                 return { currentListId: listId, currentView: view };
             }),
             setCurrentView: (view) => set((state) => {
+                // Blacklist global views from being saved as context views
+                const globalViews: ViewType[] = ['home', 'inbox', 'timesheet', 'clips', 'agents', 'docs', 'dashboards'];
+                const shouldSave = !globalViews.includes(view);
+
                 if (state.currentListId) {
                     return {
                         currentView: view,
-                        lists: state.lists.map(l => l.id === state.currentListId ? { ...l, lastView: view } : l)
+                        lists: shouldSave ? state.lists.map(l => l.id === state.currentListId ? { ...l, lastView: view } : l) : state.lists
                     };
                 } else {
                     return {
                         currentView: view,
-                        spaces: state.spaces.map(s => s.id === state.currentSpaceId ? { ...s, lastView: view } : s)
+                        spaces: shouldSave ? state.spaces.map(s => s.id === state.currentSpaceId ? { ...s, lastView: view } : s) : state.spaces
                     };
                 }
             }),
@@ -1340,7 +1384,7 @@ export const useAppStore = create<AppStore>()(
                     );
 
                     // Check for overdue tasks
-                    if (state.notificationSettings.notifyOnOverdue && dueDate < now && task.status !== 'COMPLETED') {
+                    if (state.notificationSettings.notifyOnOverdue && dueDate < now && !isTaskCompleted(task, state)) {
                         if (!existingNotification || existingNotification.type !== 'overdue') {
                             state.addNotification({
                                 type: 'overdue',
@@ -1363,7 +1407,7 @@ export const useAppStore = create<AppStore>()(
                         }
                     }
                     // Check for due soon tasks
-                    else if (state.notificationSettings.notifyOnDueSoon && dueDate <= dueSoonThreshold && dueDate >= now && task.status !== 'COMPLETED') {
+                    else if (state.notificationSettings.notifyOnDueSoon && dueDate <= dueSoonThreshold && dueDate >= now && !isTaskCompleted(task, state)) {
                         if (!existingNotification) {
                             const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
                             state.addNotification({
@@ -1582,19 +1626,52 @@ export const useAppStore = create<AppStore>()(
                 };
             }),
 
+            isTaskCompleted: (task) => {
+                const state = get();
+                return isTaskCompleted(task, state);
+            },
+            getDoneStatus: (task) => {
+                const state = get();
+                const statuses = getTaskStatuses(task, state);
+                const doneStatus = statuses.find(s => s.type === 'done');
+                return doneStatus ? doneStatus.name : 'COMPLETED';
+            },
+
         }),
         {
             name: 'ar-generator-app-storage',
             storage: createJSONStorage(() => serverStorage),
-            version: 2, // Bump version to force re-eval/migration
+            version: 4,
             migrate: (persistedState: any, version) => {
-                console.log(`[Zustand] Migrating from version ${version} to 2`);
-                if (version === 0 || version === 1) {
-                    // Manual schema repair if needed, though storage.ts mostly handles it.
-                    // We can just return the state as-is because storage.ts already patches timestamps.
+                try {
+                    console.log(`[Zustand] Migrating from version ${version} to 4`);
+                    if (!persistedState) return persistedState;
+
+                    if (version < 4) {
+                        const blacklistedViews = ['home', 'inbox', 'timesheet', 'clips', 'agents', 'docs', 'dashboards'];
+
+                        if (persistedState.lists && Array.isArray(persistedState.lists)) {
+                            persistedState.lists = persistedState.lists.map((l: any) => {
+                                if (l && blacklistedViews.includes(l.lastView)) {
+                                    return { ...l, lastView: 'list' };
+                                }
+                                return l;
+                            });
+                        }
+                        if (persistedState.spaces && Array.isArray(persistedState.spaces)) {
+                            persistedState.spaces = persistedState.spaces.map((s: any) => {
+                                if (s && blacklistedViews.includes(s.lastView)) {
+                                    return { ...s, lastView: 'list' };
+                                }
+                                return s;
+                            });
+                        }
+                    }
+                    return persistedState;
+                } catch (error) {
+                    console.error('[Zustand] Migration failed, returning original state to prevent reset:', error);
                     return persistedState;
                 }
-                return persistedState;
             },
             onRehydrateStorage: () => {
                 console.log('[Zustand] Starting hydration...');

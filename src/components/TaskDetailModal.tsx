@@ -110,7 +110,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         aiConfig,
         activeTimer,
         startTimer,
-        stopTimer
+        stopTimer,
+        isTaskCompleted,
+        getDoneStatus
     } = useAppStore();
 
     // Logic to find task or subtask
@@ -476,7 +478,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const handleArchive = () => {
         if (isSubtask) {
             // Treat as delete for now or update status
-            handleUpdate({ status: 'COMPLETED' });
+            handleUpdate({ status: getDoneStatus(task || parentTask!) });
             return;
         }
         archiveTask(taskId);
@@ -673,7 +675,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
 
                 <div className="detail-header">
                     <div className="detail-header-left">
-                        <button className="status-badge-detail" style={{ background: task.status === 'COMPLETED' ? '#22c55e' : '#3b82f6' }}>
+                        <button className="status-badge-detail" style={{ background: isTaskCompleted(task) ? '#22c55e' : '#3b82f6' }}>
                             <CheckCircle2 size={14} />
                             {task.status}
                             <ChevronDown size={14} />
@@ -828,7 +830,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                 <div className="meta-item">
                                     <span className="meta-label">Status</span>
                                     <div className="meta-inline-val">
-                                        <span className="status-dot-small" style={{ backgroundColor: task.status === 'COMPLETED' ? '#22c55e' : '#3b82f6' }}></span>
+                                        <span className="status-dot-small" style={{ backgroundColor: isTaskCompleted(task) ? '#22c55e' : '#3b82f6' }}></span>
                                         {task.status}
                                     </div>
                                 </div>
@@ -1326,10 +1328,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Subtasks</h3>
                                             <div style={{ width: '60px', height: '4px', background: '#e2e8f0', borderRadius: '2px' }}>
-                                                <div style={{ width: `${(task.subtasks?.filter(s => s.status === 'COMPLETED').length || 0) / (task.subtasks?.length || 1) * 100}%`, height: '100%', background: '#3b82f6', borderRadius: '2px' }}></div>
+                                                <div style={{ width: `${(task.subtasks?.filter(s => isTaskCompleted({ ...s, listId: task!.listId, spaceId: task!.spaceId } as Task)).length || 0) / (task.subtasks?.length || 1) * 100}%`, height: '100%', background: '#3b82f6', borderRadius: '2px' }}></div>
                                             </div>
                                             <span style={{ fontSize: '12px', color: '#64748b' }}>
-                                                {task.subtasks?.filter(s => s.status === 'COMPLETED').length || 0}/{task.subtasks?.length || 0}
+                                                {task.subtasks?.filter(s => isTaskCompleted({ ...s, listId: task!.listId, spaceId: task!.spaceId } as Task)).length || 0}/{task.subtasks?.length || 0}
                                                 <span style={{ marginLeft: '8px', padding: '2px 6px', background: '#e0f2fe', color: '#0284c7', borderRadius: '4px', fontSize: '11px', fontWeight: 500 }}>
                                                     {task.subtasks?.filter(s => s.assignee === 'user-1').length} Assigned to me
                                                 </span>
@@ -1364,13 +1366,14 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                 <div className="st-cell-name">
                                                     <div className="st-checkbox-area">
                                                         <div
-                                                            className={`st-status-circle ${st.status === 'COMPLETED' ? 'completed' : ''}`}
+                                                            className={`st-status-circle ${isTaskCompleted({ ...st, listId: task.listId, spaceId: task.spaceId } as Task) ? 'completed' : ''}`}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                updateSubtask(taskId, st.id, { status: st.status === 'COMPLETED' ? 'TO DO' : 'COMPLETED' });
+                                                                const isCompleted = isTaskCompleted({ ...st, listId: task.listId, spaceId: task.spaceId } as Task);
+                                                                updateSubtask(taskId, st.id, { status: isCompleted ? 'TO DO' : getDoneStatus(task!) });
                                                             }}
                                                         >
-                                                            {st.status === 'COMPLETED' && <Check size={10} strokeWidth={4} />}
+                                                            {isTaskCompleted({ ...st, listId: task.listId, spaceId: task.spaceId } as Task) && <Check size={10} strokeWidth={4} />}
                                                         </div>
                                                     </div>
                                                     <div className="st-name-group">
@@ -1388,7 +1391,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                             />
                                                         ) : (
                                                             <>
-                                                                {st.status === 'COMPLETED' ? (
+                                                                {isTaskCompleted({ ...st, listId: task.listId, spaceId: task.spaceId } as Task) ? (
                                                                     <span className="st-name-text completed">{st.name}</span>
                                                                 ) : (
                                                                     <span
@@ -1519,7 +1522,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                                 setSubtaskMenuOpenId(null);
                                                             }}
                                                             onArchive={() => {
-                                                                updateSubtask(task!.id, st.id, { status: 'COMPLETED' });
+                                                                updateSubtask(task!.id, st.id, { status: getDoneStatus(task!) });
                                                                 setSubtaskMenuOpenId(null);
                                                             }}
                                                             onStartTimer={() => {

@@ -132,6 +132,7 @@ const SortableCard: React.FC<SortableCardProps> = ({
         isDragging
     } = useSortable({ id: task.id });
     const startTimer = useAppStore(state => state.startTimer);
+    const getDoneStatus = useAppStore(state => state.getDoneStatus);
 
     const [isExpanded, setIsExpanded] = React.useState(false);
 
@@ -391,7 +392,7 @@ const SortableCard: React.FC<SortableCardProps> = ({
                                                 onClose={onCloseMenu}
                                                 onRename={() => { onTaskClick(subtask.id); onCloseMenu(); }}
                                                 onDuplicate={() => { onDuplicateSubtask(task.id, subtask.id); onCloseMenu(); }}
-                                                onArchive={() => { onUpdateSubtask(task.id, subtask.id, { status: 'COMPLETED' }); onCloseMenu(); }}
+                                                onArchive={() => { onUpdateSubtask(task.id, subtask.id, { status: getDoneStatus(task) }); onCloseMenu(); }}
                                                 onDelete={() => { onDeleteSubtask(task.id, subtask.id); onCloseMenu(); }}
                                                 onStartTimer={() => { startTimer(subtask.id); onCloseMenu(); }}
                                                 triggerElement={menuTrigger}

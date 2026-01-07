@@ -21,7 +21,7 @@ import CreateDocModal from '../components/CreateDocModal';
 import { format } from 'date-fns';
 
 const SpaceOverview: React.FC = () => {
-    const { spaces, lists, tasks, folders, docs, currentSpaceId, setCurrentListId } = useAppStore();
+    const { spaces, lists, tasks, folders, docs, currentSpaceId, setCurrentListId, isTaskCompleted } = useAppStore();
     const { user: currentUser } = useAuthStore();
     const [isCreateListOpen, setIsCreateListOpen] = useState(false);
     const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
@@ -254,7 +254,7 @@ const SpaceOverview: React.FC = () => {
                             <tbody>
                                 {spaceLists.map(list => {
                                     const listTasks = tasks.filter(t => t.listId === list.id);
-                                    const completed = listTasks.filter(t => t.status === 'COMPLETED' || t.status === 'CLOSED').length;
+                                    const completed = listTasks.filter(t => isTaskCompleted(t)).length;
                                     const total = listTasks.length;
                                     const progress = total > 0 ? (completed / total) * 100 : 0;
                                     let endDate = '-';

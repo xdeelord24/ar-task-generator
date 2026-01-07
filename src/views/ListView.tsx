@@ -344,6 +344,16 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
     tags,
     isTableMode
 }) => {
+    const { tasks, isTaskCompleted, getDoneStatus } = useAppStore();
+    const parentTask = tasks.find(t => t.id === parentId);
+
+    // Construct context for subtask completion check
+    const isCompleted = isTaskCompleted({
+        ...task,
+        listId: parentTask?.listId,
+        spaceId: parentTask?.spaceId
+    } as Task);
+
     const [isRenaming, setIsRenaming] = React.useState(false);
     const [renameValue, setRenameValue] = React.useState(task.name);
     const inputRef = React.useRef<HTMLInputElement>(null);
@@ -377,10 +387,12 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                             <div className="subtask-indent-line"></div>
                             <input
                                 type="checkbox"
-                                checked={task.status === 'COMPLETED'}
+                                checked={isCompleted}
                                 onChange={(e) => {
                                     e.stopPropagation();
-                                    onUpdateSubtask(parentId, task.id, { status: e.target.checked ? 'COMPLETED' : 'TO DO' });
+                                    onUpdateSubtask(parentId, task.id, {
+                                        status: e.target.checked ? getDoneStatus(parentTask || { status: 'COMPLETED' } as Task) : 'TO DO'
+                                    });
                                 }}
                             />
                             {isRenaming ? (
@@ -400,7 +412,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                                     style={{ flex: 1, minWidth: 0, height: 24, padding: '0 4px', border: '1px solid var(--primary)', borderRadius: 4, background: 'var(--bg-main)', color: 'var(--text-main)' }}
                                 />
                             ) : (
-                                <span className="task-name" style={{ color: task.status === 'COMPLETED' ? 'var(--text-tertiary)' : 'inherit', textDecoration: task.status === 'COMPLETED' ? 'line-through' : 'none' }}>
+                                <span className="task-name" style={{ color: isCompleted ? 'var(--text-tertiary)' : 'inherit', textDecoration: isCompleted ? 'line-through' : 'none' }}>
                                     {task.name}
                                 </span>
                             )}
@@ -773,6 +785,8 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
         isDragging
     } = useSortable({ id: task.id });
 
+    const { isTaskCompleted } = useAppStore();
+
     const [isExpanded, setIsExpanded] = React.useState(false);
     const [isRenaming, setIsRenaming] = React.useState(false);
     const [renameValue, setRenameValue] = React.useState(task.name);
@@ -860,7 +874,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                 )}
                             </div>
 
-                            <input type="checkbox" readOnly checked={task.status === 'COMPLETED'} />
+                            <input type="checkbox" readOnly checked={isTaskCompleted(task)} />
 
                             {isRenaming ? (
                                 <input

@@ -10,6 +10,7 @@ import {
     AlertCircle,
     GripVertical
 } from 'lucide-react';
+import { useAppStore } from '../store/useAppStore';
 import type { DashboardItem, Task } from '../types';
 
 interface DashboardCardProps {
@@ -28,6 +29,7 @@ const DashboardCard: React.FC<DashboardCardProps> = ({ item, tasks, onDelete, on
         transition,
         isDragging
     } = useSortable({ id: item.id });
+    const { isTaskCompleted } = useAppStore();
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -38,7 +40,7 @@ const DashboardCard: React.FC<DashboardCardProps> = ({ item, tasks, onDelete, on
 
     const renderContent = () => {
         const total = tasks.length;
-        const completed = tasks.filter(t => t.status.toUpperCase() === 'COMPLETED').length;
+        const completed = tasks.filter(t => isTaskCompleted(t)).length;
         const inProgress = tasks.filter(t => t.status.toUpperCase() === 'IN PROGRESS').length;
         const todo = tasks.filter(t => t.status.toUpperCase() === 'TO DO' || t.status.toUpperCase() === 'BACKLOG').length;
         const urgent = tasks.filter(t => t.priority === 'urgent').length;

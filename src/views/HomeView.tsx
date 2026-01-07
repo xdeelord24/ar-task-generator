@@ -20,7 +20,7 @@ interface HomeViewProps {
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
-    const { tasks, startTimer, stopTimer, activeTimer } = useAppStore();
+    const { tasks, startTimer, stopTimer, activeTimer, isTaskCompleted } = useAppStore();
     const { user } = useAuthStore();
     const [activeTab, setActiveTab] = useState<'To Do' | 'Done' | 'Delegated'>('To Do');
 
@@ -32,11 +32,11 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
     };
 
     const todayTasks = useMemo(() =>
-        tasks.filter(t => t.dueDate && isToday(parseISO(t.dueDate)) && t.status.toUpperCase() !== 'COMPLETED'),
+        tasks.filter(t => t.dueDate && isToday(parseISO(t.dueDate)) && !isTaskCompleted(t)),
         [tasks]);
 
     const overdueTasks = useMemo(() =>
-        tasks.filter(t => t.dueDate && !isToday(parseISO(t.dueDate)) && parseISO(t.dueDate) < new Date() && t.status.toUpperCase() !== 'COMPLETED'),
+        tasks.filter(t => t.dueDate && !isToday(parseISO(t.dueDate)) && parseISO(t.dueDate) < new Date() && !isTaskCompleted(t)),
         [tasks]);
 
     const recents = useMemo(() =>
@@ -45,9 +45,9 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
 
     const filteredWorkTasks = useMemo(() => {
         if (activeTab === 'To Do') {
-            return tasks.filter(t => t.status.toUpperCase() !== 'COMPLETED');
+            return tasks.filter(t => !isTaskCompleted(t));
         } else if (activeTab === 'Done') {
-            return tasks.filter(t => t.status.toUpperCase() === 'COMPLETED');
+            return tasks.filter(t => isTaskCompleted(t));
         } else {
             // Delegated - for now just high priority tasks as a placeholder if no assignee logic
             const currentName = user?.name || 'Jundee';
@@ -163,8 +163,8 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
                                     {workGroupTasks.length > 0 ? workGroupTasks.map(task => (
                                         <div key={task.id} className="home-task-item" onClick={() => onTaskClick(task.id)}>
                                             <div className="task-left">
-                                                <div className={`checkbox ${task.status.toUpperCase() === 'COMPLETED' ? 'checked' : ''}`}>
-                                                    {task.status.toUpperCase() === 'COMPLETED' && <CheckCircle2 size={12} />}
+                                                <div className={`checkbox ${isTaskCompleted(task) ? 'checked' : ''}`}>
+                                                    {isTaskCompleted(task) && <CheckCircle2 size={12} />}
                                                 </div>
                                                 <span>{task.name}</span>
                                             </div>

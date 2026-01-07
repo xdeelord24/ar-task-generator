@@ -14,7 +14,7 @@ interface ReportModalProps {
 }
 
 const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
-    const { tasks, currentSpaceId, spaces } = useAppStore();
+    const { tasks, currentSpaceId, spaces, isTaskCompleted } = useAppStore();
 
     const today = new Date();
     const currentDay = today.getDate();
@@ -119,7 +119,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
         }
 
         reportTasks = reportTasks.filter(t => {
-            if (t.status === 'COMPLETED' && formData.includeCompleted) return true;
+            if (isTaskCompleted(t) && formData.includeCompleted) return true;
             if (t.status === 'IN PROGRESS' && formData.includeInProgress) return true;
             if (t.status === 'TO DO' && formData.includeTodo) return true;
             return false;
