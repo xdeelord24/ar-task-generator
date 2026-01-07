@@ -479,8 +479,16 @@ export const useAppStore = create<AppStore>()(
                 // Gamification: Award XP for completing a task
                 const currentStore = get();
                 const taskBeforeUpdate = currentStore.tasks.find(t => t.id === taskId);
-                if (taskBeforeUpdate && updates.status === 'COMPLETED' && taskBeforeUpdate.status !== 'COMPLETED') {
-                    currentStore.addExp(500);
+
+                if (taskBeforeUpdate && updates.status) {
+                    const wasCompleted = taskBeforeUpdate.status === 'COMPLETED';
+                    const isNowCompleted = updates.status === 'COMPLETED';
+
+                    if (isNowCompleted && !wasCompleted) {
+                        currentStore.addExp(500);
+                    } else if (!isNowCompleted && wasCompleted) {
+                        currentStore.addExp(-500);
+                    }
                 }
 
                 set((state) => {
@@ -1539,10 +1547,22 @@ export const useAppStore = create<AppStore>()(
                 const getExpForNextLevel = (lvl: number) => lvl * 1000;
                 let leveledUp = false;
 
+                // Handle Level Up
                 while (newExp >= getExpForNextLevel(newLevel)) {
                     newExp -= getExpForNextLevel(newLevel);
                     newLevel += 1;
                     leveledUp = true;
+                }
+
+                // Handle Level Down
+                while (newExp < 0 && newLevel > 1) {
+                    newLevel -= 1;
+                    newExp += getExpForNextLevel(newLevel);
+                }
+
+                // Cap at 0 XP if Level 1
+                if (newLevel === 1 && newExp < 0) {
+                    newExp = 0;
                 }
 
                 if (leveledUp) {
