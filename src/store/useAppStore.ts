@@ -927,9 +927,39 @@ export const useAppStore = create<AppStore>()(
                     }
                 }
             },
-            setCurrentSpaceId: (spaceId) => set({ currentSpaceId: spaceId }),
-            setCurrentListId: (listId) => set({ currentListId: listId }),
-            setCurrentView: (view) => set({ currentView: view }),
+            setCurrentSpaceId: (spaceId) => set((state) => {
+                const space = state.spaces.find(s => s.id === spaceId);
+                // Default to 'list' if no lastView saved, or maybe 'home' for 'everything' space?
+                // Keeping it simple with 'list' as safer default for now or 'home' if it's special.
+                // If it's the "Everything" space, maybe "home" is better?
+                // But let's stick to the requested feature: persisting views.
+                const view = space?.lastView || 'list';
+                return { currentSpaceId: spaceId, currentListId: null, currentView: view };
+            }),
+            setCurrentListId: (listId) => set((state) => {
+                if (!listId) {
+                    // Reverting to Space view
+                    const space = state.spaces.find(s => s.id === state.currentSpaceId);
+                    const view = space?.lastView || 'list';
+                    return { currentListId: null, currentView: view };
+                }
+                const list = state.lists.find(l => l.id === listId);
+                const view = list?.lastView || 'list';
+                return { currentListId: listId, currentView: view };
+            }),
+            setCurrentView: (view) => set((state) => {
+                if (state.currentListId) {
+                    return {
+                        currentView: view,
+                        lists: state.lists.map(l => l.id === state.currentListId ? { ...l, lastView: view } : l)
+                    };
+                } else {
+                    return {
+                        currentView: view,
+                        spaces: state.spaces.map(s => s.id === state.currentSpaceId ? { ...s, lastView: view } : s)
+                    };
+                }
+            }),
 
             addTag: (tag) => set((state) => ({
                 tags: [...state.tags, { ...tag, id: crypto.randomUUID() }]

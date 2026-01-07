@@ -101,6 +101,7 @@ export interface Space {
   ownerId?: string;
   permission?: string;
   ownerName?: string;
+  lastView?: ViewType;
 }
 
 export interface Folder {
@@ -126,6 +127,7 @@ export interface List {
   isArchived?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  lastView?: ViewType;
 }
 
 export type ViewType = 'home' | 'list' | 'table' | 'kanban' | 'calendar' | 'gantt' | 'timesheet' | 'dashboards' | 'docs' | 'pulse' | 'forms' | 'inbox' | 'teams' | 'whiteboards' | 'clips' | 'goals' | 'space_overview' | 'agents';

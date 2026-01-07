@@ -86,6 +86,10 @@ interface SortableCardProps {
     onDeleteTag: (tagId: string) => void;
     activePopover: ActivePopover | null;
     setActivePopover: (popover: ActivePopover | null) => void;
+    openMenuTaskId: string | null;
+    onDeleteSubtask: (taskId: string, subtaskId: string) => void;
+    onDuplicateSubtask: (taskId: string, subtaskId: string) => void;
+    onUpdateSubtask: (taskId: string, subtaskId: string, updates: Partial<Subtask>) => void;
 }
 
 const SortableCard: React.FC<SortableCardProps> = ({
@@ -110,7 +114,11 @@ const SortableCard: React.FC<SortableCardProps> = ({
     activePopover,
     setActivePopover,
     menuTrigger,
-    menuMousePos
+    menuMousePos,
+    openMenuTaskId,
+    onDeleteSubtask,
+    onDuplicateSubtask,
+    onUpdateSubtask
 }) => {
     const {
         attributes,
@@ -319,10 +327,19 @@ const SortableCard: React.FC<SortableCardProps> = ({
                         {isExpanded && (
                             <div className="subtasks-list">
                                 {task.subtasks.map(subtask => (
-                                    <div key={subtask.id} className="subtask-card" onClick={(e) => {
-                                        e.stopPropagation();
-                                        onTaskClick(subtask.id);
-                                    }}>
+                                    <div
+                                        key={subtask.id}
+                                        className="subtask-card"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onTaskClick(subtask.id);
+                                        }}
+                                        onContextMenu={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onOpenMenu(subtask.id, e.currentTarget, { x: e.clientX, y: e.clientY });
+                                        }}
+                                    >
                                         <div className="subtask-header">
                                             <span className="subtask-title">{subtask.name}</span>
                                         </div>
@@ -361,6 +378,19 @@ const SortableCard: React.FC<SortableCardProps> = ({
                                                 <Flag size={12} className={subtask.priority ? `text-priority-${subtask.priority}` : ''} />
                                             </div>
                                         </div>
+                                        {openMenuTaskId === subtask.id && (
+                                            <TaskOptionsMenu
+                                                taskId={subtask.id}
+                                                onClose={onCloseMenu}
+                                                onRename={() => { onTaskClick(subtask.id); onCloseMenu(); }}
+                                                onDuplicate={() => { onDuplicateSubtask(task.id, subtask.id); onCloseMenu(); }}
+                                                onArchive={() => { onUpdateSubtask(task.id, subtask.id, { status: 'COMPLETED' }); onCloseMenu(); }}
+                                                onDelete={() => { onDeleteSubtask(task.id, subtask.id); onCloseMenu(); }}
+                                                onStartTimer={() => { alert('Timer started for subtask ' + subtask.id); onCloseMenu(); }}
+                                                triggerElement={menuTrigger}
+                                                mousePos={menuMousePos}
+                                            />
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -406,6 +436,9 @@ interface KanbanColumnProps {
     onDeleteTag: (tagId: string) => void;
     activePopover: ActivePopover | null;
     setActivePopover: (popover: ActivePopover | null) => void;
+    onDeleteSubtask: (taskId: string, subtaskId: string) => void;
+    onDuplicateSubtask: (taskId: string, subtaskId: string) => void;
+    onUpdateSubtask: (taskId: string, subtaskId: string, updates: Partial<Subtask>) => void;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -433,7 +466,10 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     onUpdateTag,
     onDeleteTag,
     activePopover,
-    setActivePopover
+    setActivePopover,
+    onDeleteSubtask,
+    onDuplicateSubtask,
+    onUpdateSubtask
 }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: status,
@@ -482,6 +518,10 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                             onCloseMenu={onCloseMenu}
                             menuTrigger={menuTrigger}
                             menuMousePos={menuMousePos}
+                            openMenuTaskId={openMenuTaskId}
+                            onDeleteSubtask={onDeleteSubtask}
+                            onDuplicateSubtask={onDuplicateSubtask}
+                            onUpdateSubtask={onUpdateSubtask}
                         />
                     ))}
                     <button className="btn-add-card" onClick={() => onAddTask(status)}>
@@ -511,6 +551,9 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         deleteTag,
         spaces,
         lists,
+        deleteSubtask,
+        duplicateSubtask,
+        updateSubtask
     } = useAppStore();
     const { user } = useAuthStore();
     const [activePopover, setActivePopover] = React.useState<ActivePopover | null>(null);
@@ -687,6 +730,9 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                             onDeleteTag={deleteTag}
                             activePopover={activePopover}
                             setActivePopover={setActivePopover}
+                            onDeleteSubtask={deleteSubtask}
+                            onDuplicateSubtask={duplicateSubtask}
+                            onUpdateSubtask={updateSubtask}
                         />
                     ))}
                     <div className="add-column-container">
