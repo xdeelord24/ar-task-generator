@@ -113,23 +113,49 @@ export const getAuthToken = () => {
 export const serverStorage: StateStorage = {
     getItem: async (name: string): Promise<string | null> => {
         try {
-            // 1. Always load Local Data first (Primary Persistence for one device)
-            // Strategy: Try IndexedDB -> Fallback to LocalStorage -> Null
+            // 1. Robust Load Strategy: Check both IDB and LS, use the freshest (based on timestamp).
             let localDataStr: string | null = null;
 
+            let idbData: string | null = null;
+            let idbTs: number = 0;
+            let lsData: string | null = null;
+            let lsTs: number = 0;
+
+            // Fetch IndexedDB Data
             try {
-                localDataStr = await browserDb.get(name);
+                // Parallel fetch for speed
+                const [val, ts] = await Promise.all([
+                    browserDb.get(name),
+                    browserDb.get(`${name}_ts`)
+                ]);
+                idbData = val;
+                idbTs = ts ? parseInt(ts, 10) : 0;
+                if (isNaN(idbTs)) idbTs = 0;
             } catch (idbErr) {
-                console.error('[Storage] IndexedDB read failed, falling back to LocalStorage:', idbErr);
+                console.error('[Storage] IndexedDB read failed:', idbErr);
             }
 
-            if (!localDataStr && typeof localStorage !== 'undefined') {
-                console.log('[Storage] IndexedDB empty, checking LocalStorage backup...');
-                localDataStr = localStorage.getItem(name);
-                // If found in LS but not IDB, migrate it forward to IDB immediately
-                if (localDataStr) {
-                    browserDb.set(name, localDataStr).catch(e => console.error('[Storage] Migration to IDB failed:', e));
-                }
+            // Fetch LocalStorage Data
+            if (typeof localStorage !== 'undefined') {
+                lsData = localStorage.getItem(name);
+                const tsStr = localStorage.getItem(`${name}_ts`);
+                lsTs = tsStr ? parseInt(tsStr, 10) : 0;
+                if (isNaN(lsTs)) lsTs = 0;
+            }
+
+            // Decision Logic: Which source to use?
+            if (lsTs > idbTs && lsData) {
+                console.log('[Storage] LocalStorage is newer than IndexedDB. Using LS.');
+                localDataStr = lsData;
+                // Self-healing: Update IDB to match LS
+                browserDb.set(name, lsData).catch(e => console.warn('Self-heal IDB val failed', e));
+                browserDb.set(`${name}_ts`, lsTs.toString()).catch(e => console.warn('Self-heal IDB ts failed', e));
+            } else if (idbData) {
+                // Default to IDB if it's newer or equal, or if LS is missing
+                localDataStr = idbData;
+            } else {
+                // Fallback to LS if IDB is empty/failed
+                localDataStr = lsData;
             }
 
             let localJson: any = localDataStr ? JSON.parse(localDataStr) : null;
@@ -265,11 +291,16 @@ export const serverStorage: StateStorage = {
                             // Update local DB with the merged result so next load is faster
                             localDataStr = JSON.stringify(localJson);
 
-                            // Save merged result to both stores
-                            await browserDb.set(name, localDataStr);
+                            // Update both stores with merged result
+                            const newTs = Date.now().toString();
                             if (typeof localStorage !== 'undefined') {
-                                try { localStorage.setItem(name, localDataStr); } catch (e) { }
+                                try {
+                                    localStorage.setItem(`${name}_ts`, newTs);
+                                    localStorage.setItem(name, localDataStr);
+                                } catch (e) { }
                             }
+                            await browserDb.set(`${name}_ts`, newTs);
+                            await browserDb.set(name, localDataStr);
 
                             // CRITICAL FIX: Push the merged state back to Server!
                             // If Local had items (like a new space) that Server missed, Server needs this update.
@@ -292,26 +323,22 @@ export const serverStorage: StateStorage = {
                         // No local data but we have server data
                         if (serverJson) {
                             const paramsStr = JSON.stringify(serverJson);
-                            await browserDb.set(name, paramsStr);
+                            const newTs = Date.now().toString();
+
                             if (typeof localStorage !== 'undefined') {
-                                try { localStorage.setItem(name, paramsStr); } catch (e) { }
+                                try {
+                                    localStorage.setItem(`${name}_ts`, newTs);
+                                    localStorage.setItem(name, paramsStr);
+                                } catch (e) { }
                             }
+                            await browserDb.set(`${name}_ts`, newTs);
+                            await browserDb.set(name, paramsStr);
                             return paramsStr;
                         }
                     }
 
                 } catch (e) {
                     console.error('[Storage] Server sync failed, falling back to local:', e);
-                }
-            }
-
-            // Fallback (Not authenticated or offline or server failed)
-            // Check legacy localStorage if IndexedDB is empty
-            if (!localDataStr && typeof localStorage !== 'undefined') {
-                const legacyData = localStorage.getItem(name);
-                if (legacyData) {
-                    await browserDb.set(name, legacyData);
-                    return legacyData;
                 }
             }
 
@@ -327,16 +354,13 @@ export const serverStorage: StateStorage = {
         }
     },
     setItem: async (name: string, value: string): Promise<void> => {
-        // 1. Save to Local DB (Primary target)
-        try {
-            await browserDb.set(name, value);
-        } catch (e) {
-            console.error('[Storage] IDB Save failed:', e);
-        }
+        const ts = Date.now().toString();
 
-        // 2. Save to LocalStorage (Redundant Backup)
+        // 1. Synchronous Backup to LocalStorage (Critical for rapid refresh/close)
+        // We do this BEFORE awaiting IDB to ensure data is at least somewhere safe immediately.
         if (typeof localStorage !== 'undefined') {
             try {
+                localStorage.setItem(`${name}_ts`, ts);
                 localStorage.setItem(name, value);
             } catch (e: any) {
                 // Ignore Quota errors silently to avoid console spam, effectively gracefully degrading
@@ -344,6 +368,14 @@ export const serverStorage: StateStorage = {
                     console.warn('[Storage] LocalStorage backup failed:', e);
                 }
             }
+        }
+
+        // 2. Save to Local DB (Primary target - Async)
+        try {
+            await browserDb.set(`${name}_ts`, ts);
+            await browserDb.set(name, value);
+        } catch (e) {
+            console.error('[Storage] IDB Save failed:', e);
         }
 
         // 3. Sync to Server (Background)
@@ -367,8 +399,10 @@ export const serverStorage: StateStorage = {
     },
     removeItem: async (name: string): Promise<void> => {
         await browserDb.remove(name);
+        await browserDb.remove(`${name}_ts`);
         if (typeof localStorage !== 'undefined') {
             localStorage.removeItem(name);
+            localStorage.removeItem(`${name}_ts`);
         }
     },
 };
