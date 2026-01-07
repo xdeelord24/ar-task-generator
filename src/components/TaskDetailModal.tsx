@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore } from '../store/useAppStore';
+import { API_BASE_URL } from '../config';
 import { useAuthStore } from '../store/useAuthStore';
 import { format, parseISO } from 'date-fns';
 import type { Task, Subtask } from '../types';
@@ -205,7 +206,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
 
             try {
                 // Fetch space members
-                const spaceRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=space&resourceId=${task.spaceId}`, {
+                const spaceRes = await fetch(`${API_BASE_URL}/api/resource/members?resourceType=space&resourceId=${task.spaceId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (spaceRes.ok) {
@@ -214,7 +215,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
 
                 // If task is in a list, also fetch list members
                 if (task.listId) {
-                    const listRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=list&resourceId=${task.listId}`, {
+                    const listRes = await fetch(`${API_BASE_URL}/api/resource/members?resourceType=list&resourceId=${task.listId}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (listRes.ok) {
@@ -1420,20 +1421,14 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                     const textBeforeCursor = value.substring(lineStart, start);
 
                                                     let replacement = '';
-                                                    let lengthToReplace = 0;
-
                                                     if (textBeforeCursor === '-') {
                                                         replacement = '\u2022 ';
-                                                        lengthToReplace = 1;
                                                     } else if (textBeforeCursor === '*') {
                                                         replacement = '\u2022 ';
-                                                        lengthToReplace = 1;
                                                     } else if (textBeforeCursor === '[]') {
                                                         replacement = '\u2610 ';
-                                                        lengthToReplace = 2; // replace [] with unicode box
                                                     } else if (textBeforeCursor === '[x]') {
                                                         replacement = '\u2611 ';
-                                                        lengthToReplace = 3;
                                                     }
 
                                                     if (replacement) {

@@ -5,6 +5,7 @@ import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, Colum
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { io, Socket } from 'socket.io-client';
 import { generateUUID } from '../utils/uuid';
+import { API_BASE_URL } from '../config';
 
 let socket: Socket | null = null;
 
@@ -474,7 +475,7 @@ export const useAppStore = create<AppStore>()(
                 if (space && (space as any).isShared && (space as any).ownerId) {
                     const token = getAuthToken();
                     if (token) {
-                        fetch('http://localhost:3001/api/shared/propagate', {
+                        fetch(`${API_BASE_URL}/api/shared/propagate`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -544,7 +545,7 @@ export const useAppStore = create<AppStore>()(
                     if (space && (space as any).isShared && (space as any).ownerId) {
                         const token = getAuthToken();
                         if (token) {
-                            fetch('http://localhost:3001/api/shared/propagate', {
+                            fetch(`${API_BASE_URL}/api/shared/propagate`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -623,7 +624,7 @@ export const useAppStore = create<AppStore>()(
                 if (space && (space as any).isShared && (space as any).ownerId) {
                     const token = getAuthToken();
                     if (token) {
-                        fetch('http://localhost:3001/api/shared/propagate', {
+                        fetch(`${API_BASE_URL}/api/shared/propagate`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                             body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: task }) // Propagate full task update for now
@@ -668,7 +669,7 @@ export const useAppStore = create<AppStore>()(
                     if (space && (space as any).isShared && (space as any).ownerId) {
                         const token = getAuthToken();
                         if (token) {
-                            fetch('http://localhost:3001/api/shared/propagate', {
+                            fetch(`${API_BASE_URL}/api/shared/propagate`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
@@ -705,7 +706,7 @@ export const useAppStore = create<AppStore>()(
                     if (space && (space as any).isShared && (space as any).ownerId) {
                         const token = getAuthToken();
                         if (token) {
-                            fetch('http://localhost:3001/api/shared/propagate', {
+                            fetch(`${API_BASE_URL}/api/shared/propagate`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
@@ -732,7 +733,7 @@ export const useAppStore = create<AppStore>()(
                     if (space && (space as any).isShared && (space as any).ownerId) {
                         const token = getAuthToken();
                         if (token) {
-                            fetch('http://localhost:3001/api/shared/propagate', {
+                            fetch(`${API_BASE_URL}/api/shared/propagate`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
@@ -782,7 +783,7 @@ export const useAppStore = create<AppStore>()(
                 if (space && (space as any).isShared && (space as any).ownerId) {
                     const token = getAuthToken();
                     if (token) {
-                        fetch('http://localhost:3001/api/shared/propagate', {
+                        fetch(`${API_BASE_URL}/api/shared/propagate`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -880,7 +881,7 @@ export const useAppStore = create<AppStore>()(
                 if (space && (space as any).isShared && (space as any).ownerId) {
                     const token = getAuthToken();
                     if (token) {
-                        fetch('http://localhost:3001/api/shared/propagate', {
+                        fetch(`${API_BASE_URL}/api/shared/propagate`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -941,7 +942,7 @@ export const useAppStore = create<AppStore>()(
                     if (space && (space as any).isShared && (space as any).ownerId) {
                         const token = getAuthToken();
                         if (token) {
-                            fetch('http://localhost:3001/api/shared/propagate', {
+                            fetch(`${API_BASE_URL}/api/shared/propagate`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'list', data: list })
@@ -984,7 +985,7 @@ export const useAppStore = create<AppStore>()(
                 const token = getAuthToken();
                 if (token) {
                     try {
-                        await fetch('http://localhost:3001/api/shared/leave', {
+                        await fetch(`${API_BASE_URL}/api/shared/leave`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1064,7 +1065,7 @@ export const useAppStore = create<AppStore>()(
                     if (space && (space as any).isShared && (space as any).ownerId) {
                         const token = getAuthToken();
                         if (token) {
-                            fetch('http://localhost:3001/api/shared/propagate', {
+                            fetch(`${API_BASE_URL}/api/shared/propagate`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -1096,7 +1097,7 @@ export const useAppStore = create<AppStore>()(
                     if (space && (space as any).isShared && (space as any).ownerId) {
                         const token = getAuthToken();
                         if (token) {
-                            fetch('http://localhost:3001/api/shared/propagate', {
+                            fetch(`${API_BASE_URL}/api/shared/propagate`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
@@ -1121,7 +1122,7 @@ export const useAppStore = create<AppStore>()(
                     if (space && (space as any).isShared && (space as any).ownerId) {
                         const token = getAuthToken();
                         if (token) {
-                            fetch('http://localhost:3001/api/shared/propagate', {
+                            fetch(`${API_BASE_URL}/api/shared/propagate`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
@@ -1146,7 +1147,7 @@ export const useAppStore = create<AppStore>()(
                     if (space && (space as any).isShared && (space as any).ownerId) {
                         const token = getAuthToken();
                         if (token) {
-                            fetch('http://localhost:3001/api/shared/propagate', {
+                            fetch(`${API_BASE_URL}/api/shared/propagate`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: updatedTask })
@@ -1457,7 +1458,7 @@ export const useAppStore = create<AppStore>()(
                 if (!token) return;
 
                 try {
-                    const sharedRes = await fetch('http://localhost:3001/api/shared', {
+                    const sharedRes = await fetch(`${API_BASE_URL}/api/shared`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
 
@@ -1513,7 +1514,7 @@ export const useAppStore = create<AppStore>()(
             setupSocket: (userId) => {
                 if (socket) return;
 
-                socket = io('http://localhost:3001', {
+                socket = io(`${API_BASE_URL}`, {
                     transports: ['websocket', 'polling'],
                     reconnectionAttempts: 5,
                     reconnectionDelay: 1000,

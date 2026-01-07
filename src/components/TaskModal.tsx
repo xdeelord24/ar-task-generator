@@ -12,6 +12,7 @@ import {
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import PremiumDatePicker from './PremiumDatePicker';
 import { useAppStore, DEFAULT_STATUSES } from '../store/useAppStore';
+import { API_BASE_URL } from '../config';
 import type { Priority, Task, TaskType } from '../types';
 import RichTextEditor from './RichTextEditor';
 import { markdownToHtml } from '../utils/markdownConverter';
@@ -107,7 +108,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
             if (!selectedSpaceId || !token) return;
             try {
                 // Fetch space members
-                const spaceRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=space&resourceId=${selectedSpaceId}`, {
+                const spaceRes = await fetch(`${API_BASE_URL}/api/resource/members?resourceType=space&resourceId=${selectedSpaceId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 let allMembers = [];
@@ -117,7 +118,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, initialStatus, initialDa
 
                 // If a list is selected, also fetch list members
                 if (selectedListId) {
-                    const listRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=list&resourceId=${selectedListId}`, {
+                    const listRes = await fetch(`${API_BASE_URL}/api/resource/members?resourceType=list&resourceId=${selectedListId}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (listRes.ok) {

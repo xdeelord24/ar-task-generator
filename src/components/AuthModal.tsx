@@ -8,7 +8,9 @@ interface AuthModalProps {
     onClose?: () => void;
 }
 
-const SERVER_URL = 'http://localhost:3001/api/auth';
+import { API_BASE_URL } from '../config';
+
+const SERVER_URL = `${API_BASE_URL}/api/auth`;
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     const [isLogin, setIsLogin] = useState(true);

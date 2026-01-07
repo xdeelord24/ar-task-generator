@@ -1,6 +1,7 @@
 import type { StateStorage } from 'zustand/middleware';
+import { API_BASE_URL } from '../config';
 
-const SERVER_URL = 'http://localhost:3001/api/storage';
+const SERVER_URL = `${API_BASE_URL}/api/storage`;
 const DB_NAME = 'ar-generator-db';
 const STORE_NAME = 'keyvalue';
 const DB_VERSION = 2;
@@ -179,7 +180,7 @@ export const serverStorage: StateStorage = {
                     // 3. Fetch Shared Resources (Invited Spaces, etc.)
                     if (name.includes('app-storage')) {
                         try {
-                            const sharedRes = await fetch('http://localhost:3001/api/shared', { headers });
+                            const sharedRes = await fetch(`${API_BASE_URL}/api/shared`, { headers });
                             if (sharedRes.ok) {
                                 const sharedData = await sharedRes.json();
                                 // Merge shared data into serverJson (which might be empty if new user)

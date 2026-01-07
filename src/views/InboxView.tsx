@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import {
@@ -40,7 +41,7 @@ const InboxView: React.FC<InboxViewProps> = ({ onTaskClick }) => {
 
     const fetchInvitations = async () => {
         try {
-            const res = await fetch('http://localhost:3001/api/invitations', {
+            const res = await fetch(`${API_BASE_URL}/api/invitations`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -54,7 +55,7 @@ const InboxView: React.FC<InboxViewProps> = ({ onTaskClick }) => {
 
     const handleAcceptInvitation = async (invite: any) => {
         try {
-            const res = await fetch(`http://localhost:3001/api/invitations/${invite.id}/accept`, {
+            const res = await fetch(`${API_BASE_URL}/api/invitations/${invite.id}/accept`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

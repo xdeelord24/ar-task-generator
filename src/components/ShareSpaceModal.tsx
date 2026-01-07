@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useAppStore } from '../store/useAppStore';
+import { API_BASE_URL } from '../config';
 import { X, Link, Lock, ChevronDown, User, Check, AlertCircle, Users } from 'lucide-react';
 import '../styles/ShareSpaceModal.css';
 
@@ -31,7 +32,7 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
 
     const fetchMembers = async () => {
         try {
-            const res = await fetch(`http://localhost:3001/api/resource/members?resourceType=space&resourceId=${spaceId}`, {
+            const res = await fetch(`${API_BASE_URL}/api/resource/members?resourceType=space&resourceId=${spaceId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -58,7 +59,7 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
         setMessage('');
 
         try {
-            const res = await fetch('http://localhost:3001/api/invite', {
+            const res = await fetch(`${API_BASE_URL}/api/invite`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

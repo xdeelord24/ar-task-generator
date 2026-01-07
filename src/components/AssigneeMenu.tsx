@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Search, Check } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useAppStore } from '../store/useAppStore'; // Add import
+import { API_BASE_URL } from '../config';
 import '../styles/AssigneeMenu.css';
 
 interface AssigneeMenuProps {
@@ -38,7 +39,7 @@ const AssigneeMenu: React.FC<AssigneeMenuProps> = ({
             setLoading(true);
             try {
                 // Fetch space members
-                const spaceRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=space&resourceId=${spaceId}`, {
+                const spaceRes = await fetch(`${API_BASE_URL}/api/resource/members?resourceType=space&resourceId=${spaceId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 let allMembers: any[] = [];
@@ -48,7 +49,7 @@ const AssigneeMenu: React.FC<AssigneeMenuProps> = ({
 
                 // If listId is provided, fetch list members and merge
                 if (listId) {
-                    const listRes = await fetch(`http://localhost:3001/api/resource/members?resourceType=list&resourceId=${listId}`, {
+                    const listRes = await fetch(`${API_BASE_URL}/api/resource/members?resourceType=list&resourceId=${listId}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (listRes.ok) {

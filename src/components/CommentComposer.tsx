@@ -3,6 +3,7 @@ import { Image as ImageIcon, Sparkles, Send, X, User as UserIcon } from 'lucide-
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { getAuthToken } from '../store/storage';
+import { API_BASE_URL } from '../config';
 
 interface CommentComposerProps {
     taskId: string;
@@ -76,7 +77,7 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
                         };
 
                         // Propagate notification to recipient's state
-                        fetch('http://localhost:3001/api/shared/propagate', {
+                        fetch(`${API_BASE_URL}/api/shared/propagate`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                             body: JSON.stringify({
