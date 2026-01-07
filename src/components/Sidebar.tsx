@@ -183,8 +183,10 @@ const Sidebar: React.FC = () => {
         { id: 'agents', icon: Bot, label: 'Agents' },
     ];
 
-    const renderIcon = (iconName: string, size = 18, color?: string) => {
-        const IconComponent = IconMap[iconName] || StarIcon;
+    const renderIcon = (iconName: string, size = 18, color?: string, FallbackIcon: any = StarIcon) => {
+        if (!iconName) return <FallbackIcon size={size} color={color} />;
+        const normalized = iconName.toLowerCase().trim();
+        const IconComponent = IconMap[normalized] || FallbackIcon;
         return <IconComponent size={size} color={color} />;
     };
 
@@ -459,7 +461,7 @@ const Sidebar: React.FC = () => {
                                                             <ChevronRight size={14} className={`expand-icon ${isFolderExpanded ? 'expanded' : ''}`} />
                                                         </div>
                                                         <div className="folder-icon-wrapper" style={{ marginRight: '8px' }}>
-                                                            {renderIcon(folder.icon || 'folder', 14, folder.color)}
+                                                            {renderIcon(folder.icon || 'folder', 14, folder.color || '#64748b', Folder)}
                                                         </div>
                                                         <span style={{ color: folder.color }}>{folder.name}</span>
                                                     </div>
@@ -517,7 +519,7 @@ const Sidebar: React.FC = () => {
                                                                         ])}
                                                                     >
                                                                         <div className="list-icon-wrapper">
-                                                                            {list.icon ? renderIcon(list.icon, 14, list.color || space.color || undefined) : (
+                                                                            {list.icon ? renderIcon(list.icon, 14, list.color || space.color || '#64748b', ListIcon) : (
                                                                                 <div className="list-dot" style={{ backgroundColor: list.color || space.color || '#64748b' }}></div>
                                                                             )}
                                                                         </div>
@@ -631,7 +633,7 @@ const Sidebar: React.FC = () => {
                                                     ])}
                                                 >
                                                     <div className="list-icon-wrapper">
-                                                        {list.icon ? renderIcon(list.icon, 14, list.color || space.color || undefined) : <ListIcon size={14} color={list.color || space.color || undefined} />}
+                                                        {list.icon ? renderIcon(list.icon, 14, list.color || space.color || '#64748b', ListIcon) : <ListIcon size={14} color={list.color || space.color || '#64748b'} />}
                                                     </div>
                                                     <span>{list.name}</span>
                                                 </a>
