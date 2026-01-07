@@ -21,7 +21,7 @@ import CreateDocModal from '../components/CreateDocModal';
 import { format } from 'date-fns';
 
 const SpaceOverview: React.FC = () => {
-    const { spaces, lists, tasks, folders, docs, currentSpaceId, setCurrentListId, setCurrentView } = useAppStore();
+    const { spaces, lists, tasks, folders, docs, currentSpaceId, setCurrentListId } = useAppStore();
     const { user: currentUser } = useAuthStore();
     const [isCreateListOpen, setIsCreateListOpen] = useState(false);
     const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
@@ -103,7 +103,6 @@ const SpaceOverview: React.FC = () => {
 
     const handleListClick = (listId: string) => {
         setCurrentListId(listId);
-        setCurrentView('list');
     };
 
     if (!currentSpace) return <div>Space not found</div>;

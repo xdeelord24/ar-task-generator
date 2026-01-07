@@ -470,9 +470,6 @@ const Sidebar: React.FC = () => {
                                                                             e.preventDefault();
                                                                             setCurrentSpaceId(space.id);
                                                                             setCurrentListId(list.id);
-                                                                            if (!['list', 'kanban', 'calendar', 'gantt'].includes(currentView)) {
-                                                                                setCurrentView('list');
-                                                                            }
                                                                         }}
                                                                         onContextMenu={(e) => showContextMenu(e, [
                                                                             { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingList({ ...list, id: list.id, spaceId: space.id }) },
@@ -587,9 +584,6 @@ const Sidebar: React.FC = () => {
                                                         e.preventDefault();
                                                         setCurrentSpaceId(space.id); // Ensure correct space is active
                                                         setCurrentListId(list.id);
-                                                        if (!['list', 'kanban', 'calendar', 'gantt'].includes(currentView)) {
-                                                            setCurrentView('list');
-                                                        }
                                                     }}
                                                     onContextMenu={(e) => showContextMenu(e, [
                                                         { label: 'Rename', icon: <Edit2 size={14} />, onClick: () => setEditingList({ ...list, id: list.id, spaceId: space.id }) },
