@@ -58,6 +58,8 @@ import CreateListModal from './CreateListModal';
 import CreateFolderModal from './CreateFolderModal';
 import MoveModal from './MoveModal';
 import ShareSpaceModal from './ShareSpaceModal';
+
+import AITemplateGeneratorModal from './AITemplateGeneratorModal';
 import '../styles/Sidebar.css';
 
 const IconMap: Record<string, any> = {
@@ -137,7 +139,9 @@ const Sidebar: React.FC = () => {
     const [createListFolderId, setCreateListFolderId] = React.useState<string | null>(null);
     const [createFolderSpaceId, setCreateFolderSpaceId] = React.useState<string | null>(null);
     const [expandedSpaceIds, setExpandedSpaceIds] = React.useState<Set<string>>(new Set([currentSpaceId]));
+
     const [expandedFolderIds, setExpandedFolderIds] = React.useState<Set<string>>(new Set());
+    const [isAIModalOpen, setIsAIModalOpen] = React.useState(false);
     const { showContextMenu, contextMenuProps, hideContextMenu } = useContextMenu();
 
     const toggleSpace = (e: React.MouseEvent, spaceId: string) => {
@@ -282,7 +286,10 @@ const Sidebar: React.FC = () => {
             <div className="sidebar-section">
                 <div className="section-header">
                     {!sidebarCollapsed && <span>SPACES</span>}
-                    <button className="add-btn" onClick={() => setIsCreateSpaceOpen(true)}><Plus size={14} /></button>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                        <button className="add-btn" title="AI Generator" onClick={() => setIsAIModalOpen(true)}><Wand2 size={14} /></button>
+                        <button className="add-btn" title="New Space" onClick={() => setIsCreateSpaceOpen(true)}><Plus size={14} /></button>
+                    </div>
                 </div>
                 <div className="spaces-list">
                     <a
@@ -777,6 +784,7 @@ const Sidebar: React.FC = () => {
 
 
             {isCreateSpaceOpen && <CreateSpaceModal onClose={() => setIsCreateSpaceOpen(false)} />}
+            {isAIModalOpen && <AITemplateGeneratorModal onClose={() => setIsAIModalOpen(false)} />}
 
             {movingItem && (
                 <MoveModal

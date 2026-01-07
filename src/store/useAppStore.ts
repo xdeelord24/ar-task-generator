@@ -219,14 +219,14 @@ interface AppStore extends AppState {
     updateSubtask: (taskId: string, subtaskId: string, updates: Partial<Subtask>) => void;
     deleteSubtask: (taskId: string, subtaskId: string) => void;
     setSpaces: (spaces: Space[]) => void;
-    addSpace: (space: Omit<Space, 'id' | 'taskCount' | 'isDefault'>) => void;
+    addSpace: (space: Omit<Space, 'id' | 'taskCount' | 'isDefault'>) => string;
     setFolders: (folders: Folder[]) => void;
-    addFolder: (folder: Omit<Folder, 'id'>) => void;
+    addFolder: (folder: Omit<Folder, 'id'>) => string;
     updateFolder: (folderId: string, updates: Partial<Folder>) => void;
     deleteFolder: (folderId: string) => void;
     duplicateFolder: (folderId: string) => void;
     setLists: (lists: List[]) => void;
-    addList: (list: Omit<List, 'id' | 'taskCount'>) => void;
+    addList: (list: Omit<List, 'id' | 'taskCount'>) => string;
     updateList: (listId: string, updates: Partial<List>) => void;
     deleteList: (listId: string) => void;
     duplicateList: (listId: string) => void;
@@ -699,22 +699,27 @@ export const useAppStore = create<AppStore>()(
                 }
             },
             setSpaces: (spaces) => set({ spaces }),
-            addSpace: (space) => set((state) => ({
-                spaces: [...state.spaces, {
-                    ...space,
-                    id: generateUUID(),
-                    taskCount: 0,
-                    isDefault: false,
-                    statuses: DEFAULT_STATUSES,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                }]
-            })),
+            addSpace: (space) => {
+                const newId = generateUUID();
+                set((state) => ({
+                    spaces: [...state.spaces, {
+                        ...space,
+                        id: newId,
+                        taskCount: 0,
+                        isDefault: false,
+                        statuses: space.statuses || DEFAULT_STATUSES,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    }]
+                }));
+                return newId;
+            },
             setFolders: (folders) => set({ folders }),
             addFolder: (folder) => {
+                const newId = generateUUID();
                 const newFolder = {
                     ...folder,
-                    id: generateUUID(),
+                    id: newId,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -743,6 +748,7 @@ export const useAppStore = create<AppStore>()(
                         }).catch(e => console.error('[AppStore] Failed to propagate folder to owner:', e));
                     }
                 }
+                return newId;
             },
             updateFolder: (folderId, updates) => set((state) => ({
                 folders: state.folders.map(f => f.id === folderId ? { ...f, ...updates, updatedAt: new Date().toISOString() } : f)
@@ -800,11 +806,13 @@ export const useAppStore = create<AppStore>()(
             }),
             setLists: (lists) => set({ lists }),
             addList: (list) => {
+                const newId = generateUUID();
                 const newList = {
                     ...list,
-                    id: generateUUID(),
+                    id: newId,
                     taskCount: 0,
-                    statuses: DEFAULT_STATUSES,
+                    isArchived: false,
+                    statuses: list.statuses || DEFAULT_STATUSES,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -838,6 +846,7 @@ export const useAppStore = create<AppStore>()(
                         }).catch(e => console.error('[AppStore] Failed to propagate list to owner:', e));
                     }
                 }
+                return newId;
             },
             duplicateList: (listId: string) => set((state) => {
                 const list = state.lists.find(l => l.id === listId);
