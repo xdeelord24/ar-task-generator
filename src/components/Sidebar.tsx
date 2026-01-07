@@ -49,7 +49,8 @@ import {
     Download,
     StickyNote,
     Clipboard,
-    ArrowRight
+    ArrowRight,
+    ChevronsUp
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -151,6 +152,11 @@ const Sidebar: React.FC = () => {
     const { user } = useAuthStore();
 
     const displayName = (userName && userName !== 'User') ? userName : (user?.name || userName || 'User');
+
+    const collapseAll = () => {
+        setExpandedSpaceIds(new Set());
+        setExpandedFolderIds(new Set());
+    };
 
     const toggleSpace = (e: React.MouseEvent, spaceId: string) => {
         e.stopPropagation();
@@ -297,6 +303,7 @@ const Sidebar: React.FC = () => {
                 <div className="section-header">
                     {!sidebarCollapsed && <span>SPACES</span>}
                     <div style={{ display: 'flex', gap: '4px' }}>
+                        <button className="add-btn" title="Collapse all" onClick={collapseAll}><ChevronsUp size={14} /></button>
                         <button className="add-btn" title="AI Generator" onClick={() => setIsAIModalOpen(true)}><Wand2 size={14} /></button>
                         <button className="add-btn" title="New Space" onClick={() => setIsCreateSpaceOpen(true)}><Plus size={14} /></button>
                     </div>
