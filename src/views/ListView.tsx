@@ -55,6 +55,7 @@ import TagMenu from '../components/TagMenu';
 import ViewHeader from '../components/ViewHeader';
 import StatusEditorModal from '../components/StatusEditorModal';
 import CreateFieldSidebar from '../components/CreateFieldSidebar';
+import MoveTaskModal from '../components/MoveTaskModal';
 import '../styles/ListView.css';
 import '../styles/TaskOptionsMenu.css';
 import '../styles/CreateFieldSidebar.css';
@@ -317,6 +318,7 @@ interface SubtaskRowItemProps {
     onDeleteSubtask: (parentId: string, subtaskId: string) => void;
     onDuplicateSubtask?: (parentId: string, subtaskId: string) => void;
     onStartTimer: () => void;
+    onMove: (taskId: string) => void;
     isTableMode?: boolean;
 }
 
@@ -338,6 +340,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
     onDeleteSubtask,
     onDuplicateSubtask,
     onStartTimer,
+    onMove,
     tags,
     isTableMode
 }) => {
@@ -706,6 +709,10 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                             onStartTimer();
                             onCloseMenu();
                         }}
+                        onMove={() => {
+                            onMove(task.id);
+                            onCloseMenu();
+                        }}
                     />
                 )}
             </div>
@@ -719,6 +726,7 @@ interface SortableRowPropsWithUpdateSubtask extends SortableRowProps {
     onDeleteSubtask: (parentId: string, subtaskId: string) => void;
     onDuplicateSubtask: (parentId: string, subtaskId: string) => void;
     startTimer: (taskId: string) => void;
+    onMove: (taskId: string) => void;
     openMenuTaskId: string | null;
 }
 
@@ -746,8 +754,10 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
     onUpdateSubtask,
     onAddSubtask,
     onDeleteSubtask,
+
     onDuplicateSubtask,
     startTimer,
+    onMove,
     menuTrigger,
     menuMousePos,
     openMenuTaskId,
@@ -1283,6 +1293,10 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             onStartTimer={onStartTimer}
                             triggerElement={menuTrigger}
                             mousePos={menuMousePos}
+                            onMove={() => {
+                                onMove(task.id);
+                                onCloseMenu();
+                            }}
                         />
                     )}
                 </div>
@@ -1315,6 +1329,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                                 onCloseMenu();
                             }}
                             isTableMode={isTableMode}
+                            onMove={onMove}
                         />
 
                     ))}
@@ -1400,7 +1415,9 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
     const [newGroupName, setNewGroupName] = React.useState('');
     const [isStatusEditorOpen, setIsStatusEditorOpen] = React.useState(false);
     const [groupBy, setGroupBy] = React.useState<'status' | 'none'>(isTableMode ? 'none' : 'status');
+
     const [isCreateFieldOpen, setIsCreateFieldOpen] = React.useState(false);
+    const [moveTaskId, setMoveTaskId] = React.useState<string | null>(null);
 
     const handleAddField = (field: { id: string; name: string; type: string; metadata?: any }) => {
         const targetId = currentListId || currentSpaceId;
@@ -1785,6 +1802,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                             openMenuTaskId={openMenuTaskId}
                                             menuTrigger={menuTrigger}
                                             menuMousePos={menuMousePos}
+                                            onMove={(taskId) => setMoveTaskId(taskId)}
                                         />
                                     ))}
                                     <CalculationRow
@@ -1869,6 +1887,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                                         openMenuTaskId={openMenuTaskId}
                                                         menuTrigger={menuTrigger}
                                                         menuMousePos={menuMousePos}
+                                                        onMove={(taskId) => setMoveTaskId(taskId)}
                                                     />
                                                 ))}
                                                 <CalculationRow
@@ -1957,6 +1976,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                                     openMenuTaskId={openMenuTaskId}
                                                     menuTrigger={menuTrigger}
                                                     menuMousePos={menuMousePos}
+                                                    onMove={(taskId) => setMoveTaskId(taskId)}
                                                 />
                                             ))}
                                         </div>
@@ -2030,6 +2050,12 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                     />
                 </div>
             )}
+
+            <MoveTaskModal
+                isOpen={!!moveTaskId}
+                taskId={moveTaskId || ''}
+                onClose={() => setMoveTaskId(null)}
+            />
 
             {columnContextMenu && (
                 <ContextMenu

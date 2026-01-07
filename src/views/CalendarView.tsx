@@ -41,6 +41,7 @@ import TaskOptionsMenu from '../components/TaskOptionsMenu';
 import '../styles/CalendarView.css';
 import '../styles/ListView.css';
 import '../styles/TaskOptionsMenu.css';
+import MoveTaskModal from '../components/MoveTaskModal';
 
 interface CalendarViewProps {
     onAddTask: (startDate?: Date, dueDate?: Date) => void;
@@ -478,6 +479,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
     const [calendarMode, setCalendarMode] = useState<CalendarMode>('month');
     const [openMenuTaskId, setOpenMenuTaskId] = useState<string | null>(null);
     const [menuTrigger, setMenuTrigger] = useState<HTMLElement | null>(null);
+    const [moveTaskId, setMoveTaskId] = React.useState<string | null>(null);
 
     const handleOpenMenu = (taskId: string, trigger: HTMLElement) => {
         setOpenMenuTaskId(taskId);
@@ -677,9 +679,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
                     onArchive={() => archiveTask(openMenuTaskId)}
                     onDelete={() => deleteTask(openMenuTaskId)}
                     onConvertToDoc={() => { }}
+
                     triggerElement={menuTrigger}
+                    onMove={() => { setMoveTaskId(openMenuTaskId); setOpenMenuTaskId(null); }}
                 />
             )}
+
+            <MoveTaskModal
+                isOpen={!!moveTaskId}
+                taskId={moveTaskId || ''}
+                onClose={() => setMoveTaskId(null)}
+            />
         </div>
     );
 };

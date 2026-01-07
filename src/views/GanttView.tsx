@@ -47,6 +47,7 @@ import '../styles/GanttView.css';
 import '../styles/ListView.css';
 import '../styles/TaskOptionsMenu.css';
 import '../styles/GanttViewExtra.css';
+import MoveTaskModal from '../components/MoveTaskModal';
 
 interface GanttViewProps {
     onAddTask: () => void;
@@ -204,6 +205,7 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
     const [zoom, setZoom] = useState(1);
     const [openMenuTaskId, setOpenMenuTaskId] = useState<string | null>(null);
     const [menuTrigger, setMenuTrigger] = useState<HTMLElement | null>(null);
+    const [moveTaskId, setMoveTaskId] = React.useState<string | null>(null);
     const [timePeriod, setTimePeriod] = useState<TimePeriod>('Week');
     const [isPeriodMenuOpen, setIsPeriodMenuOpen] = useState(false);
 
@@ -617,8 +619,15 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
                         onDelete={() => deleteTask(openMenuTaskId)}
                         onConvertToDoc={() => { }}
                         triggerElement={menuTrigger}
+                        onMove={() => { setMoveTaskId(openMenuTaskId); setOpenMenuTaskId(null); }}
                     />
                 )}
+
+                <MoveTaskModal
+                    isOpen={!!moveTaskId}
+                    taskId={moveTaskId || ''}
+                    onClose={() => setMoveTaskId(null)}
+                />
             </DndContext>
 
         </div>

@@ -41,9 +41,11 @@ import TimePicker from './TimePicker';
 
 import RichTextEditor from './RichTextEditor';
 import TaskOptionsMenu from './TaskOptionsMenu';
+
 import RelationshipMenu from './RelationshipMenu';
 import TagMenu from './TagMenu';
 import ActivityPanel from './ActivityPanel';
+import MoveTaskModal from './MoveTaskModal';
 import '../styles/TaskDetailModal.css';
 
 interface TaskDetailModalProps {
@@ -140,6 +142,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
 
     const [activeTab, setActiveTab] = useState<'details' | 'subtasks'>('details');
     const [sidebarTab, setSidebarTab] = useState<SidebarTab>('activity');
+    const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
     // newSubtaskName state moved to SubtaskInput component
     const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
     const [optionsMenuTrigger, setOptionsMenuTrigger] = useState<HTMLElement | null>(null);
@@ -678,7 +681,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                     onArchive={handleArchive}
                                     onDelete={handleDeleteClick}
                                     onConvertToDoc={handleConvertToDoc}
-                                    onMove={() => { setIsLocationPickerOpen(true); setIsOptionsMenuOpen(false); }}
+                                    onMove={() => { setIsMoveModalOpen(true); setIsOptionsMenuOpen(false); }}
                                     onStartTimer={() => { alert('Timer started for task ' + taskId); setIsOptionsMenuOpen(false); }}
                                     triggerElement={optionsMenuTrigger}
                                 />
@@ -1660,6 +1663,12 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                     </div>
                 </div>
             </div>
+
+            <MoveTaskModal
+                isOpen={isMoveModalOpen}
+                taskId={taskId}
+                onClose={() => setIsMoveModalOpen(false)}
+            />
         </div>
     );
 };

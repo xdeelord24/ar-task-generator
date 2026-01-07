@@ -50,6 +50,7 @@ import '../styles/KanbanView.css';
 import '../styles/TaskOptionsMenu.css';
 import QuickAddSubtask from '../components/QuickAddSubtask';
 import TagMenu from '../components/TagMenu';
+import MoveTaskModal from '../components/MoveTaskModal';
 import type { Subtask } from '../types';
 
 interface KanbanViewProps {
@@ -90,6 +91,7 @@ interface SortableCardProps {
     onDeleteSubtask: (taskId: string, subtaskId: string) => void;
     onDuplicateSubtask: (taskId: string, subtaskId: string) => void;
     onUpdateSubtask: (taskId: string, subtaskId: string, updates: Partial<Subtask>) => void;
+    onMove: (taskId: string) => void;
 }
 
 const SortableCard: React.FC<SortableCardProps> = ({
@@ -118,7 +120,8 @@ const SortableCard: React.FC<SortableCardProps> = ({
     openMenuTaskId,
     onDeleteSubtask,
     onDuplicateSubtask,
-    onUpdateSubtask
+    onUpdateSubtask,
+    onMove
 }) => {
     const {
         attributes,
@@ -245,6 +248,7 @@ const SortableCard: React.FC<SortableCardProps> = ({
                                 onStartTimer={() => { startTimer(task.id); onCloseMenu(); }}
                                 triggerElement={menuTrigger}
                                 mousePos={menuMousePos}
+                                onMove={() => { onMove(task.id); onCloseMenu(); }}
                             />
                         )}
                     </div>
@@ -442,6 +446,7 @@ interface KanbanColumnProps {
     onDeleteSubtask: (taskId: string, subtaskId: string) => void;
     onDuplicateSubtask: (taskId: string, subtaskId: string) => void;
     onUpdateSubtask: (taskId: string, subtaskId: string, updates: Partial<Subtask>) => void;
+    onMove: (taskId: string) => void;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -472,7 +477,10 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     setActivePopover,
     onDeleteSubtask,
     onDuplicateSubtask,
-    onUpdateSubtask
+
+    onUpdateSubtask,
+    onMove
+
 }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: status,
@@ -524,7 +532,9 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                             openMenuTaskId={openMenuTaskId}
                             onDeleteSubtask={onDeleteSubtask}
                             onDuplicateSubtask={onDuplicateSubtask}
+
                             onUpdateSubtask={onUpdateSubtask}
+                            onMove={onMove}
                         />
                     ))}
                     <button className="btn-add-card" onClick={() => onAddTask(status)}>
@@ -566,7 +576,9 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
     const [menuMousePos, setMenuMousePos] = React.useState<{ x: number, y: number } | null>(null);
     const [isAddingColumn, setIsAddingColumn] = React.useState(false);
     const [newColumnName, setNewColumnName] = React.useState('');
+
     const [addSubtaskTaskId, setAddSubtaskTaskId] = React.useState<string | null>(null);
+    const [moveTaskId, setMoveTaskId] = React.useState<string | null>(null);
 
     const handleOpenMenu = (taskId: string, trigger: HTMLElement, mousePos?: { x: number, y: number }) => {
         setOpenMenuTaskId(taskId);
@@ -735,7 +747,9 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                             setActivePopover={setActivePopover}
                             onDeleteSubtask={deleteSubtask}
                             onDuplicateSubtask={duplicateSubtask}
+
                             onUpdateSubtask={updateSubtask}
+                            onMove={(taskId) => setMoveTaskId(taskId)}
                         />
                     ))}
                     <div className="add-column-container">
@@ -835,6 +849,11 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                 </DragOverlay>
             </DndContext>
 
+            <MoveTaskModal
+                isOpen={!!moveTaskId}
+                taskId={moveTaskId || ''}
+                onClose={() => setMoveTaskId(null)}
+            />
         </div>
     );
 };
