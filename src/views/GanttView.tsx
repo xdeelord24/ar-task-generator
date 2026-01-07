@@ -200,7 +200,7 @@ const DraggableGanttBar: React.FC<DraggableGanttBarProps> = ({ task, viewStart, 
 type TimePeriod = 'Day' | 'Week' | 'Month' | 'Quarter' | 'Year' | 'Flexible';
 
 const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
-    const { tasks, currentSpaceId, updateTask, duplicateTask, archiveTask, deleteTask } = useAppStore();
+    const { tasks, currentSpaceId, currentListId, updateTask, duplicateTask, archiveTask, deleteTask } = useAppStore();
     const [viewDate, setViewDate] = useState(new Date());
     const [zoom, setZoom] = useState(1);
     const [openMenuTaskId, setOpenMenuTaskId] = useState<string | null>(null);
@@ -366,10 +366,15 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
         return { columns: cols, groups };
     })();
 
-    const filteredTasks = tasks.filter(task =>
-        (currentSpaceId === 'everything' || task.spaceId === currentSpaceId) &&
-        (task.dueDate || task.startDate)
-    );
+    const filteredTasks = tasks.filter(task => {
+        const hasDates = task.dueDate || task.startDate;
+        if (!hasDates) return false;
+
+        if (currentListId) {
+            return task.listId === currentListId;
+        }
+        return currentSpaceId === 'everything' || task.spaceId === currentSpaceId;
+    });
 
     const navigate = (direction: 'next' | 'prev') => {
         const factor = direction === 'next' ? 1 : -1;
