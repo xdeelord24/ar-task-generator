@@ -29,7 +29,8 @@ import {
     RotateCw,
     CornerDownLeft,
     Play,
-    Square
+    Square,
+    StickyNote
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAppStore } from '../store/useAppStore';
@@ -147,7 +148,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         }
     }
 
-    const [activeTab, setActiveTab] = useState<'details' | 'subtasks'>('details');
+    const [activeTab, setActiveTab] = useState<'details' | 'subtasks' | 'notepad'>('details');
     const [sidebarTab, setSidebarTab] = useState<SidebarTab>('activity');
     const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
     // newSubtaskName state moved to SubtaskInput component
@@ -1293,9 +1294,183 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                     Subtasks ({task.subtasks?.length || 0})
                                 </button>
                             )}
+                            <button
+                                className={`tab ${activeTab === 'notepad' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('notepad')}
+                                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                            >
+                                <StickyNote size={14} /> Notepad
+                            </button>
                         </div>
 
                         <div className="tab-content">
+                            {activeTab === 'notepad' && (
+                                <div className="notepad-container" style={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                    <div style={{
+                                        flex: 1,
+                                        backgroundColor: '#fffbeb', // Light yellow notepad color
+                                        border: '1px solid #fef3c7',
+                                        borderRadius: '8px',
+                                        padding: '16px',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                                        display: 'flex',
+                                        flexDirection: 'column'
+                                    }}>
+                                        <div style={{
+                                            marginBottom: '12px',
+                                            borderBottom: '2px solid #fde68a',
+                                            paddingBottom: '8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            color: '#b45309',
+                                            fontWeight: 600
+                                        }}>
+                                            <StickyNote size={18} />
+                                            <span>Private Notepad</span>
+                                        </div>
+                                        <textarea
+                                            placeholder="Type your notes here... (Supports - or * for bullets, [] for checkboxes)"
+                                            value={task.notepad || ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                // Simple auto-replace logic for typing (debounce could be better but this is simple)
+                                                // We handle keydown for most patterns, but on paste/text change we check basics
+                                                if (isSubtask && parentTask) {
+                                                    updateSubtask(parentTask.id, task!.id, { notepad: val });
+                                                } else {
+                                                    updateTask(task!.id, { notepad: val });
+                                                }
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    const target = e.target as HTMLTextAreaElement;
+                                                    const start = target.selectionStart;
+                                                    const end = target.selectionEnd;
+                                                    const value = target.value;
+
+                                                    // Find start of current line
+                                                    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+                                                    const currentLine = value.substring(lineStart, start);
+
+                                                    let nextLinePrefix = '\n';
+
+                                                    // Check for patterns
+                                                    if (/^(\s*)[-*]\s/.test(currentLine)) {
+                                                        nextLinePrefix = '\n' + currentLine.match(/^(\s*)[-*]\s/)![0];
+                                                    } else if (/^(\s*)\u2022\s/.test(currentLine)) {
+                                                        nextLinePrefix = '\n' + currentLine.match(/^(\s*)\u2022\s/)![0];
+                                                    } else if (/^(\s*)\[[ x]?\]\s/.test(currentLine)) {
+                                                        // Always continue with empty checkbox
+                                                        const match = currentLine.match(/^(\s*)(\[[ x]?\])\s/);
+                                                        nextLinePrefix = '\n' + match![1] + '[ ] ';
+                                                    } else if (/^(\s*)\u2610\s/.test(currentLine) || /^(\s*)\u2611\s/.test(currentLine)) {
+                                                        const match = currentLine.match(/^(\s*)([\u2610\u2611])\s/);
+                                                        nextLinePrefix = '\n' + match![1] + '\u2610 ';
+                                                    }
+
+                                                    // If current line is JUST the prefix (empty list item), clear it (end list)
+                                                    if (currentLine.trim().length > 0 && (
+                                                        currentLine.trim() === '-' ||
+                                                        currentLine.trim() === '*' ||
+                                                        currentLine.trim() === '\u2022' ||
+                                                        currentLine.trim() === '[ ]' ||
+                                                        currentLine.trim() === '\u2610'
+                                                    )) {
+                                                        // Remove the current empty item
+                                                        const newValue = value.substring(0, lineStart) + value.substring(end);
+                                                        const newCursor = lineStart;
+
+                                                        // Update
+                                                        if (isSubtask && parentTask) {
+                                                            updateSubtask(parentTask.id, task!.id, { notepad: newValue });
+                                                        } else {
+                                                            updateTask(task!.id, { notepad: newValue });
+                                                        }
+
+                                                        // Need to set cursor after render
+                                                        setTimeout(() => {
+                                                            target.selectionStart = target.selectionEnd = newCursor;
+                                                        }, 0);
+                                                        return;
+                                                    }
+
+                                                    const newValue = value.substring(0, start) + nextLinePrefix + value.substring(end);
+                                                    const newCursor = start + nextLinePrefix.length;
+
+                                                    // Save
+                                                    if (isSubtask && parentTask) {
+                                                        updateSubtask(parentTask.id, task!.id, { notepad: newValue });
+                                                    } else {
+                                                        updateTask(task!.id, { notepad: newValue });
+                                                    }
+
+                                                    // Set cursor
+                                                    setTimeout(() => {
+                                                        target.selectionStart = target.selectionEnd = newCursor;
+                                                    }, 0);
+                                                }
+                                                // Handle text expansion on space
+                                                else if (e.key === ' ') {
+                                                    const target = e.target as HTMLTextAreaElement;
+                                                    const start = target.selectionStart;
+                                                    const value = target.value;
+                                                    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+                                                    const textBeforeCursor = value.substring(lineStart, start);
+
+                                                    let replacement = '';
+                                                    let lengthToReplace = 0;
+
+                                                    if (textBeforeCursor === '-') {
+                                                        replacement = '\u2022 ';
+                                                        lengthToReplace = 1;
+                                                    } else if (textBeforeCursor === '*') {
+                                                        replacement = '\u2022 ';
+                                                        lengthToReplace = 1;
+                                                    } else if (textBeforeCursor === '[]') {
+                                                        replacement = '\u2610 ';
+                                                        lengthToReplace = 2; // replace [] with unicode box
+                                                    } else if (textBeforeCursor === '[x]') {
+                                                        replacement = '\u2611 ';
+                                                        lengthToReplace = 3;
+                                                    }
+
+                                                    if (replacement) {
+                                                        e.preventDefault();
+                                                        const newValue = value.substring(0, lineStart) + replacement + value.substring(start);
+
+                                                        if (isSubtask && parentTask) {
+                                                            updateSubtask(parentTask.id, task!.id, { notepad: newValue });
+                                                        } else {
+                                                            updateTask(task!.id, { notepad: newValue });
+                                                        }
+
+                                                        setTimeout(() => {
+                                                            target.selectionStart = target.selectionEnd = lineStart + replacement.length;
+                                                        }, 0);
+                                                    }
+                                                }
+                                            }}
+                                            style={{
+                                                flex: 1,
+                                                width: '100%',
+                                                border: 'none',
+                                                resize: 'none',
+                                                backgroundColor: 'transparent',
+                                                outline: 'none',
+                                                fontSize: '15px',
+                                                lineHeight: '1.6',
+                                                color: '#4b5563',
+                                                fontFamily: 'Inter, sans-serif',
+                                                minHeight: '400px'
+                                            }}
+                                            spellCheck={false}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             {activeTab === 'details' && (
                                 <div className="description-container">
                                     <div className="description-doc-header">

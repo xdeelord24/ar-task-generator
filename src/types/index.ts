@@ -20,6 +20,7 @@ export interface Subtask {
   updatedAt: string;
   customFieldValues?: Record<string, any>;
   tags?: string[];
+  notepad?: string;
 }
 
 export interface Comment {
@@ -86,6 +87,7 @@ export interface Task {
   relationships?: Relationship[];
   linkedDocId?: string;
   customFieldValues?: Record<string, any>;
+  notepad?: string;
 }
 
 export interface Space {
