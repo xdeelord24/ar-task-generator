@@ -79,6 +79,21 @@ const DashboardView: React.FC = () => {
         }
     };
 
+    const dashboardTasks = useMemo(() => {
+        if (!currentDashboard) return [];
+        let filtered = tasks;
+
+        if (currentDashboard.spaceId && currentDashboard.spaceId !== 'everything') {
+            filtered = filtered.filter(t => t.spaceId === currentDashboard.spaceId);
+        }
+
+        if (currentDashboard.listId) {
+            filtered = filtered.filter(t => t.listId === currentDashboard.listId);
+        }
+
+        return filtered;
+    }, [tasks, currentDashboard]);
+
     const handleResize = (id: string) => {
         if (!currentDashboard) return;
         const item = currentDashboard.items.find(i => i.id === id);
@@ -437,7 +452,7 @@ const DashboardView: React.FC = () => {
                                 <DashboardCard
                                     key={item.id}
                                     item={item}
-                                    tasks={tasks}
+                                    tasks={dashboardTasks}
                                     onDelete={handleDeleteCard}
                                     onResize={handleResize}
                                 />
