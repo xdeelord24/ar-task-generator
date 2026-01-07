@@ -260,6 +260,7 @@ const SortableCard: React.FC<SortableCardProps> = ({
                     <div className="card-icons">
                         <div className={`priority-icon ${task.priority ? 'has-priority' : ''}`} title={`Priority: ${task.priority || 'None'}`}>
                             <Flag size={14} className={task.priority ? `text-priority-${task.priority}` : 'text-priority-none'} />
+                            {task.priority && <span style={{ textTransform: 'capitalize' }}>{task.priority}</span>}
                         </div>
                         {task.subtasks && task.subtasks.length > 0 && (
                             <span><CheckSquare size={14} /> {task.subtasks.length}</span>
@@ -374,8 +375,9 @@ const SortableCard: React.FC<SortableCardProps> = ({
                                                 {subtask.dueDate && <span className="option-text-xs">{subtask.dueDate.substring(5, 10)}</span>}
                                             </div>
 
-                                            <div className={`subtask-option-icon ${subtask.priority ? 'has-priority' : ''}`} title="Priority">
+                                            <div className={`subtask-option-icon ${subtask.priority ? 'has-priority' : ''}`} title="Priority" style={subtask.priority ? { width: 'auto', padding: '0 6px', gap: '4px' } : {}}>
                                                 <Flag size={12} className={subtask.priority ? `text-priority-${subtask.priority}` : ''} />
+                                                {subtask.priority && <span style={{ fontSize: '10px', textTransform: 'capitalize' }}>{subtask.priority}</span>}
                                             </div>
                                         </div>
                                         {openMenuTaskId === subtask.id && (
