@@ -120,7 +120,9 @@ const Sidebar: React.FC = () => {
         leaveSpace,
         duplicateFolder,
         duplicateList,
-        addDoc
+        addDoc,
+        userLevel,
+        userExp
     } = useAppStore();
 
     const [isCreateSpaceOpen, setIsCreateSpaceOpen] = React.useState(false);
@@ -744,6 +746,41 @@ const Sidebar: React.FC = () => {
                     </a>
                 )}
             </div>
+
+            {!sidebarCollapsed && (
+                <div className="sidebar-profile-stats" style={{ padding: '16px', borderTop: '1px solid var(--border-color)', marginTop: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '50%',
+                                background: 'var(--primary)',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '10px',
+                                fontWeight: 'bold'
+                            }}>
+                                {userLevel || 1}
+                            </div>
+                            <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>Jundee</span>
+                        </div>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{userExp || 0} / {(userLevel || 1) * 1000} XP</span>
+                    </div>
+                    <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{
+                            width: `${Math.min(((userExp || 0) / ((userLevel || 1) * 1000)) * 100, 100)}%`,
+                            height: '100%',
+                            background: 'var(--primary)',
+                            borderRadius: '3px',
+                            transition: 'width 0.3s ease-out'
+                        }}></div>
+                    </div>
+                </div>
+            )}
+
 
             {isCreateSpaceOpen && <CreateSpaceModal onClose={() => setIsCreateSpaceOpen(false)} />}
 

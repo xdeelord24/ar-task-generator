@@ -231,6 +231,8 @@ export interface AppState {
   clips: Clip[];
   notifications: Notification[];
   notificationSettings: NotificationSettings;
+  userLevel: number;
+  userExp: number;
 }
 
 export interface ChatSession {
@@ -240,7 +242,7 @@ export interface ChatSession {
   messages: Message[];
 }
 
-export type NotificationType = 'due_soon' | 'overdue' | 'task_assigned' | 'task_completed' | 'comment_added' | 'mention';
+export type NotificationType = 'due_soon' | 'overdue' | 'task_assigned' | 'task_completed' | 'comment_added' | 'mention' | 'level_up';
 
 export interface Notification {
   id: string;

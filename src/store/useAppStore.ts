@@ -280,6 +280,7 @@ interface AppStore extends AppState {
     syncSharedData: () => Promise<void>;
     setupSocket: (userId: string) => void;
     refreshRooms: () => void;
+    addExp: (amount: number) => void;
 }
 
 export const DEFAULT_STATUSES: Status[] = [
@@ -409,6 +410,8 @@ export const useAppStore = create<AppStore>()(
                 notifyOnDueSoon: true,
                 notifyOnAssignment: true
             },
+            userLevel: 1,
+            userExp: 0,
 
             setTasks: (tasks) => set({ tasks }),
             addTask: async (task) => {
@@ -469,6 +472,13 @@ export const useAppStore = create<AppStore>()(
 
             updateTask: async (taskId, updates) => {
                 console.log(`Updating task ${taskId}`, updates);
+
+                // Gamification: Award XP for completing a task
+                const currentStore = get();
+                const taskBeforeUpdate = currentStore.tasks.find(t => t.id === taskId);
+                if (taskBeforeUpdate && updates.status === 'COMPLETED' && taskBeforeUpdate.status !== 'COMPLETED') {
+                    currentStore.addExp(500);
+                }
 
                 set((state) => {
                     const newTasks = state.tasks.map((task) =>
@@ -1146,6 +1156,16 @@ export const useAppStore = create<AppStore>()(
                 });
 
                 set({ activeTimer: null });
+
+                // Gamification: Award XP based on duration (Non-linear scaling)
+                // "Small time, small gains. Bigger timer, bigger exp."
+                let xpRate = 5; // Base rate for short bursts (< 20m)
+                if (duration >= 20) xpRate = 12; // Standard rate (20-59m)
+                if (duration >= 60) xpRate = 20; // Flow state bonus (> 60m)
+
+                const xpEarned = Math.round(duration * xpRate);
+                console.log(`[Gamification] Timer stopped. Duration: ${duration}m. Rate: ${xpRate}xp/m. Earned: ${xpEarned} XP`);
+                state.addExp(xpEarned);
             },
 
             toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -1500,6 +1520,36 @@ export const useAppStore = create<AppStore>()(
                     console.log(`[Socket] Joined room: space:${s.id}`);
                 });
             },
+
+            addExp: (amount: number) => set((state) => {
+                let newExp = (state.userExp || 0) + amount;
+                let newLevel = state.userLevel || 1;
+                const getExpForNextLevel = (lvl: number) => lvl * 1000;
+                let leveledUp = false;
+
+                while (newExp >= getExpForNextLevel(newLevel)) {
+                    newExp -= getExpForNextLevel(newLevel);
+                    newLevel += 1;
+                    leveledUp = true;
+                }
+
+                if (leveledUp) {
+                    const store = get();
+                    setTimeout(() => {
+                        store.addNotification({
+                            type: 'level_up',
+                            title: 'Level Up!',
+                            message: `Congratulations! You reached Level ${newLevel}! Keep it up!`
+                        });
+                    }, 0);
+                }
+
+                return {
+                    userExp: newExp,
+                    userLevel: newLevel
+                };
+            }),
+
         }),
         {
             name: 'ar-generator-app-storage',

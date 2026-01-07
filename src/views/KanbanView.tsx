@@ -128,6 +128,7 @@ const SortableCard: React.FC<SortableCardProps> = ({
         transition,
         isDragging
     } = useSortable({ id: task.id });
+    const startTimer = useAppStore(state => state.startTimer);
 
     const [isExpanded, setIsExpanded] = React.useState(false);
 
@@ -241,7 +242,7 @@ const SortableCard: React.FC<SortableCardProps> = ({
                                 onArchive={() => onArchive(task.id)}
                                 onDelete={() => onDelete(task.id)}
                                 onConvertToDoc={() => onConvertToDoc(task)}
-                                onStartTimer={() => { alert('Timer started for task ' + task.id); onCloseMenu(); }}
+                                onStartTimer={() => { startTimer(task.id); onCloseMenu(); }}
                                 triggerElement={menuTrigger}
                                 mousePos={menuMousePos}
                             />
@@ -388,7 +389,7 @@ const SortableCard: React.FC<SortableCardProps> = ({
                                                 onDuplicate={() => { onDuplicateSubtask(task.id, subtask.id); onCloseMenu(); }}
                                                 onArchive={() => { onUpdateSubtask(task.id, subtask.id, { status: 'COMPLETED' }); onCloseMenu(); }}
                                                 onDelete={() => { onDeleteSubtask(task.id, subtask.id); onCloseMenu(); }}
-                                                onStartTimer={() => { alert('Timer started for subtask ' + subtask.id); onCloseMenu(); }}
+                                                onStartTimer={() => { startTimer(subtask.id); onCloseMenu(); }}
                                                 triggerElement={menuTrigger}
                                                 mousePos={menuMousePos}
                                             />
