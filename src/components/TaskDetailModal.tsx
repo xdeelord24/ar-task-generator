@@ -94,10 +94,12 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         addTimeEntry,
 
         duplicateTask,
+        duplicateSubtask,
         archiveTask,
         addTag,
         updateTag,
         deleteTag,
+        deleteSubtask,
         aiConfig,
         activeTimer,
         startTimer,
@@ -147,6 +149,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [datePickerTrigger, setDatePickerTrigger] = useState<HTMLElement | null>(null);
     const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
+    const [subtaskMenuOpenId, setSubtaskMenuOpenId] = useState<string | null>(null);
+    const [subtaskMenuTrigger, setSubtaskMenuTrigger] = useState<HTMLElement | null>(null);
+    const [subtaskMenuPos, setSubtaskMenuPos] = useState<{ x: number, y: number } | null>(null);
     const [timePickerTrigger, setTimePickerTrigger] = useState<HTMLElement | null>(null);
 
 
@@ -430,8 +435,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     };
 
     const handleDuplicate = () => {
-        if (isSubtask) {
-            alert('Cannot duplicate subtask yet.');
+        if (isSubtask && parentTask) {
+            duplicateSubtask(parentTask.id, taskId);
+            setIsOptionsMenuOpen(false);
             return;
         }
         duplicateTask(taskId);
@@ -1395,9 +1401,51 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                     </div>
                                                 </div>
                                                 <div className="st-cell-actions">
-                                                    <button className="icon-btn-ghost-st">
+                                                    <button
+                                                        className="icon-btn-ghost-st"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSubtaskMenuOpenId(st.id);
+                                                            setSubtaskMenuTrigger(e.currentTarget);
+                                                            setSubtaskMenuPos({ x: e.clientX, y: e.clientY });
+                                                        }}
+                                                    >
                                                         <MoreHorizontal size={14} />
                                                     </button>
+                                                    {subtaskMenuOpenId === st.id && (
+                                                        <TaskOptionsMenu
+                                                            taskId={st.id}
+                                                            onClose={() => {
+                                                                setSubtaskMenuOpenId(null);
+                                                                setSubtaskMenuTrigger(null);
+                                                                setSubtaskMenuPos(null);
+                                                            }}
+                                                            onRename={() => {
+                                                                // Toggle local rename state if implemented, 
+                                                                // or just focus a specific input if tracked.
+                                                                // For now, we'll assume renaming is done via inline edit button.
+                                                                setSubtaskMenuOpenId(null);
+                                                            }}
+                                                            onDuplicate={() => {
+                                                                duplicateSubtask(task!.id, st.id);
+                                                                setSubtaskMenuOpenId(null);
+                                                            }}
+                                                            onDelete={() => {
+                                                                deleteSubtask(task!.id, st.id);
+                                                                setSubtaskMenuOpenId(null);
+                                                            }}
+                                                            onArchive={() => {
+                                                                updateSubtask(task!.id, st.id, { status: 'COMPLETED' });
+                                                                setSubtaskMenuOpenId(null);
+                                                            }}
+                                                            onStartTimer={() => {
+                                                                startTimer(st.id);
+                                                                setSubtaskMenuOpenId(null);
+                                                            }}
+                                                            triggerElement={subtaskMenuTrigger}
+                                                            mousePos={subtaskMenuPos}
+                                                        />
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}

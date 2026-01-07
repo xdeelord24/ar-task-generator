@@ -315,6 +315,8 @@ interface SubtaskRowItemProps {
     menuMousePos?: { x: number, y: number } | null;
 
     onDeleteSubtask: (parentId: string, subtaskId: string) => void;
+    onDuplicateSubtask?: (parentId: string, subtaskId: string) => void;
+    onStartTimer: () => void;
     isTableMode?: boolean;
 }
 
@@ -334,6 +336,8 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
     menuTrigger,
     menuMousePos,
     onDeleteSubtask,
+    onDuplicateSubtask,
+    onStartTimer,
     tags,
     isTableMode
 }) => {
@@ -693,12 +697,15 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
                             onCloseMenu();
                         }}
                         onDelete={() => onDeleteSubtask(parentId, task.id)}
-                        onDuplicate={() => { }}
-                        onArchive={() => { }}
+                        onDuplicate={() => onDuplicateSubtask?.(parentId, task.id)}
+                        onArchive={() => onUpdateSubtask(parentId, task.id, { status: 'COMPLETED' })}
                         triggerElement={menuTrigger}
                         mousePos={menuMousePos}
-                        onConvertToDoc={() => { }}
-                        onStartTimer={() => { }}
+                        onConvertToDoc={() => { alert('Cannot convert subtask to Doc yet'); onCloseMenu(); }}
+                        onStartTimer={() => {
+                            onStartTimer();
+                            onCloseMenu();
+                        }}
                     />
                 )}
             </div>
@@ -710,6 +717,8 @@ interface SortableRowPropsWithUpdateSubtask extends SortableRowProps {
     onUpdateSubtask: (parentId: string, subtaskId: string, updates: any) => void;
     onAddSubtask: (taskId: string, name: string) => void;
     onDeleteSubtask: (parentId: string, subtaskId: string) => void;
+    onDuplicateSubtask: (parentId: string, subtaskId: string) => void;
+    startTimer: (taskId: string) => void;
     openMenuTaskId: string | null;
 }
 
@@ -737,6 +746,8 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
     onUpdateSubtask,
     onAddSubtask,
     onDeleteSubtask,
+    onDuplicateSubtask,
+    startTimer,
     menuTrigger,
     menuMousePos,
     openMenuTaskId,
@@ -1298,6 +1309,11 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
                             menuTrigger={menuTrigger}
                             menuMousePos={menuMousePos}
                             onDeleteSubtask={onDeleteSubtask}
+                            onDuplicateSubtask={onDuplicateSubtask}
+                            onStartTimer={() => {
+                                startTimer(st.id);
+                                onCloseMenu();
+                            }}
                             isTableMode={isTableMode}
                         />
 
@@ -1368,6 +1384,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
         updateTask,
         deleteTask,
         duplicateTask,
+        duplicateSubtask,
         archiveTask,
         updateSpace,
         updateList,
@@ -1763,6 +1780,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                             onUpdateSubtask={updateSubtask}
                                             onAddSubtask={(taskId, name) => addSubtask(taskId, { name, status: 'TO DO' })}
                                             onDeleteSubtask={deleteSubtask}
+                                            onDuplicateSubtask={duplicateSubtask}
+                                            startTimer={startTimer}
                                             openMenuTaskId={openMenuTaskId}
                                             menuTrigger={menuTrigger}
                                             menuMousePos={menuMousePos}
@@ -1845,6 +1864,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                                         onUpdateSubtask={updateSubtask}
                                                         onAddSubtask={(taskId, name) => addSubtask(taskId, { name, status: 'TO DO' })}
                                                         onDeleteSubtask={deleteSubtask}
+                                                        onDuplicateSubtask={duplicateSubtask}
+                                                        startTimer={startTimer}
                                                         openMenuTaskId={openMenuTaskId}
                                                         menuTrigger={menuTrigger}
                                                         menuMousePos={menuMousePos}
@@ -1931,6 +1952,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
                                                     onUpdateSubtask={updateSubtask}
                                                     onAddSubtask={(taskId, name) => addSubtask(taskId, { name, status: 'TO DO' })}
                                                     onDeleteSubtask={deleteSubtask}
+                                                    onDuplicateSubtask={duplicateSubtask}
+                                                    startTimer={startTimer}
                                                     openMenuTaskId={openMenuTaskId}
                                                     menuTrigger={menuTrigger}
                                                     menuMousePos={menuMousePos}

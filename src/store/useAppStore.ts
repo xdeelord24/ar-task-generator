@@ -210,6 +210,7 @@ interface AppStore extends AppState {
     updateTask: (taskId: string, updates: Partial<Task>) => void;
     deleteTask: (taskId: string) => void;
     duplicateTask: (taskId: string) => void;
+    duplicateSubtask: (taskId: string, subtaskId: string) => void;
     archiveTask: (taskId: string) => void;
     addSubtask: (taskId: string, subtask: Omit<Subtask, 'id' | 'createdAt' | 'updatedAt'>) => void;
     updateSubtask: (taskId: string, subtaskId: string, updates: Partial<Subtask>) => void;
@@ -549,6 +550,40 @@ export const useAppStore = create<AppStore>()(
                     subtasks: task.subtasks?.map(st => ({ ...st, id: crypto.randomUUID() }))
                 };
                 return { tasks: [...state.tasks, newTask] };
+            }),
+            duplicateSubtask: (taskId, subtaskId) => set((state) => {
+                const task = state.tasks.find(t => t.id === taskId);
+                if (!task || !task.subtasks) return state;
+                const subtask = task.subtasks.find(s => s.id === subtaskId);
+                if (!subtask) return state;
+
+                const newSubtask = {
+                    ...subtask,
+                    id: crypto.randomUUID(),
+                    name: `${subtask.name} (Copy)`,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                // Propagate
+                const stateGetter = get();
+                const space = stateGetter.spaces.find(s => s.id === task.spaceId);
+                if (space && (space as any).isShared && (space as any).ownerId) {
+                    const token = getAuthToken();
+                    if (token) {
+                        fetch('http://localhost:3001/api/shared/propagate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ ownerId: (space as any).ownerId, type: 'task', data: task }) // Propagate full task update for now
+                        }).catch(e => console.error('[AppStore] Failed to propagate subtask duplicate:', e));
+                    }
+                }
+
+                return {
+                    tasks: state.tasks.map(t =>
+                        t.id === taskId ? { ...t, subtasks: [...(t.subtasks || []), newSubtask], updatedAt: new Date().toISOString() } : t
+                    )
+                };
             }),
             archiveTask: (taskId) => set((state) => ({
                 tasks: state.tasks.map(t => t.id === taskId ? { ...t, status: 'COMPLETED' } : t)
