@@ -54,14 +54,14 @@
 }
 
 /* Main Nav */
-.main-nav {
+.sidebar .main-nav {
     display: flex;
     flex-direction: column;
     gap: 2px;
     margin-bottom: 24px;
 }
 
-.nav-item {
+.sidebar .nav-item {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -74,14 +74,16 @@
     font-weight: 400;
     cursor: pointer;
     user-select: none;
+    box-sizing: border-box;
+    /* Ensure padding doesn't break width */
 }
 
-.nav-item:hover {
+.sidebar .nav-item:hover {
     background: var(--bg-hover);
     color: var(--text-main);
 }
 
-.nav-item.active {
+.sidebar .nav-item.active {
     background: var(--bg-active);
     color: var(--primary);
     font-weight: 600;
@@ -203,7 +205,7 @@
     flex-direction: column;
     margin-left: 21px;
     border-left: 1px solid var(--border);
-    padding-left: 8px;
+    padding-left: 0;
 }
 
 .folder-container {
@@ -213,8 +215,8 @@
 
 .folder-item {
     gap: 8px;
-    padding-left: 0;
-    margin-left: -4px;
+    padding-left: 8px;
+    margin-left: 0;
 }
 
 .folder-icon {
@@ -226,14 +228,19 @@
     flex-direction: column;
     margin-left: 15px;
     border-left: 1px solid var(--border);
-    padding-left: 8px;
+    padding-left: 0;
+    gap: 2px;
 }
 
 
 /* Lists */
-.list-item {
+/* Lists */
+.sidebar .list-item {
     gap: 10px;
-    padding-left: 8px;
+    padding-left: 16px;
+    margin-right: 4px;
+    /* Prevent touching scrollbar */
+    width: auto;
 }
 
 .list-icon-wrapper {
