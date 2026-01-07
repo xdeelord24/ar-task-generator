@@ -658,6 +658,6 @@ app.get('/api/shared', authenticateToken, async (req, res) => {
     }
 });
 
-httpServer.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+httpServer.listen(port, '0.0.0.0', () => {
+    console.log(`Server running at http://0.0.0.0:${port}`);
 });
