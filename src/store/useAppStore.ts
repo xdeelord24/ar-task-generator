@@ -4,8 +4,11 @@ import { serverStorage, getAuthToken } from './storage';
 import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard, Clip, Notification, NotificationSettings, Agent } from '../types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { io, Socket } from 'socket.io-client';
+import { generateUUID } from '../utils/uuid';
 
 let socket: Socket | null = null;
+
+
 
 // --- Helper: Agent Condition Checker ---
 const checkAgentCondition = (agent: Agent, task: Task): boolean => {
@@ -129,7 +132,7 @@ Example JSON:
                     if (!currentTags.includes(existingTag.id)) newTagIds.push(existingTag.id);
                 } else {
                     // Create new tag
-                    const newTagId = crypto.randomUUID();
+                    const newTagId = generateUUID();
                     state.addTag({
                         name: tagName,
                         color: '#' + Math.floor(Math.random() * 16777215).toString(16)
@@ -146,7 +149,7 @@ Example JSON:
         // 3. Subtasks
         if (updates.subtasks && Array.isArray(updates.subtasks)) {
             const newSubtasks = updates.subtasks.map((name: string) => ({
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name,
                 status: 'TO DO',
                 createdAt: new Date().toISOString(),
@@ -172,7 +175,7 @@ Example JSON:
         if (updates.blockingTaskName) {
             const target = state.tasks.find(t => t.name.toLowerCase().includes(updates.blockingTaskName.toLowerCase()));
             if (target) {
-                const rel = { id: crypto.randomUUID(), type: 'blocking', taskId: target.id };
+                const rel = { id: generateUUID(), type: 'blocking', taskId: target.id };
                 const currentTask = state.tasks.find(t => t.id === task.id) || task;
                 taskUpdates.relationships = [...(currentTask.relationships || []), rel];
             }
@@ -418,7 +421,7 @@ export const useAppStore = create<AppStore>()(
 
                 const newTask: Task = {
                     ...task,
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
                     subtasks: [],
@@ -550,14 +553,14 @@ export const useAppStore = create<AppStore>()(
             duplicateTask: (taskId) => set((state) => {
                 const task = state.tasks.find(t => t.id === taskId);
                 if (!task) return state;
-                const newId = crypto.randomUUID();
+                const newId = generateUUID();
                 const newTask = {
                     ...task,
                     id: newId,
                     name: `${task.name} (Copy)`,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
-                    subtasks: task.subtasks?.map(st => ({ ...st, id: crypto.randomUUID() }))
+                    subtasks: task.subtasks?.map(st => ({ ...st, id: generateUUID() }))
                 };
                 return { tasks: [...state.tasks, newTask] };
             }),
@@ -569,7 +572,7 @@ export const useAppStore = create<AppStore>()(
 
                 const newSubtask = {
                     ...subtask,
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     name: `${subtask.name} (Copy)`,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
@@ -603,7 +606,7 @@ export const useAppStore = create<AppStore>()(
                     tasks: state.tasks.map((task) =>
                         task.id === taskId ? {
                             ...task,
-                            subtasks: [...(task.subtasks || []), { ...subtask, id: crypto.randomUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+                            subtasks: [...(task.subtasks || []), { ...subtask, id: generateUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
                             updatedAt: new Date().toISOString()
                         } : task
                     )
@@ -699,7 +702,7 @@ export const useAppStore = create<AppStore>()(
             addSpace: (space) => set((state) => ({
                 spaces: [...state.spaces, {
                     ...space,
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     taskCount: 0,
                     isDefault: false,
                     statuses: DEFAULT_STATUSES,
@@ -711,7 +714,7 @@ export const useAppStore = create<AppStore>()(
             addFolder: (folder) => {
                 const newFolder = {
                     ...folder,
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -752,7 +755,7 @@ export const useAppStore = create<AppStore>()(
                 const folder = state.folders.find(f => f.id === folderId);
                 if (!folder) return state;
 
-                const newFolderId = crypto.randomUUID();
+                const newFolderId = generateUUID();
                 const newFolder: Folder = {
                     ...folder,
                     id: newFolderId,
@@ -765,7 +768,7 @@ export const useAppStore = create<AppStore>()(
                 const folderLists = state.lists.filter(l => l.folderId === folderId);
                 const newLists = folderLists.map(list => ({
                     ...list,
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     folderId: newFolderId,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
@@ -781,7 +784,7 @@ export const useAppStore = create<AppStore>()(
                     originalTasks.forEach(task => {
                         newTasks.push({
                             ...task,
-                            id: crypto.randomUUID(),
+                            id: generateUUID(),
                             listId: newList.id,
                             createdAt: new Date().toISOString(),
                             updatedAt: new Date().toISOString()
@@ -799,7 +802,7 @@ export const useAppStore = create<AppStore>()(
             addList: (list) => {
                 const newList = {
                     ...list,
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     taskCount: 0,
                     statuses: DEFAULT_STATUSES,
                     createdAt: new Date().toISOString(),
@@ -840,7 +843,7 @@ export const useAppStore = create<AppStore>()(
                 const list = state.lists.find(l => l.id === listId);
                 if (!list) return state;
 
-                const newListId = crypto.randomUUID();
+                const newListId = generateUUID();
                 const newList = {
                     ...list,
                     id: newListId,
@@ -853,7 +856,7 @@ export const useAppStore = create<AppStore>()(
                 const originalTasks = state.tasks.filter(t => t.listId === listId);
                 const newTasks = originalTasks.map(t => ({
                     ...t,
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     listId: newListId,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
@@ -972,7 +975,7 @@ export const useAppStore = create<AppStore>()(
             }),
 
             addTag: (tag) => set((state) => ({
-                tags: [...state.tags, { ...tag, id: crypto.randomUUID() }]
+                tags: [...state.tags, { ...tag, id: generateUUID() }]
             })),
             updateTag: (tagId, updates) => set((state) => ({
                 tags: state.tags.map(t => t.id === tagId ? { ...t, ...updates } : t)
@@ -987,7 +990,7 @@ export const useAppStore = create<AppStore>()(
                 set((state) => ({
                     tasks: state.tasks.map(task => task.id === taskId ? {
                         ...task,
-                        comments: [...(task.comments || []), { ...comment, id: crypto.randomUUID(), createdAt: new Date().toISOString() }],
+                        comments: [...(task.comments || []), { ...comment, id: generateUUID(), createdAt: new Date().toISOString() }],
                         updatedAt: new Date().toISOString()
                     } : task)
                 }));
@@ -1020,7 +1023,7 @@ export const useAppStore = create<AppStore>()(
                 set((state) => ({
                     tasks: state.tasks.map(task => task.id === taskId ? {
                         ...task,
-                        timeEntries: [...(task.timeEntries || []), { ...entry, id: crypto.randomUUID() }],
+                        timeEntries: [...(task.timeEntries || []), { ...entry, id: generateUUID() }],
                         updatedAt: new Date().toISOString()
                     } : task)
                 }));
@@ -1045,7 +1048,7 @@ export const useAppStore = create<AppStore>()(
                 set((state) => ({
                     tasks: state.tasks.map(task => task.id === taskId ? {
                         ...task,
-                        relationships: [...(task.relationships || []), { ...relationship, id: crypto.randomUUID() }],
+                        relationships: [...(task.relationships || []), { ...relationship, id: generateUUID() }],
                         updatedAt: new Date().toISOString()
                     } : task)
                 }));
@@ -1092,7 +1095,7 @@ export const useAppStore = create<AppStore>()(
                 }
             },
             addDoc: (doc) => {
-                const id = crypto.randomUUID();
+                const id = generateUUID();
                 set((state) => ({
                     docs: [...state.docs, { ...doc, id, updatedAt: new Date().toISOString() }]
                 }));
@@ -1102,7 +1105,7 @@ export const useAppStore = create<AppStore>()(
                 docs: state.docs.map(doc => doc.id === docId ? { ...doc, ...updates, updatedAt: new Date().toISOString() } : doc)
             })),
             addStatus: (targetId, isSpace, status) => set((state) => {
-                const id = crypto.randomUUID();
+                const id = generateUUID();
                 const newStatus: Status = { ...status, id };
 
                 const getUpdatedStatuses = (currentStatuses: Status[] | undefined) => {
@@ -1171,7 +1174,7 @@ export const useAppStore = create<AppStore>()(
             toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 
             addSavedView: (view) => set((state) => ({
-                savedViews: [...state.savedViews, { ...view, id: crypto.randomUUID(), createdAt: new Date().toISOString() }]
+                savedViews: [...state.savedViews, { ...view, id: generateUUID(), createdAt: new Date().toISOString() }]
             })),
             updateSavedView: (viewId, updates) => set((state) => ({
                 savedViews: state.savedViews.map(v => v.id === viewId ? { ...v, ...updates } : v)
@@ -1192,7 +1195,7 @@ export const useAppStore = create<AppStore>()(
                 const title = firstUserMsg ? (firstUserMsg.content.slice(0, 30) + (firstUserMsg.content.length > 30 ? '...' : '')) : 'New Chat';
 
                 const newSession = {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     title,
                     createdAt: new Date().toISOString(),
                     messages: state.aiMessages
@@ -1212,7 +1215,7 @@ export const useAppStore = create<AppStore>()(
                 aiSessions: state.aiSessions.filter(s => s.id !== sessionId)
             })),
             addDashboard: (dashboard) => {
-                const id = dashboard.id || crypto.randomUUID();
+                const id = dashboard.id || generateUUID();
                 set((state) => ({
                     dashboards: [
                         ...state.dashboards,
@@ -1240,7 +1243,7 @@ export const useAppStore = create<AppStore>()(
                 clips: [
                     {
                         ...clip,
-                        id: crypto.randomUUID(),
+                        id: generateUUID(),
                         createdAt: new Date().toISOString(),
                         ownerId: 'user-1',
                         ownerName: 'Jundee Mark Gerona Molina'
@@ -1257,7 +1260,7 @@ export const useAppStore = create<AppStore>()(
             addClipComment: (clipId, comment) => set((state) => ({
                 clips: state.clips.map(c => c.id === clipId ? {
                     ...c,
-                    comments: [...(c.comments || []), { ...comment, id: crypto.randomUUID(), createdAt: new Date().toISOString() }]
+                    comments: [...(c.comments || []), { ...comment, id: generateUUID(), createdAt: new Date().toISOString() }]
                 } : c)
             })),
             renameClip: (id, name) => set((state) => {
@@ -1272,7 +1275,7 @@ export const useAppStore = create<AppStore>()(
                 notifications: [
                     {
                         ...notification,
-                        id: crypto.randomUUID(),
+                        id: generateUUID(),
                         createdAt: new Date().toISOString(),
                         isRead: false
                     },
@@ -1374,7 +1377,7 @@ export const useAppStore = create<AppStore>()(
                     ...state.agents,
                     {
                         ...agent,
-                        id: crypto.randomUUID(),
+                        id: generateUUID(),
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
                         creatorId: 'user-1',

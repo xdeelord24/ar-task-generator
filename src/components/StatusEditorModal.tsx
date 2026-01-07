@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Status } from '../types';
+import { generateUUID } from '../utils/uuid';
 import '../styles/StatusEditorModal.css';
 
 interface StatusEditorModalProps {
@@ -199,7 +200,7 @@ const StatusEditorModal: React.FC<StatusEditorModalProps> = ({ isOpen, onClose, 
 
     const handleAddStatus = (type: Status['type']) => {
         const newStatus: Status = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             name: 'NEW STATUS',
             color: '#64748b',
             type: type

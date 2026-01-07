@@ -31,6 +31,7 @@ import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
 import { useAppStore } from '../store/useAppStore';
 import DashboardCard from '../components/DashboardCard';
 import ViewHeader from '../components/ViewHeader';
+import { generateUUID } from '../utils/uuid';
 import '../styles/DashboardView.css';
 
 const DashboardView: React.FC = () => {
@@ -110,7 +111,7 @@ const DashboardView: React.FC = () => {
     const addNewChart = (type: any, title: string) => {
         if (!currentDashboard) return;
         const newItem = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             type,
             title,
             size: 'medium' as const,
@@ -133,42 +134,42 @@ const DashboardView: React.FC = () => {
         if (type === 'Task Management') {
             items.push(
                 {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     type: 'stat',
                     title: 'Total Tasks',
                     size: 'small',
                     config: { metric: 'total' }
                 },
                 {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     type: 'stat',
                     title: 'Completed',
                     size: 'small',
                     config: { metric: 'completed' }
                 },
                 {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     type: 'stat',
                     title: 'Urgent',
                     size: 'small',
                     config: { metric: 'urgent' }
                 },
                 {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     type: 'stat',
                     title: 'In Progress',
                     size: 'small',
                     config: { metric: 'inprogress' }
                 },
                 {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     type: 'bar',
                     title: 'Task Distribution',
                     size: 'medium',
                     config: {}
                 },
                 {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     type: 'priority',
                     title: 'By Priority',
                     size: 'medium',
@@ -178,21 +179,21 @@ const DashboardView: React.FC = () => {
         } else if (type === 'Project Management') {
             items.push(
                 {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     type: 'pie',
                     title: 'Completion Rate',
                     size: 'medium',
                     config: {}
                 },
                 {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     type: 'bar',
                     title: 'Project Status',
                     size: 'medium',
                     config: {}
                 },
                 {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     type: 'stat',
                     title: 'Total Tasks',
                     size: 'small',
@@ -202,7 +203,7 @@ const DashboardView: React.FC = () => {
         } else if (type === 'AI Team Center') {
             items.push(
                 {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     type: 'stat',
                     title: 'Team Activity',
                     size: 'medium',
