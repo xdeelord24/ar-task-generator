@@ -176,6 +176,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [workspaceMembers, setWorkspaceMembers] = useState<any[]>([]);
     const [assigneeSearch, setAssigneeSearch] = useState('');
     const { token, user: currentUser } = useAuthStore();
+
+    // Subtask functionality states
+    const [renamingSubtaskId, setRenamingSubtaskId] = useState<string | null>(null);
+    const [subtaskTagPickerOpenId, setSubtaskTagPickerOpenId] = useState<string | null>(null);
+    const [subtaskTagPickerTrigger, setSubtaskTagPickerTrigger] = useState<HTMLElement | null>(null);
     const activityFeedRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     const titleSuggestionRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -392,6 +397,22 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             newSelected.add(name);
         }
         setSelectedSuggestions(newSelected);
+    };
+
+    const handleSubtaskNameSave = (subtaskId: string, newName: string) => {
+        if (!newName.trim()) return;
+        updateSubtask(taskId, subtaskId, { name: newName });
+        setRenamingSubtaskId(null);
+    };
+
+    const toggleSubtaskTag = (subtaskId: string, tagId: string) => {
+        const subtask = task!.subtasks?.find(s => s.id === subtaskId);
+        if (!subtask) return;
+        const currentTags = subtask.tags || [];
+        const newTags = currentTags.includes(tagId)
+            ? currentTags.filter(t => t !== tagId)
+            : [...currentTags, tagId];
+        updateSubtask(taskId, subtaskId, { tags: newTags });
     };
 
     const handleUpdate = (updates: Partial<Task>) => {
@@ -1331,6 +1352,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
 
                                     <div className="subtasks-header-row">
                                         <div className="st-col-name">Name</div>
+                                        <div className="st-col-tags">Tags</div>
                                         <div className="st-col-assignee">Assignee</div>
                                         <div className="st-col-prio">Priority</div>
                                         <div className="st-col-date">Due date</div>
@@ -1352,25 +1374,81 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                         </div>
                                                     </div>
                                                     <div className="st-name-group">
-                                                        {st.status === 'COMPLETED' ? (
-                                                            <span className="st-name-text completed">{st.name}</span>
+                                                        {renamingSubtaskId === st.id ? (
+                                                            <input
+                                                                className="st-name-input"
+                                                                autoFocus
+                                                                defaultValue={st.name}
+                                                                onBlur={(e) => handleSubtaskNameSave(st.id, e.target.value)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') handleSubtaskNameSave(st.id, e.currentTarget.value);
+                                                                    if (e.key === 'Escape') setRenamingSubtaskId(null);
+                                                                }}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
                                                         ) : (
-                                                            <span
-                                                                className="st-name-text link"
-                                                                onClick={() => onTaskClick && onTaskClick(st.id)}
-                                                            >
-                                                                {st.name}
-                                                            </span>
+                                                            <>
+                                                                {st.status === 'COMPLETED' ? (
+                                                                    <span className="st-name-text completed">{st.name}</span>
+                                                                ) : (
+                                                                    <span
+                                                                        className="st-name-text link"
+                                                                        onClick={() => onTaskClick && onTaskClick(st.id)}
+                                                                    >
+                                                                        {st.name}
+                                                                    </span>
+                                                                )}
+                                                                <div className="st-hover-actions">
+                                                                    <button
+                                                                        className="icon-btn-ghost-st"
+                                                                        title="Add tags"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setSubtaskTagPickerTrigger(e.currentTarget);
+                                                                            setSubtaskTagPickerOpenId(st.id);
+                                                                        }}
+                                                                    >
+                                                                        <Tag size={12} />
+                                                                    </button>
+                                                                    <button
+                                                                        className="icon-btn-ghost-st"
+                                                                        title="Rename"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setRenamingSubtaskId(st.id);
+                                                                        }}
+                                                                    >
+                                                                        <Edit2 size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            </>
                                                         )}
-                                                        <div className="st-hover-actions">
-                                                            <button className="icon-btn-ghost-st" title="Add tags">
-                                                                <Tag size={12} />
-                                                            </button>
-                                                            <button className="icon-btn-ghost-st" title="Rename" onClick={() => {/* Toggle rename */ }}>
-                                                                <Edit2 size={12} />
-                                                            </button>
-                                                        </div>
                                                     </div>
+                                                </div>
+                                                <div className="st-cell-tags">
+                                                    {st.tags?.map(tagId => {
+                                                        const tag = tags.find(t => t.id === tagId);
+                                                        return tag ? (
+                                                            <div key={tagId} className="tag-pill" style={{ backgroundColor: tag.color + '20', color: tag.color, fontSize: '10px', padding: '2px 6px', height: 'auto' }}>
+                                                                {tag.name}
+                                                            </div>
+                                                        ) : null;
+                                                    })}
+                                                    {subtaskTagPickerOpenId === st.id && (
+                                                        <TagMenu
+                                                            tags={tags}
+                                                            selectedTagIds={st.tags || []}
+                                                            onToggleTag={(tagId) => toggleSubtaskTag(st.id, tagId)}
+                                                            onCreateTag={addTag}
+                                                            onUpdateTag={updateTag}
+                                                            onDeleteTag={deleteTag}
+                                                            onClose={() => {
+                                                                setSubtaskTagPickerOpenId(null);
+                                                                setSubtaskTagPickerTrigger(null);
+                                                            }}
+                                                            triggerElement={subtaskTagPickerTrigger}
+                                                        />
+                                                    )}
                                                 </div>
                                                 <div className="st-cell-assignee">
                                                     <div className="involved-stack" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1429,9 +1507,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                                                 setSubtaskMenuPos(null);
                                                             }}
                                                             onRename={() => {
-                                                                // Toggle local rename state if implemented, 
-                                                                // or just focus a specific input if tracked.
-                                                                // For now, we'll assume renaming is done via inline edit button.
+                                                                setRenamingSubtaskId(st.id);
                                                                 setSubtaskMenuOpenId(null);
                                                             }}
                                                             onDuplicate={() => {

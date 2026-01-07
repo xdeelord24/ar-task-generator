@@ -1213,6 +1213,7 @@
 .st-col-assignee,
 .st-col-prio,
 .st-col-date,
+.st-col-tags,
 .st-col-actions {
     font-size: 11px;
     font-weight: 700;
@@ -1234,6 +1235,11 @@
 
 .st-col-actions {
     width: 40px;
+}
+
+.st-col-tags {
+    width: 120px;
+    text-align: left;
 }
 
 .subtasks-list-new {
@@ -1280,6 +1286,15 @@
     width: 40px;
     display: flex;
     justify-content: center;
+}
+
+.st-cell-tags {
+    width: 120px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    overflow: hidden;
 }
 
 /* Custom Status Circle */

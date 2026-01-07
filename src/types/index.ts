@@ -19,6 +19,7 @@ export interface Subtask {
   createdAt: string;
   updatedAt: string;
   customFieldValues?: Record<string, any>;
+  tags?: string[];
 }
 
 export interface Comment {
