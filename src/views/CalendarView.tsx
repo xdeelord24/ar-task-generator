@@ -470,6 +470,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
     const {
         tasks,
         currentSpaceId,
+        currentListId,
         updateTask,
         duplicateTask,
         archiveTask,
@@ -494,9 +495,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onAddTask, onTaskClick }) =
         })
     );
 
-    const filteredTasks = tasks.filter(task =>
-        currentSpaceId === 'everything' || task.spaceId === currentSpaceId
-    );
+    const filteredTasks = tasks.filter(task => {
+        if (currentListId) {
+            return task.listId === currentListId;
+        }
+        return currentSpaceId === 'everything' || task.spaceId === currentSpaceId;
+    });
 
     const getDays = () => {
         switch (calendarMode) {
