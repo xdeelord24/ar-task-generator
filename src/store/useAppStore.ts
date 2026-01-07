@@ -396,7 +396,7 @@ export const useAppStore = create<AppStore>()(
             ],
             aiConfig: {
                 provider: 'gemini',
-                ollamaHost: 'http://localhost:11434',
+                ollamaHost: '/api/proxy/ollama', // Default to proxy for CORS safety
                 ollamaModel: 'llama3'
             },
             aiMessages: [],

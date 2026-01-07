@@ -41,7 +41,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'pr
             }
         } catch (err: any) {
             console.error('Ollama fetch error:', err);
-            setOllamaError('Could not connect to Ollama. Ensure the server is running and CORS is enabled.');
+            let errorMessage = 'Could not connect to Ollama.';
+
+            if (host.includes('0.0.0.0')) {
+                errorMessage = 'Invalid Address: "0.0.0.0" is for server configuration only. Please use "http://localhost:11434" or your specific IP address.';
+            } else if (host.includes('localhost') || host.includes('127.0.0.1')) {
+                if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                    errorMessage = 'Browser blocked connection to localhost. Use Host Proxy instead.';
+                } else {
+                    errorMessage = 'Could not connect to localhost. Is Ollama running?';
+                }
+            } else {
+                errorMessage = 'Could not connect. Ensure CORS (OLLAMA_ORIGINS="*") is set.';
+            }
+
+            setOllamaError(errorMessage);
             setOllamaModels([]);
         } finally {
             setIsFetchingModels(false);
@@ -178,12 +192,53 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'pr
                                             placeholder="http://localhost:11434"
                                             onBlur={() => fetchOllamaModels(aiConfig.ollamaHost)}
                                         />
-                                        <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>The URL where your Ollama instance is running.</p>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                                            {/* Intelligent Warning for Remote Localhost */}
+                                            {typeof window !== 'undefined' &&
+                                                window.location.hostname !== 'localhost' &&
+                                                window.location.hostname !== '127.0.0.1' &&
+                                                (aiConfig.ollamaHost.includes('localhost') || aiConfig.ollamaHost.includes('127.0.0.1')) && (
+                                                    <div style={{ padding: '8px 12px', background: 'var(--warning-light)', color: 'var(--warning-text)', borderRadius: '6px', fontSize: '12px', border: '1px solid var(--warning-border)' }}>
+                                                        <strong>Browser Security Warning:</strong> Browsers usually block connections to "localhost" when you are visiting from a different IP ({window.location.hostname}).
+                                                        <div style={{ marginTop: '4px' }}>
+                                                            &bull; To use the <b>Server's AI</b>, click <u style={{ cursor: 'pointer' }} onClick={() => { setAIConfig({ ollamaHost: '/api/proxy/ollama' }); fetchOllamaModels('/api/proxy/ollama'); }}>Use Host Proxy</u>.
+                                                            <br />
+                                                            &bull; To use <b>This Device's AI</b>, you must configure Ollama to allow remote connections (set OLLAMA_HOST=0.0.0.0) and use your LAN IP.
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: 0 }}>
+                                                    URL where Ollama is running. Default: <code>http://localhost:11434</code>
+                                                </p>
+                                                <button
+                                                    className="btn-text-small"
+                                                    onClick={() => {
+                                                        setAIConfig({ ollamaHost: '/api/proxy/ollama' });
+                                                        fetchOllamaModels('/api/proxy/ollama');
+                                                    }}
+                                                    style={{ fontSize: '11px', color: 'var(--primary)', textDecoration: 'underline' }}
+                                                >
+                                                    Use Host Proxy
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {ollamaError && (
                                         <div style={{ padding: '8px 12px', background: 'var(--error-light)', color: 'var(--error)', borderRadius: '6px', fontSize: '12px', marginBottom: '16px', border: '1px solid var(--error)' }}>
-                                            {ollamaError}
+                                            <p style={{ margin: '0 0 4px 0', fontWeight: 'bold' }}>Connection Failed</p>
+                                            <p style={{ margin: '0 0 4px 0' }}>{ollamaError}</p>
+                                            <div style={{ margin: 0 }}>
+                                                <span style={{ fontWeight: '600' }}>Troubleshooting:</span>
+                                                <ul style={{ paddingLeft: '16px', margin: '4px 0 0 0' }}>
+                                                    <li>Ensure Ollama is running (`ollama serve`).</li>
+                                                    <li>If on a different device, try <b>Use Host Proxy</b>.</li>
+                                                    <li>To connect to this specific device, set `OLLAMA_ORIGINS="*"` on your machine.</li>
+                                                </ul>
+                                            </div>
                                         </div>
                                     )}
 

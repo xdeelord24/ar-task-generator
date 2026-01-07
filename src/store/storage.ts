@@ -402,6 +402,19 @@ export const serverStorage: StateStorage = {
             const token = getAuthToken();
             if (!token) return;
 
+            // Filter out local-only settings (like aiConfig) before sending to server
+            let serverPayload = value;
+            try {
+                const parsed = JSON.parse(value);
+                if (parsed.state && parsed.state.aiConfig) {
+                    const cleanState = { ...parsed.state };
+                    delete cleanState.aiConfig;
+                    serverPayload = JSON.stringify({ ...parsed, state: cleanState });
+                }
+            } catch (e) {
+                console.warn('[Storage] Payload filtering failed:', e);
+            }
+
             // Fire and forget, logging errors if any
             fetch(`${SERVER_URL}/${name}`, {
                 method: 'POST',
@@ -409,7 +422,7 @@ export const serverStorage: StateStorage = {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: value,
+                body: serverPayload,
             }).catch(e => console.error('[Storage] Background sync error:', e));
 
         } catch (error) {

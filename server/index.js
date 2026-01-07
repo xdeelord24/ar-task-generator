@@ -59,6 +59,64 @@ const dbHandler = new DatabaseHandler('./database.sqlite');
     }
 })();
 
+// --- Ollama Proxy ---
+app.use('/api/proxy/ollama', async (req, res) => {
+    try {
+        // req.url includes '/api/...' because the client appends it to the host
+        // e.g. Host='/api/proxy/ollama' -> Client calls '/api/proxy/ollama/api/generate'
+        // req.url is '/api/generate'. Target should be 'http://localhost:11434/api/generate'.
+        const targetUrl = `http://localhost:11434${req.url}`;
+        console.log(`[Proxy] Forwarding ${req.method} ${req.url} to ${targetUrl}`);
+
+        const response = await fetch(targetUrl, {
+            method: req.method,
+            headers: { 'Content-Type': 'application/json' },
+            body: req.method === 'POST' ? JSON.stringify(req.body) : undefined
+        });
+
+        if (!response.ok) {
+            console.error(`[Proxy] Ollama error: ${response.status} ${response.statusText}`);
+            return res.status(response.status).json({ error: 'Ollama Proxy Error' });
+        }
+
+        // Stream response if headers indicate stream (Ollama often streams)
+        // For simplicity in this v1, we'll assuming non-streaming or buffer it, 
+        // BUT Ollama /api/generate IS streaming by default. We should handle piping.
+        // However, 'fetch' in Node returns a body that is a readable stream.
+
+        // Let's try basic piping for full compatibility
+        const contentType = response.headers.get('content-type');
+        res.setHeader('Content-Type', contentType || 'application/json');
+
+        // @ts-ignore
+        if (response.body && typeof response.body.getReader === 'function') {
+            const reader = response.body.getReader();
+            try {
+                // Pump the stream manually
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    res.write(value);
+                }
+                res.end();
+            } catch (err) {
+                console.error('[Proxy] Stream error:', err);
+                res.end();
+            }
+        } else if (response.body && typeof response.body.pipe === 'function') {
+            // @ts-ignore
+            response.body.pipe(res);
+        } else {
+            const data = await response.json();
+            res.json(data);
+        }
+
+    } catch (error) {
+        console.error('[Proxy] Error:', error);
+        res.status(502).json({ error: 'Bad Gateway: Could not reach local Ollama' });
+    }
+});
+
 // --- Auth Routes ---
 
 const generateToken = (user) => {
