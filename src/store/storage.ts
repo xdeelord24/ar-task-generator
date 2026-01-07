@@ -288,6 +288,25 @@ export const serverStorage: StateStorage = {
                             safeMerge('tasks');
                             safeMerge('docs');
 
+                            // Merge Primitives (XP, Level) - specific handling for gamification
+                            if (sState.userLevel !== undefined) {
+                                const localLevel = lState.userLevel || 1;
+                                const serverLevel = sState.userLevel || 1;
+
+                                if (serverLevel > localLevel) {
+                                    lState.userLevel = serverLevel;
+                                    lState.userExp = sState.userExp;
+                                    console.log(`[Storage] Synced Level/Exp from server (Server ahead): Level ${serverLevel}`);
+                                } else if (serverLevel === localLevel) {
+                                    const localExp = lState.userExp || 0;
+                                    const serverExp = sState.userExp || 0;
+                                    if (serverExp > localExp) {
+                                        lState.userExp = serverExp;
+                                        console.log(`[Storage] Synced Exp from server (Server ahead): ${serverExp}`);
+                                    }
+                                }
+                            }
+
                             // Update local DB with the merged result so next load is faster
                             localDataStr = JSON.stringify(localJson);
 
