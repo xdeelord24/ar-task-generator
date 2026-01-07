@@ -285,6 +285,7 @@ interface AppStore extends AppState {
     setupSocket: (userId: string) => void;
     refreshRooms: () => void;
     addExp: (amount: number) => void;
+    setUserName: (name: string) => void;
     isTaskCompleted: (task: Task) => boolean;
     getDoneStatus: (task: Task) => string;
 }
@@ -447,6 +448,8 @@ export const useAppStore = create<AppStore>()(
             },
             userLevel: 1,
             userExp: 0,
+            userName: 'User',
+
 
             setTasks: (tasks) => set({ tasks }),
             addTask: async (task) => {
@@ -1626,6 +1629,8 @@ export const useAppStore = create<AppStore>()(
                     userLevel: newLevel
                 };
             }),
+            setUserName: (name) => set({ userName: name }),
+
 
             isTaskCompleted: (task) => {
                 const state = get();

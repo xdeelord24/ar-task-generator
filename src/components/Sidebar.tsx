@@ -52,6 +52,7 @@ import {
     ArrowRight
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 import ContextMenu, { useContextMenu } from './ContextMenu';
 import CreateSpaceModal from './CreateSpaceModal';
 import CreateListModal from './CreateListModal';
@@ -124,7 +125,9 @@ const Sidebar: React.FC = () => {
         duplicateList,
         addDoc,
         userLevel,
-        userExp
+        userExp,
+        userName,
+        setUserName
     } = useAppStore();
 
     const [isCreateSpaceOpen, setIsCreateSpaceOpen] = React.useState(false);
@@ -142,7 +145,12 @@ const Sidebar: React.FC = () => {
 
     const [expandedFolderIds, setExpandedFolderIds] = React.useState<Set<string>>(new Set());
     const [isAIModalOpen, setIsAIModalOpen] = React.useState(false);
+    const [isEditingName, setIsEditingName] = React.useState(false);
+    const [editedName, setEditedName] = React.useState('');
     const { showContextMenu, contextMenuProps, hideContextMenu } = useContextMenu();
+    const { user } = useAuthStore();
+
+    const displayName = (userName && userName !== 'User') ? userName : (user?.name || userName || 'User');
 
     const toggleSpace = (e: React.MouseEvent, spaceId: string) => {
         e.stopPropagation();
@@ -768,7 +776,46 @@ const Sidebar: React.FC = () => {
                             }}>
                                 {userLevel || 1}
                             </div>
-                            <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>Jundee</span>
+                            <span
+                                style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)', cursor: 'pointer' }}
+                                onClick={() => {
+                                    setEditedName(displayName);
+                                    setIsEditingName(true);
+                                }}
+                            >
+                                {isEditingName ? (
+                                    <input
+                                        type="text"
+                                        value={editedName}
+                                        onChange={(e) => setEditedName(e.target.value)}
+                                        onBlur={() => {
+                                            if (editedName.trim()) setUserName(editedName.trim());
+                                            setIsEditingName(false);
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                if (editedName.trim()) setUserName(editedName.trim());
+                                                setIsEditingName(false);
+                                            }
+                                            if (e.key === 'Escape') setIsEditingName(false);
+                                        }}
+                                        autoFocus
+                                        style={{
+                                            border: 'none',
+                                            background: 'transparent',
+                                            color: 'inherit',
+                                            fontSize: 'inherit',
+                                            fontWeight: 'inherit',
+                                            width: '80px',
+                                            outline: 'none',
+                                            padding: 0,
+                                            margin: 0
+                                        }}
+                                    />
+                                ) : (
+                                    displayName
+                                )}
+                            </span>
                         </div>
                         <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{userExp || 0} / {(userLevel || 1) * 1000} XP</span>
                     </div>

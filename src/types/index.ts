@@ -236,6 +236,7 @@ export interface AppState {
   notificationSettings: NotificationSettings;
   userLevel: number;
   userExp: number;
+  userName?: string;
 }
 
 export interface ChatSession {

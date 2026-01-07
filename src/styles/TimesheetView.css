@@ -408,6 +408,7 @@
 .btn-add-task-inline {
     margin: 24px;
     align-self: flex-start;
+    color: var(--text-secondary);
 }
 
 .h-divider {
