@@ -1399,6 +1399,25 @@
     background: var(--bg-hover);
 }
 
+.st-add-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    color: var(--text-main);
+    font-family: inherit;
+    padding: 0;
+}
+
+.st-add-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.plus-icon-st {
+    color: var(--text-tertiary);
+}
+
 
 .st-name-group {
     flex: 1;

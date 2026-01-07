@@ -68,12 +68,17 @@ const SubtaskInput: React.FC<{ onAdd: (name: string) => void }> = ({ onAdd }) =>
     return (
         <form onSubmit={handleSubmit} className="subtask-add-row">
             <div className="st-cell-name">
-                <Plus size={14} className="plus-icon-st" />
-                <input
-                    placeholder="Add Task"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                />
+                <div className="st-checkbox-area">
+                    <Plus size={14} className="plus-icon-st" />
+                </div>
+                <div className="st-name-group">
+                    <input
+                        className="st-add-input"
+                        placeholder="Add Task"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                    />
+                </div>
             </div>
         </form>
     );
