@@ -20,7 +20,8 @@ import {
     Users,
     CircleDashed,
     Flag,
-    Tag as TagIcon
+    Tag as TagIcon,
+    Settings
 } from 'lucide-react';
 import {
     DndContext,
@@ -51,6 +52,7 @@ import '../styles/TaskOptionsMenu.css';
 import QuickAddSubtask from '../components/QuickAddSubtask';
 import TagMenu from '../components/TagMenu';
 import MoveTaskModal from '../components/MoveTaskModal';
+import StatusEditorModal from '../components/StatusEditorModal';
 import type { Subtask } from '../types';
 
 interface KanbanViewProps {
@@ -567,7 +569,9 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         lists,
         deleteSubtask,
         duplicateSubtask,
-        updateSubtask
+        updateSubtask,
+        updateList,
+        updateSpace
     } = useAppStore();
     const { user } = useAuthStore();
     const [activePopover, setActivePopover] = React.useState<ActivePopover | null>(null);
@@ -580,6 +584,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
 
     const [addSubtaskTaskId, setAddSubtaskTaskId] = React.useState<string | null>(null);
     const [moveTaskId, setMoveTaskId] = React.useState<string | null>(null);
+    const [isStatusModalOpen, setIsStatusModalOpen] = React.useState(false);
 
     const handleOpenMenu = (taskId: string, trigger: HTMLElement, mousePos?: { x: number, y: number }) => {
         setOpenMenuTaskId(taskId);
@@ -654,6 +659,14 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         });
         setNewColumnName('');
         setIsAddingColumn(false);
+    };
+
+    const handleSaveStatuses = (newStatuses: Status[]) => {
+        if (currentListId) {
+            updateList(currentListId, { statuses: newStatuses });
+        } else if (currentSpaceId && currentSpaceId !== 'everything') {
+            updateSpace(currentSpaceId, { statuses: newStatuses });
+        }
     };
 
     const handleDragStart = (event: DragStartEvent) => {
@@ -755,9 +768,15 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                     ))}
                     <div className="add-column-container">
                         {!isAddingColumn ? (
-                            <div className="add-column-btn" onClick={() => setIsAddingColumn(true)}>
-                                <Plus size={18} />
-                                <span>Add Group</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div className="add-column-btn" onClick={() => setIsAddingColumn(true)}>
+                                    <Plus size={18} />
+                                    <span>Add Group</span>
+                                </div>
+                                <div className="add-column-btn" onClick={() => setIsStatusModalOpen(true)}>
+                                    <Settings size={18} />
+                                    <span>Manage Statuses</span>
+                                </div>
                             </div>
                         ) : (
                             <div className="add-column-form" style={{
@@ -854,6 +873,13 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                 isOpen={!!moveTaskId}
                 taskId={moveTaskId || ''}
                 onClose={() => setMoveTaskId(null)}
+            />
+
+            <StatusEditorModal
+                isOpen={isStatusModalOpen}
+                onClose={() => setIsStatusModalOpen(false)}
+                currentStatuses={boardStatuses}
+                onSave={handleSaveStatuses}
             />
         </div>
     );
