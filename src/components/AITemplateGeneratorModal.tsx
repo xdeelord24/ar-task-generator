@@ -9,8 +9,7 @@ import {
     Folder,
     List,
     Layout,
-    ChevronRight,
-    ArrowRight
+    ChevronRight
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -65,22 +64,28 @@ const AITemplateGeneratorModal: React.FC<AITemplateGeneratorModalProps> = ({ onC
 
         try {
             const systemPrompt = `
-You are an expert project management assistant.
+You are an expert project management architect.
 Generate a JSON structure for a Space, Folders, and Lists based on the user's request.
+CRITICAL: Tailor the "statuses" for EACH list to match its specific purpose. Do NOT just use "TO DO", "IN PROGRESS", "DONE" for everything. 
+For example:
+- A "Bugs" list should have: ["Reported", "Confirmed", "Fixing", "Verified", "Closed"]
+- A "Recruitment" list should have: ["Applied", "Screening", "Interview", "Offer", "Hired", "Rejected"]
+- A "Content" list should have: ["Idea", "Drafting", "Review", "Published"]
+
 The structure must be valid JSON matching this interface:
 {
     "spaceName": "string",
-    "spaceIcon": "string (lucide-react icon name such as: layout, star, briefcase, code, graduation, book, globe, zap, cloud, moon, flag, target, coffee, heart, music, camera, list, check-square, calendar, hash, folder)",
+    "spaceIcon": "string (lucide-react icon name: layout, star, briefcase, code, graduation, book, globe, zap, cloud, moon, flag, target, coffee, heart, music, camera, list, check-square, calendar, hash, folder)",
     "folders": [
         { 
             "name": "string", 
             "lists": [ 
-                { "name": "string", "statuses": ["TO DO", "IN PROGRESS", "DONE"] } 
+                { "name": "string", "statuses": ["string", "string", ...] } 
             ] 
         }
     ],
     "lists": [
-        { "name": "string", "statuses": ["TO DO", "IN PROGRESS", "DONE"] }
+        { "name": "string", "statuses": ["string", "string", ...] }
     ]
 }
 Return ONLY the JSON string. No extra text, no markdown code blocks.
@@ -255,10 +260,18 @@ User Request: "${query}"
 
         const getStatusTypeAndColor = (name: string): { type: Status['type'], color: string } => {
             const n = name.trim().toLowerCase();
-            if (['todo', 'to do', 'backlog', 'open', 'planned'].includes(n)) return { type: 'todo', color: '#87909e' };
-            if (['in progress', 'inprogress', 'doing', 'working', 'review', 'testing'].includes(n)) return { type: 'inprogress', color: '#3b82f6' };
-            if (['done', 'completed', 'complete', 'finished', 'resolved', 'success'].includes(n)) return { type: 'done', color: '#10b981' };
-            if (['closed', 'archived', 'cancelled'].includes(n)) return { type: 'closed', color: '#ef4444' };
+            if (['todo', 'to do', 'backlog', 'open', 'planned', 'idea', 'research', 'requested'].includes(n))
+                return { type: 'todo', color: '#87909e' };
+
+            if (['in progress', 'inprogress', 'doing', 'working', 'review', 'testing', 'building', 'coding', 'writing', 'designing', 'screening', 'interview', 'contracting'].includes(n))
+                return { type: 'inprogress', color: '#3b82f6' };
+
+            if (['done', 'completed', 'complete', 'finished', 'resolved', 'success', 'hired', 'published', 'deployed', 'merged', 'won'].includes(n))
+                return { type: 'done', color: '#10b981' };
+
+            if (['closed', 'archived', 'cancelled', 'rejected', 'declined', 'lost'].includes(n))
+                return { type: 'closed', color: '#ef4444' };
+
             return { type: 'inprogress', color: '#3b82f6' };
         };
 
