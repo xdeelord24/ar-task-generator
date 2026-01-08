@@ -288,6 +288,9 @@ interface AppStore extends AppState {
     setUserName: (name: string) => void;
     isTaskCompleted: (task: Task) => boolean;
     getDoneStatus: (task: Task) => string;
+    setInvitations: (invitations: any[]) => void;
+    _hasHydrated: boolean;
+    setHasHydrated: (state: boolean) => void;
 }
 
 export const DEFAULT_STATUSES: Status[] = [
@@ -328,6 +331,8 @@ const isTaskCompleted = (task: Task, state: AppState, statusToCheck?: string): b
 export const useAppStore = create<AppStore>()(
     persist(
         (set, get) => ({
+            _hasHydrated: false,
+            setHasHydrated: (state: boolean) => set({ _hasHydrated: state }),
             tasks: {
                 '1': {
                     id: '1',
@@ -448,6 +453,8 @@ export const useAppStore = create<AppStore>()(
             },
             userLevel: 1,
             userExp: 0,
+            invitations: [],
+            setUserName: (name) => set({ userName: name }),
             userName: 'User',
 
 
@@ -1400,6 +1407,22 @@ export const useAppStore = create<AppStore>()(
             }),
 
             // Notification actions
+            setInvitations: (newInvitations) => set((state) => {
+                // Merge new invitations with existing read status
+                const existingMap = new Map((state.invitations || []).map(i => [i.id, i]));
+
+                const mergedInvitations = newInvitations.map((inv: any) => {
+                    const existing = existingMap.get(inv.id);
+                    return {
+                        ...inv,
+                        isRead: existing ? existing.isRead : false
+                    };
+                });
+
+                return { invitations: mergedInvitations };
+            }),
+
+            // Notification actions
             addNotification: (notification) => set((state) => ({
                 notifications: [
                     {
@@ -1412,15 +1435,37 @@ export const useAppStore = create<AppStore>()(
                 ]
             })),
 
-            markNotificationAsRead: (notificationId) => set((state) => ({
-                notifications: state.notifications.map(n =>
-                    n.id === notificationId ? { ...n, isRead: true } : n
-                )
-            })),
+            markNotificationAsRead: (id) => set((state) => {
+                // Check if it's a notification
+                const notifExists = state.notifications.some(n => n.id === id);
+                if (notifExists) {
+                    return {
+                        notifications: state.notifications.map(n =>
+                            n.id === id ? { ...n, isRead: true, updatedAt: new Date().toISOString() } : n
+                        )
+                    };
+                }
 
-            markAllNotificationsAsRead: () => set((state) => ({
-                notifications: state.notifications.map(n => ({ ...n, isRead: true }))
-            })),
+                // Check if it's an invitation
+                const inviteExists = state.invitations?.some(i => i.id === id);
+                if (inviteExists) {
+                    return {
+                        invitations: state.invitations?.map(i =>
+                            i.id === id ? { ...i, isRead: true, updatedAt: new Date().toISOString() } : i
+                        )
+                    };
+                }
+
+                return state;
+            }),
+
+            markAllNotificationsAsRead: () => set((state) => {
+                const now = new Date().toISOString();
+                return {
+                    notifications: state.notifications.map(n => ({ ...n, isRead: true, updatedAt: now })),
+                    invitations: state.invitations?.map(i => ({ ...i, isRead: true, updatedAt: now })) ?? []
+                };
+            }),
 
             clearNotification: (notificationId) => set((state) => ({
                 notifications: state.notifications.filter(n => n.id !== notificationId)
@@ -1434,6 +1479,10 @@ export const useAppStore = create<AppStore>()(
 
             checkDueDates: () => {
                 const state = get();
+                if (!state._hasHydrated) {
+                    console.log('[Zustand] Skipping checkDueDates because store is not yet hydrated.');
+                    return;
+                }
                 if (!state.notificationSettings.enabled) return;
 
                 const now = new Date();
@@ -1525,50 +1574,107 @@ export const useAppStore = create<AppStore>()(
                 if (!token) return;
 
                 try {
-                    const sharedRes = await fetch(`${API_BASE_URL}/api/shared`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const [sharedRes, invitationsRes, notificationsRes] = await Promise.all([
+                        fetch(`${API_BASE_URL}/api/shared`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        }),
+                        fetch(`${API_BASE_URL}/api/invitations`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        }),
+                        fetch(`${API_BASE_URL}/api/notifications`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        })
+                    ]);
 
                     if (sharedRes.ok) {
                         const sharedData = await sharedRes.json();
+                        const invitationsData = (invitationsRes.ok) ? await invitationsRes.json() : [];
+                        const notificationsData = (notificationsRes.ok) ? await notificationsRes.json() : [];
 
                         set((state) => {
-                            const newState: any = {};
-                            let hasChanges = false;
+                            const newState: any = {
+                                invitations: invitationsData.map((inv: any) => {
+                                    const existing = (state.invitations || []).find((i: any) => i.id === inv.id);
+                                    return { ...inv, isRead: existing ? existing.isRead : false };
+                                }),
+                                notifications: (() => {
+                                    const allNotifs = [
+                                        ...(state.notifications || []),
+                                        ...notificationsData.map((notif: any) => {
+                                            const existing = (state.notifications || []).find((n: any) => n.id === notif.id);
+                                            return { ...notif, isRead: existing ? existing.isRead : (notif.isRead || false) };
+                                        })
+                                    ];
 
-                            const merge = (listName: string, remoteItems: any[]) => {
-                                if (!remoteItems || remoteItems.length === 0) return;
-                                const localList = [...(state[listName as keyof AppStore] as any[])];
-                                const localMap = new Map(localList.map(i => [i.id, i]));
+                                    const seenIds = new Set();
+                                    const seenTaskEvents = new Set();
+
+                                    return allNotifs.filter(n => {
+                                        if (seenIds.has(n.id)) return false;
+                                        seenIds.add(n.id);
+
+                                        // Deduplicate system notifications (overdue/due_soon) by task + type
+                                        if (n.taskId && (n.type === 'overdue' || n.type === 'due_soon')) {
+                                            const key = `${n.taskId}-${n.type}`;
+                                            if (seenTaskEvents.has(key)) return false;
+                                            seenTaskEvents.add(key);
+                                        }
+
+                                        return true;
+                                    }).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                                })()
+                            };
+                            let hasChanges = true; // Always sync for now to ensure reactivity
+
+                            // Merge Arrays with Pruning (Remove stale shared items)
+                            const pruneAndMerge = (listName: 'spaces' | 'folders' | 'lists', remoteItems: any[]) => {
+                                const currentList = state[listName];
+                                const remoteMap = new Map((remoteItems || []).map(i => [i.id, i]));
                                 let listChanged = false;
 
-                                remoteItems.forEach(rItem => {
+                                // 1. Filter out stale shared items
+                                // Keep item if: It is NOT shared OR It IS shared and exists in remoteMap
+                                const filteredList = currentList.filter(item => {
+                                    if ((item as any).isShared) {
+                                        const stillShared = remoteMap.has(item.id);
+                                        if (!stillShared) listChanged = true;
+                                        return stillShared;
+                                    }
+                                    return true;
+                                });
+
+                                // 2. Merge new/updated items
+                                const finalList = [...filteredList];
+                                const localMap = new Map(finalList.map(i => [i.id, i]));
+
+                                remoteItems?.forEach(rItem => {
                                     if (localMap.has(rItem.id)) {
                                         const lItem = localMap.get(rItem.id);
-                                        const rTime = rItem.updatedAt ? new Date(rItem.updatedAt).getTime() : 0;
-                                        const lTime = lItem.updatedAt ? new Date(lItem.updatedAt).getTime() : 0;
+                                        if (lItem) {
+                                            const rTime = rItem.updatedAt ? new Date(rItem.updatedAt).getTime() : 0;
+                                            const lTime = lItem.updatedAt ? new Date(lItem.updatedAt).getTime() : 0;
 
-                                        // Update if remote is newer OR if current local item doesn't have a timestamp
-                                        if (rTime > lTime || (!lItem.updatedAt && rItem.updatedAt)) {
-                                            Object.assign(lItem, rItem);
-                                            listChanged = true;
+                                            // Update if remote is newer OR if current local item doesn't have a timestamp
+                                            if (rTime > lTime || (!lItem.updatedAt && rItem.updatedAt)) {
+                                                Object.assign(lItem, rItem);
+                                                listChanged = true;
+                                            }
                                         }
                                     } else {
-                                        localList.push(rItem);
+                                        finalList.push(rItem);
                                         listChanged = true;
                                     }
                                 });
 
                                 if (listChanged) {
-                                    newState[listName] = localList;
+                                    newState[listName] = finalList;
                                     hasChanges = true;
                                 }
                             };
 
-                            // Merge Arrays
-                            merge('spaces', sharedData.spaces);
-                            merge('folders', sharedData.folders);
-                            merge('lists', sharedData.lists);
+                            pruneAndMerge('spaces', sharedData.spaces);
+                            pruneAndMerge('folders', sharedData.folders);
+                            pruneAndMerge('lists', sharedData.lists);
 
                             // Merge Tasks (Object)
                             if (sharedData.tasks && sharedData.tasks.length > 0) {
@@ -1612,9 +1718,58 @@ export const useAppStore = create<AppStore>()(
                 });
 
                 socket.on('connect', () => {
-                    console.log('[Socket] Connected as', userId);
+                    console.log('[Socket] Connected as', userId, 'Socket ID:', socket?.id);
                     socket?.emit('join_room', userId);
                     get().refreshRooms();
+                });
+
+                // If already connected, join room now
+                if (socket.connected) {
+                    console.log('[Socket] Already connected, joining room:', userId, 'Socket ID:', socket.id);
+                    socket.emit('join_room', userId);
+                    get().refreshRooms();
+                }
+
+                socket.on('invitation', (data) => {
+                    console.log('[Socket] Received invitation:', data);
+
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        // Avoid duplicate toast if the 'notification' event also fired (often server fires both)
+                        // But let's be safe.
+                        new Notification(data.title, {
+                            body: data.message,
+                            icon: '/favicon.ico'
+                        });
+                    }
+
+                    // Update invitations list directly
+                    set(state => ({
+                        invitations: [data, ...(state.invitations || [])]
+                    }));
+                });
+
+                socket.on('notification', (data) => {
+                    console.log('[Socket] Received notification:', data);
+
+                    // If it's an invite type, we might want to skip adding it to 'notifications' 
+                    // if we are handling it in 'invitations' to avoid double counting in badges if badge sums both.
+                    // However, 'type' here is 'invite'.
+                    // If badge = notifications.length + invitations.length, we shouldn't add to both.
+                    // The server emits BOTH invitation and notification for invites.
+                    // We should probably IGNORE 'invite' type notifications here if we handle them in 'invitation'.
+
+                    if (data.type === 'invite') return;
+
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification(data.title, {
+                            body: data.message,
+                            icon: '/favicon.ico'
+                        });
+                    }
+
+                    set(state => ({
+                        notifications: [data, ...state.notifications]
+                    }));
                 });
 
                 socket.on('shared_update', ({ type, data }) => {
@@ -1647,17 +1802,19 @@ export const useAppStore = create<AppStore>()(
                             return {
                                 lists: state.lists.filter(l => l.id !== data.id)
                             };
-                        } else if (type === 'notification') {
-                            // Trigger Browser Notification
-                            if ('Notification' in window && Notification.permission === 'granted') {
-                                new Notification(data.title, {
-                                    body: data.message,
-                                    icon: '/favicon.ico'
-                                });
+                        } else if (type === 'kick') {
+                            // User was removed from a shared resource
+                            console.log('[Socket] Kicked from resource:', data.resourceId);
+                            if (data.resourceType === 'space') {
+                                return {
+                                    spaces: state.spaces.filter(s => s.id !== data.resourceId),
+                                    folders: state.folders.filter(f => f.spaceId !== data.resourceId),
+                                    lists: state.lists.filter(l => l.spaceId !== data.resourceId),
+                                    tasks: Object.fromEntries(
+                                        Object.entries(state.tasks).filter(([_, t]) => t.spaceId !== data.resourceId)
+                                    )
+                                };
                             }
-                            return {
-                                notifications: [data, ...state.notifications]
-                            };
                         }
                         return state;
                     });
@@ -1718,7 +1875,7 @@ export const useAppStore = create<AppStore>()(
                     userLevel: newLevel
                 };
             }),
-            setUserName: (name) => set({ userName: name }),
+
 
 
             isTaskCompleted: (task) => {
@@ -1781,11 +1938,14 @@ export const useAppStore = create<AppStore>()(
             },
             onRehydrateStorage: () => {
                 console.log('[Zustand] Starting hydration...');
-                return (_, error) => {
+                return (state, error) => {
                     if (error) {
                         console.error('[Zustand] An error happened during hydration', error);
                     } else {
                         console.log('[Zustand] Hydration finished successfully!');
+                        state?.setHasHydrated(true);
+                        // Trigger checkDueDates immediately after hydration
+                        state?.checkDueDates();
                     }
                 };
             }

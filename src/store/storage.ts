@@ -180,11 +180,18 @@ export const serverStorage: StateStorage = {
                     // 3. Fetch Shared Resources (Invited Spaces, etc.)
                     if (name.includes('app-storage')) {
                         try {
-                            const sharedRes = await fetch(`${API_BASE_URL}/api/shared`, { headers });
+                            const [sharedRes, invitationsRes, notificationsRes] = await Promise.all([
+                                fetch(`${API_BASE_URL}/api/shared`, { headers }),
+                                fetch(`${API_BASE_URL}/api/invitations`, { headers }),
+                                fetch(`${API_BASE_URL}/api/notifications`, { headers })
+                            ]);
+
                             if (sharedRes.ok) {
                                 const sharedData = await sharedRes.json();
+                                const invitationsData = invitationsRes.ok ? await invitationsRes.json() : [];
+                                const notificationsData = notificationsRes.ok ? await notificationsRes.json() : [];
+
                                 // Merge shared data into serverJson (which might be empty if new user)
-                                // Self-healing: if serverJson is a string (double encoded), parse it
                                 if (typeof serverJson === 'string') {
                                     try {
                                         serverJson = JSON.parse(serverJson);
@@ -198,9 +205,28 @@ export const serverStorage: StateStorage = {
 
                                 const sState = serverJson.state;
 
+                                // Specifically prepopulate server state with fetched lists so safeMerge has them
+                                sState.invitations = invitationsData;
+                                sState.notifications = notificationsData;
+
                                 const mergeShared = (listName: string, items: any[]) => {
                                     if (!items || items.length === 0) return;
+
+                                    // Handle Tasks as Object (v5 Data Structure)
+                                    if (listName === 'tasks' && sState[listName] && !Array.isArray(sState[listName])) {
+                                        items.forEach(item => {
+                                            if (sState[listName][item.id]) {
+                                                Object.assign(sState[listName][item.id], item);
+                                            } else {
+                                                sState[listName][item.id] = item;
+                                            }
+                                        });
+                                        return;
+                                    }
+
+                                    // Handle Standard Arrays (Spaces, Lists, Folders, Legacy Tasks)
                                     if (!sState[listName]) sState[listName] = [];
+                                    if (!Array.isArray(sState[listName])) sState[listName] = []; // Safety reset if corrupt/mismatch
 
                                     const existingMap = new Map(sState[listName].map((i: any) => [i.id, i]));
 
@@ -243,15 +269,34 @@ export const serverStorage: StateStorage = {
                                 if (isArray) {
                                     const localList = localData || [];
                                     const serverList = serverData || [];
-                                    const localIds = new Set(localList.map((i: any) => i.id));
-                                    const localMap = new Map(localList.map((i: any) => [i.id, i]));
+                                    // 1. Prune Local Shared Items that are missing from Server
+                                    // If an item is local AND isShared, but NOT in serverList -> it means we lost access (Kicked)
+                                    // Owned items are in serverList (from serverJson.state).
+                                    // Shared items are in serverList (merged from api/shared).
+                                    // So serverList is the Authority for existence of anything "server-side".
+                                    // Local-only items (unsynced new stuff) are NOT isShared.
+
+                                    const serverIdSet = new Set(serverList.map((i: any) => i.id));
+                                    const prunedLocalList = localList.filter((item: any) => {
+                                        // If it claims to be shared, but isn't in the authoritative server list, it's stale. Kill it.
+                                        if (item.isShared && !serverIdSet.has(item.id)) {
+                                            console.log(`[Storage] Pruning stale shared item: ${item.name} (${item.id})`);
+                                            return false;
+                                        }
+                                        return true;
+                                    });
+
+                                    // Use pruned list as the base
+                                    const localIds = new Set(prunedLocalList.map((i: any) => i.id));
+                                    const localMap = new Map(prunedLocalList.map((i: any) => [i.id, i]));
+                                    const finalLocalList = [...prunedLocalList];
 
                                     let addedCount = 0;
                                     let updatedCount = 0;
 
                                     serverList.forEach((sItem: any) => {
                                         if (!localIds.has(sItem.id)) {
-                                            localList.push(sItem);
+                                            finalLocalList.push(sItem);
                                             addedCount++;
                                         } else {
                                             // Item exists. Check if Server is newer.
@@ -274,7 +319,8 @@ export const serverStorage: StateStorage = {
                                                         permission: sItem.permission,
                                                         name: sItem.name,
                                                         color: sItem.color,
-                                                        icon: sItem.icon
+                                                        icon: sItem.icon,
+                                                        // Ensure children are properly associated if needed, but usually flattened
                                                     });
                                                 }
                                             }
@@ -282,8 +328,8 @@ export const serverStorage: StateStorage = {
                                     });
                                     if (addedCount > 0 || updatedCount > 0) {
                                         console.log(`[Storage] Merged ${addedCount} new, ${updatedCount} updated ${listName} from server.`);
-                                        lState[listName] = localList;
                                     }
+                                    lState[listName] = finalLocalList;
                                 } else {
                                     // Handle Object/Record merging (e.g. tasks)
                                     let localObj = localData || {};
@@ -349,6 +395,8 @@ export const serverStorage: StateStorage = {
                             safeMerge('lists');
                             safeMerge('tasks');
                             safeMerge('docs');
+                            safeMerge('notifications');
+                            safeMerge('invitations');
 
                             // Merge Primitives (XP, Level) - specific handling for gamification
                             if (sState.userLevel !== undefined) {

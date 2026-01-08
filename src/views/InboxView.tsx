@@ -24,20 +24,29 @@ const InboxView: React.FC<InboxViewProps> = ({ onTaskClick }) => {
     const { token } = useAuthStore();
     const {
         notifications,
+        invitations: storeInvitations,
+        setInvitations: setStoreInvitations,
         markNotificationAsRead,
         clearNotification,
-        markAllNotificationsAsRead
+        markAllNotificationsAsRead,
+        syncSharedData
     } = useAppStore();
 
-    const [invitations, setInvitations] = useState<any[]>([]);
+    // Use store invitations but fallback to specific filtering if needed. 
+    // Actually we can just rely on the store. However, keeping the local syncing logic simple.
+    // Let's use the store state directly as the source of truth if we are syncing it.
+    const invitations = (storeInvitations as any[]) || [];
+
     const [activeTab, setActiveTab] = useState<'all' | 'mentions' | 'assigned' | 'invites'>('all');
     const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
     useEffect(() => {
         if (token) {
             fetchInvitations();
+            // Automatically mark all as read when opening the inbox
+            markAllNotificationsAsRead();
         }
-    }, [token]);
+    }, [token, markAllNotificationsAsRead]);
 
     const fetchInvitations = async () => {
         try {
@@ -46,7 +55,7 @@ const InboxView: React.FC<InboxViewProps> = ({ onTaskClick }) => {
             });
             if (res.ok) {
                 const data = await res.json();
-                setInvitations(data);
+                setStoreInvitations(data);
             }
         } catch (e) {
             console.error('Failed to fetch invitations', e);
@@ -60,11 +69,25 @@ const InboxView: React.FC<InboxViewProps> = ({ onTaskClick }) => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
-                setInvitations(prev => prev.filter(i => i.id !== invite.id));
-                window.location.reload();
+                setStoreInvitations(invitations.filter(i => i.id !== invite.id));
+                await syncSharedData();
             }
         } catch (e) {
             console.error('Failed to accept invite', e);
+        }
+    };
+
+    const handleDeclineInvitation = async (invite: any) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/invitations/${invite.id}/decline`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                setStoreInvitations(invitations.filter(i => i.id !== invite.id));
+            }
+        } catch (e) {
+            console.error('Failed to decline invite', e);
         }
     };
 
@@ -87,7 +110,7 @@ const InboxView: React.FC<InboxViewProps> = ({ onTaskClick }) => {
             message: `You have been invited to join a ${inv.resource_type}`,
             // SQLite DEFAULT CURRENT_TIMESTAMP is UTC without Z, so we append it if missing
             time: inv.created_at && !inv.created_at.endsWith('Z') ? `${inv.created_at}Z` : inv.created_at,
-            isRead: false, // Invites are always "unread" until handled
+            isRead: inv.isRead || false,
             raw: inv
         })),
         ...notifications.map(notif => ({
@@ -229,6 +252,15 @@ const InboxView: React.FC<InboxViewProps> = ({ onTaskClick }) => {
                                                     }}
                                                 >
                                                     Accept Invitation
+                                                </button>
+                                                <button
+                                                    className="btn-decline-invite"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeclineInvitation(item.raw);
+                                                    }}
+                                                >
+                                                    Decline
                                                 </button>
                                             </div>
                                         )}

@@ -20,7 +20,7 @@ interface HomeViewProps {
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
-    const { tasks, startTimer, stopTimer, activeTimer, isTaskCompleted } = useAppStore();
+    const { tasks, spaces, startTimer, stopTimer, activeTimer, isTaskCompleted } = useAppStore();
     const { user } = useAuthStore();
     const [activeTab, setActiveTab] = useState<'To Do' | 'Done' | 'Delegated'>('To Do');
 
@@ -31,7 +31,11 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
         return 'Good evening';
     };
 
-    const taskList = useMemo(() => Object.values(tasks), [tasks]);
+    const taskList = useMemo(() => {
+        // Only include tasks that belong to available spaces
+        const availableSpaceIds = new Set(spaces.map(s => s.id));
+        return Object.values(tasks).filter(t => availableSpaceIds.has(t.spaceId));
+    }, [tasks, spaces]);
 
     const todayTasks = useMemo(() =>
         taskList.filter(t => t.dueDate && isToday(parseISO(t.dueDate)) && !isTaskCompleted(t)),

@@ -20,7 +20,10 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
     path: '/socket.io/',
     cors: {
-        origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://localhost:4173", "http://127.0.0.1:4173"],
+        origin: (origin, callback) => {
+            // Allow all origins for this demo/local network development
+            callback(null, true);
+        },
         methods: ["GET", "POST"],
         credentials: true
     },
@@ -29,7 +32,10 @@ const io = new Server(httpServer, {
 });
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-it';
 
-app.use(cors());
+app.use(cors({
+    origin: (origin, callback) => callback(null, true),
+    credentials: true
+}));
 app.use(express.json({ limit: '50mb' }));
 
 // --- WebSocket Logic ---
@@ -453,7 +459,7 @@ app.post('/api/invite', authenticateToken, async (req, res) => {
 
             const notification = {
                 id: randomUUID(),
-                type: 'mention', // Use 'mention' to match frontend type
+                type: 'invite', // Updated to 'invite' to be distinct
                 title: 'New Invitation',
                 message: `${req.user.name} invited you to join ${resourceType} "${resourceName}"`,
                 isRead: false,
@@ -470,8 +476,19 @@ app.post('/api/invite', authenticateToken, async (req, res) => {
 
             await dbHandler.set(targetKey, targetData);
 
-            // Emit real-time notification
+            // Emit real-time events
+            // 1. General notification (for dropdowns)
             io.to(targetUser.id).emit('notification', notification);
+            // 2. Specific invitation event (for Inbox badge/logic)
+            // We pass the SHARED_RESOURCE ID as 'id' so the client handles it correctly as an invitation record
+            io.to(targetUser.id).emit('invitation', {
+                ...notification,
+                id: id, // This is the shared_resources UUID, overwriting notification.id
+                notification_id: notification.id,
+                resource_type: resourceType,
+                resource_id: resourceId,
+                created_at: notification.createdAt // Consistent naming
+            });
             console.log(`[Invite] Notification sent to user ${targetUser.email}`);
         }
 
@@ -570,6 +587,24 @@ app.post('/api/invitations/:id/accept', authenticateToken, async (req, res) => {
     }
 });
 
+// Decline Invitation
+app.post('/api/invitations/:id/decline', authenticateToken, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        const { id } = req.params;
+
+        await dbHandler.db.run(`
+            DELETE FROM shared_resources 
+            WHERE id = ? AND invited_email = ?
+        `, id, req.user.email);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Decline invite error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 // Leave Shared Resource
 app.post('/api/shared/leave', authenticateToken, async (req, res) => {
     try {
@@ -584,6 +619,44 @@ app.post('/api/shared/leave', authenticateToken, async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('Leave shared resource error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// Kick/Revoke Access
+app.post('/api/shared/kick', authenticateToken, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        const { id } = req.body; // Share ID
+
+        if (!id) return res.status(400).json({ error: 'Missing share ID' });
+
+        // 1. Get the share record to verify owner
+        const shareRecord = await dbHandler.db.get('SELECT * FROM shared_resources WHERE id = ?', id);
+        if (!shareRecord) return res.status(404).json({ error: 'Share record not found' });
+
+        // 2. Check if requester is the owner
+        if (shareRecord.owner_id !== req.user.id) {
+            return res.status(403).json({ error: 'Only the owner can remove members.' });
+        }
+
+        // 3. Delete
+        await dbHandler.db.run('DELETE FROM shared_resources WHERE id = ?', id);
+
+        // 4. Notify Kicked User (Real-time removal)
+        // We need the invited user's ID to emit the socket event
+        const invitedUser = await dbHandler.getUserByEmail(shareRecord.invited_email);
+        if (invitedUser) {
+            console.log(`[Kick] Notify user ${invitedUser.id} of removal from space ${shareRecord.resource_id}`);
+            io.to(invitedUser.id).emit('shared_update', {
+                type: 'kick',
+                data: { resourceId: shareRecord.resource_id, resourceType: shareRecord.resource_type }
+            });
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Kick error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
@@ -653,14 +726,26 @@ app.post('/api/shared/propagate', authenticateToken, async (req, res) => {
                 state.lists[idx] = { ...state.lists[idx], ...data };
             }
         } else if (type === 'task') {
-            state.tasks = state.tasks || [];
-            const exists = state.tasks.find(t => t.id === data.id);
-            if (!exists) {
-                state.tasks.push(data);
-                console.log(`[Propagate] Added task ${data.name} to Owner State.`);
+
+            // Normalize tasks to ensure we can work with it
+            if (!state.tasks) {
+                state.tasks = []; // Start with array if empty
+            }
+
+            // If it's an object (new format), handle it as object
+            if (!Array.isArray(state.tasks)) {
+                state.tasks[data.id] = { ...state.tasks[data.id], ...data };
+                console.log(`[Propagate] Updated task ${data.name} (Object Mode)`);
             } else {
-                const idx = state.tasks.findIndex(t => t.id === data.id);
-                state.tasks[idx] = { ...state.tasks[idx], ...data };
+                // Formatting is array
+                const exists = state.tasks.find(t => t.id === data.id);
+                if (!exists) {
+                    state.tasks.push(data);
+                    console.log(`[Propagate] Added task ${data.name} to Owner State.`);
+                } else {
+                    const idx = state.tasks.findIndex(t => t.id === data.id);
+                    state.tasks[idx] = { ...state.tasks[idx], ...data };
+                }
             }
         } else if (type === 'folder') {
             state.folders = state.folders || [];
@@ -691,6 +776,34 @@ app.post('/api/shared/propagate', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('Propagate error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+
+        const userKey = `user:${req.user.id}:ar-generator-app-storage`;
+        let userData = await dbHandler.get(userKey);
+
+        if (userData) {
+            if (typeof userData === 'string') {
+                try {
+                    userData = JSON.parse(userData);
+                } catch (e) {
+                    console.error('Failed to parse userData for notifications:', e);
+                }
+            }
+
+            if (userData && userData.state && userData.state.notifications) {
+                return res.json(userData.state.notifications);
+            }
+        }
+
+        res.json([]);
+    } catch (error) {
+        console.error('Get notifications error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
@@ -769,8 +882,15 @@ app.get('/api/shared', authenticateToken, async (req, res) => {
 
                             // Fetch Tasks for those lists
                             const listIds = new Set(spaceLists.map(l => l.id));
-                            // Also include tasks directly in space (if applicable in data model, usually tasks are in lists, but check spaceId)
-                            const spaceTasks = ownerState.tasks?.filter(t => listIds.has(t.listId) || t.spaceId === space.id) || [];
+
+                            let allTasks = [];
+                            if (Array.isArray(ownerState.tasks)) {
+                                allTasks = ownerState.tasks;
+                            } else if (ownerState.tasks && typeof ownerState.tasks === 'object') {
+                                allTasks = Object.values(ownerState.tasks);
+                            }
+
+                            const spaceTasks = allTasks.filter(t => listIds.has(t.listId) || t.spaceId === space.id);
 
                             spaceTasks.forEach(t => {
                                 sharedData.tasks.push({ ...t, isShared: true });

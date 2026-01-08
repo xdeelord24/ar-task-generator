@@ -128,7 +128,11 @@ const Sidebar: React.FC = () => {
         userLevel,
         userExp,
         userName,
-        setUserName
+
+        setUserName,
+        notifications,
+        invitations,
+        markAllNotificationsAsRead
     } = useAppStore();
 
     const [isCreateSpaceOpen, setIsCreateSpaceOpen] = React.useState(false);
@@ -152,6 +156,12 @@ const Sidebar: React.FC = () => {
     const { user } = useAuthStore();
 
     const displayName = (userName && userName !== 'User') ? userName : (user?.name || userName || 'User');
+
+    // Calculate unread count reactively
+    // We filter out 'invite' type from regular notifications because those are tracked separately in the 'invitations' array to avoid double counting.
+    const unreadNotifications = (notifications || []).filter(n => !n.isRead && n.type !== 'invite').length;
+    const unreadInvitations = (invitations || []).filter(i => !i.isRead).length;
+    const unreadCount = unreadNotifications + unreadInvitations;
 
     const collapseAll = () => {
         setExpandedSpaceIds(new Set());
@@ -290,10 +300,39 @@ const Sidebar: React.FC = () => {
                                 if (item.id === 'dashboards') {
                                     setCurrentDashboardId(null);
                                 }
+                                if (item.id === 'inbox') {
+                                    markAllNotificationsAsRead();
+                                }
                             }}
                         >
-                            <Icon size={18} />
+                            <div style={{ position: 'relative' }}>
+                                <Icon size={18} />
+                                {sidebarCollapsed && item.id === 'inbox' && unreadCount > 0 && (
+                                    <span style={{
+                                        position: 'absolute',
+                                        top: '-4px',
+                                        right: '-4px',
+                                        width: '8px',
+                                        height: '8px',
+                                        background: '#ef4444',
+                                        borderRadius: '50%',
+                                        border: '2px solid var(--bg-sidebar)'
+                                    }} />
+                                )}
+                            </div>
                             {!sidebarCollapsed && <span>{item.label}</span>}
+                            {item.id === 'inbox' && unreadCount > 0 && !sidebarCollapsed && (
+                                <span className="nav-badge" style={{
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    fontSize: '10px',
+                                    padding: '2px 6px',
+                                    borderRadius: '10px',
+                                    marginLeft: 'auto'
+                                }}>
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
+                            )}
                         </a>
                     );
                 })}

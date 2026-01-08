@@ -246,6 +246,7 @@ export interface AppState {
   userLevel: number;
   userExp: number;
   userName?: string;
+  invitations?: any[];
 }
 
 export interface ChatSession {
@@ -255,7 +256,7 @@ export interface ChatSession {
   messages: Message[];
 }
 
-export type NotificationType = 'due_soon' | 'overdue' | 'task_assigned' | 'task_completed' | 'comment_added' | 'mention' | 'level_up';
+export type NotificationType = 'due_soon' | 'overdue' | 'task_assigned' | 'task_completed' | 'comment_added' | 'mention' | 'level_up' | 'invite';
 
 export interface Notification {
   id: string;

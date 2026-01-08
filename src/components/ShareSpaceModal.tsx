@@ -90,6 +90,41 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
         }
     };
 
+    const handleKick = async (shareId: string) => {
+        if (!confirm('Are you sure you want to remove this user?')) return;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/shared/kick`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ id: shareId })
+            });
+
+            if (res.ok) {
+                setStatus('success');
+                setMessage('User removed successfully');
+                fetchMembers(); // Refresh list
+                setTimeout(() => {
+                    setStatus('idle');
+                    setMessage('');
+                }, 3000);
+            } else {
+                const d = await res.json();
+                throw new Error(d.error || 'Failed to remove user');
+            }
+        } catch (e: any) {
+            setStatus('error');
+            setMessage(e.message);
+            setTimeout(() => {
+                setStatus('idle');
+                setMessage('');
+            }, 3000);
+        }
+    };
+
     // Filter out invalid members (phantom users with no email)
     const validMembers = members.filter(m => m.invited_email);
 
@@ -208,7 +243,7 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
                                 <div className="member-info" style={{ width: '100%' }}>
                                     <div style={{ width: 32, display: 'flex', justifyContent: 'center' }}><Users size={18} /></div>
                                     <div className="member-details">
-                                        <span className="member-name">People ({validMembers.length + 1})</span>
+                                        <span className="member-name">People ({validMembers.length})</span>
                                     </div>
                                 </div>
                                 {validMembers.length > 0 ? (
@@ -230,6 +265,15 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
                                                 }}>
                                                     {m.status}
                                                 </span>
+                                                {isOwner && (
+                                                    <button
+                                                        className="kick-btn"
+                                                        onClick={() => handleKick(m.id)}
+                                                        title="Remove member"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
