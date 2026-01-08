@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import '../styles/NotificationCenter.css';
-import { Bell, Clock, UserPlus, CheckCircle2, MessageSquare, AlertCircle } from 'lucide-react';
+import { Bell, Clock, UserPlus, CheckCircle2, MessageSquare, AlertCircle, AtSign } from 'lucide-react';
 
 interface NotificationCenterProps {
     onTaskClick?: (taskId: string) => void;
@@ -51,6 +51,7 @@ const NotificationCenter = ({ onTaskClick }: NotificationCenterProps) => {
             case 'task_assigned': return <UserPlus size={16} className="text-green-500" />;
             case 'task_completed': return <CheckCircle2 size={16} className="text-blue-500" />;
             case 'comment_added': return <MessageSquare size={16} className="text-purple-500" />;
+            case 'mention': return <AtSign size={16} className="text-blue-500" />;
             default: return <Bell size={16} className="text-gray-500" />;
         }
     };

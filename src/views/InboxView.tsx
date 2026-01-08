@@ -85,7 +85,8 @@ const InboxView: React.FC<InboxViewProps> = ({ onTaskClick }) => {
             type: 'invite',
             title: 'Space Invitation',
             message: `You have been invited to join a ${inv.resource_type}`,
-            time: inv.created_at,
+            // SQLite DEFAULT CURRENT_TIMESTAMP is UTC without Z, so we append it if missing
+            time: inv.created_at && !inv.created_at.endsWith('Z') ? `${inv.created_at}Z` : inv.created_at,
             isRead: false, // Invites are always "unread" until handled
             raw: inv
         })),
@@ -111,13 +112,18 @@ const InboxView: React.FC<InboxViewProps> = ({ onTaskClick }) => {
     });
 
     const formatTime = (dateString: string) => {
+        if (!dateString) return '';
         const date = new Date(dateString);
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         const diffMins = Math.floor(diffMs / 60000);
-        if (diffMins < 60) return `${diffMins}m ago`;
         const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
         if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
         return date.toLocaleDateString();
     };
 

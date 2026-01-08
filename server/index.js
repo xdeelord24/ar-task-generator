@@ -427,6 +427,54 @@ app.post('/api/invite', authenticateToken, async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, 'pending')
         `, id, resourceType, resourceId, req.user.id, email, permission || 'view');
 
+        // NEW: Send Notification to User if they exist
+        const targetUser = await dbHandler.getUserByEmail(email);
+        if (targetUser) {
+            let resourceName = resourceId;
+
+            // Try to get resource name from owner state
+            try {
+                const ownerKey = `user:${req.user.id}:ar-generator-app-storage`;
+                let ownerData = await dbHandler.get(ownerKey);
+                if (typeof ownerData === 'string') ownerData = JSON.parse(ownerData);
+
+                if (ownerData && ownerData.state) {
+                    if (resourceType === 'space' && ownerData.state.spaces) {
+                        const s = ownerData.state.spaces.find(i => i.id === resourceId);
+                        if (s) resourceName = s.name;
+                    } else if (resourceType === 'list' && ownerData.state.lists) {
+                        const l = ownerData.state.lists.find(i => i.id === resourceId);
+                        if (l) resourceName = l.name;
+                    }
+                }
+            } catch (e) {
+                console.error('[Invite] Failed to resolve resource name', e);
+            }
+
+            const notification = {
+                id: randomUUID(),
+                type: 'mention', // Use 'mention' to match frontend type
+                title: 'New Invitation',
+                message: `${req.user.name} invited you to join ${resourceType} "${resourceName}"`,
+                isRead: false,
+                createdAt: new Date().toISOString()
+            };
+
+            const targetKey = `user:${targetUser.id}:ar-generator-app-storage`;
+            let targetData = await dbHandler.get(targetKey) || { state: {} };
+            if (typeof targetData === 'string') targetData = JSON.parse(targetData);
+
+            targetData.state = targetData.state || {};
+            targetData.state.notifications = targetData.state.notifications || [];
+            targetData.state.notifications.unshift(notification);
+
+            await dbHandler.set(targetKey, targetData);
+
+            // Emit real-time notification
+            io.to(targetUser.id).emit('notification', notification);
+            console.log(`[Invite] Notification sent to user ${targetUser.email}`);
+        }
+
         res.json({ success: true, message: 'Invitation sent' });
     } catch (error) {
         console.error('Invite error:', error);
