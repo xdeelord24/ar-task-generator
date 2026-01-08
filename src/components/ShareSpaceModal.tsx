@@ -90,6 +90,9 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
         }
     };
 
+    // Filter out invalid members (phantom users with no email)
+    const validMembers = members.filter(m => m.invited_email);
+
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="share-modal" onClick={e => e.stopPropagation()}>
@@ -205,12 +208,12 @@ const ShareSpaceModal: React.FC<ShareSpaceModalProps> = ({ spaceId, spaceName, o
                                 <div className="member-info" style={{ width: '100%' }}>
                                     <div style={{ width: 32, display: 'flex', justifyContent: 'center' }}><Users size={18} /></div>
                                     <div className="member-details">
-                                        <span className="member-name">People ({members.length + 1})</span>
+                                        <span className="member-name">People ({validMembers.length + 1})</span>
                                     </div>
                                 </div>
-                                {members.length > 0 ? (
+                                {validMembers.length > 0 ? (
                                     <div style={{ width: '100%', paddingLeft: '32px' }}>
-                                        {members.map(m => (
+                                        {validMembers.map(m => (
                                             <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '13px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#6366f1', color: 'white', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
