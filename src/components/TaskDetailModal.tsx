@@ -48,6 +48,7 @@ import RelationshipMenu from './RelationshipMenu';
 import TagMenu from './TagMenu';
 import ActivityPanel from './ActivityPanel';
 import MoveTaskModal from './MoveTaskModal';
+import FilePreviewModal from './FilePreviewModal';
 import '../styles/TaskDetailModal.css';
 
 interface TaskDetailModalProps {
@@ -167,8 +168,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [timePickerTrigger, setTimePickerTrigger] = useState<HTMLElement | null>(null);
 
 
+    // ... inside TaskDetailModal component ...
+
     const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
     const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false);
 
     const [suggestedSubtasks, setSuggestedSubtasks] = useState<string[]>([]);
@@ -1822,6 +1826,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                     isSubtask={isSubtask}
                                     isGeneratingAIComment={isGeneratingAIComment}
                                     onImageClick={(src) => setPreviewImage(src)}
+                                    onAttachmentClick={(att) => setPreviewAttachment(att)}
                                     onAIRequest={handleAIResponse}
                                     activityFeedRef={activityFeedRef}
                                     currentUserName={currentUser?.name || "Jundee"}
@@ -1923,6 +1928,13 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                 taskId={taskId}
                 onClose={() => setIsMoveModalOpen(false)}
             />
+
+            {previewAttachment && (
+                <FilePreviewModal
+                    attachment={previewAttachment}
+                    onClose={() => setPreviewAttachment(null)}
+                />
+            )}
         </div>
     );
 };

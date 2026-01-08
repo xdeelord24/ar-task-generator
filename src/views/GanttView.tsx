@@ -366,7 +366,7 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
         return { columns: cols, groups };
     })();
 
-    const filteredTasks = tasks.filter(task => {
+    const filteredTasks = Object.values(tasks).filter(task => {
         const hasDates = task.dueDate || task.startDate;
         if (!hasDates) return false;
 
@@ -402,7 +402,7 @@ const GanttView: React.FC<GanttViewProps> = ({ onAddTask, onTaskClick }) => {
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, delta } = event;
         const taskId = active.id as string;
-        const task = tasks.find(t => t.id === taskId);
+        const task = tasks[taskId];
 
         if (!task) return;
 

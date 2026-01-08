@@ -41,7 +41,7 @@ const ActiveTimerDisplay: React.FC = () => {
 
     if (!activeTimer) return null;
 
-    const taskName = tasks.find(t => t.id === activeTimer.taskId)?.name || 'Unknown Task';
+    const taskName = activeTimer.taskId ? tasks[activeTimer.taskId]?.name || 'Unknown Task' : 'Unknown Task';
 
     return (
         <div className="active-timer-pill">

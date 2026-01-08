@@ -1540,11 +1540,13 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
         })
     );
 
-    const filteredTasks = tasks.filter(task => {
-        const matchesSpace = currentSpaceId === 'everything' || task.spaceId === currentSpaceId;
-        const matchesList = !currentListId || task.listId === currentListId;
-        return matchesSpace && matchesList;
-    });
+    const filteredTasks = useMemo(() => {
+        return Object.values(tasks).filter(task => {
+            const matchesSpace = currentSpaceId === 'everything' || task.spaceId === currentSpaceId;
+            const matchesList = !currentListId || task.listId === currentListId;
+            return matchesSpace && matchesList;
+        });
+    }, [tasks, currentSpaceId, currentListId]);
 
     const activeSpace = spaces.find(s => s.id === currentSpaceId);
 
@@ -1604,8 +1606,8 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
         }
 
         // Row reordering or status change via row drop
-        const overTask = tasks.find(t => t.id === overId);
-        const activeTask = tasks.find(t => t.id === activeId);
+        const overTask = tasks[overId];
+        const activeTask = tasks[activeId];
 
         if (activeTask && overTask && activeTask.status !== overTask.status) {
             updateTask(activeId, { status: overTask.status });

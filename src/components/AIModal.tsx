@@ -40,7 +40,7 @@ const AIModal: React.FC<AIModalProps> = ({ onClose, onTaskClick }) => {
         const systemPrompt = `You are an intelligent task management assistant for an application called "AR Generator". 
         You have access to the user's current workspace data:
         - Current Space: ${spaces.find((s: Space) => s.id === currentSpaceId)?.name || 'Unknown'}
-        - All Tasks: ${JSON.stringify(tasks.map((t: Task) => ({ id: t.id, name: t.name, status: t.status, priority: t.priority, dueDate: t.dueDate })))}
+        - All Tasks: ${JSON.stringify(Object.values(tasks).map((t: Task) => ({ id: t.id, name: t.name, status: t.status, priority: t.priority, dueDate: t.dueDate })))}
         
         Your goal is to help the user manage their workload, prioritize tasks, and provide insights. 
         Be concise, helpful, and professional. If the user asks about specific tasks, use the data provided above.
@@ -199,8 +199,7 @@ const AIModal: React.FC<AIModalProps> = ({ onClose, onTaskClick }) => {
                                                                 const extractedId = isTaskPrefixed ? href.split(':')[1] : href;
 
                                                                 // Try to find task by ID or by Name
-                                                                const taskToOpen = tasks.find(t =>
-                                                                    t.id === extractedId ||
+                                                                const taskToOpen = tasks[extractedId] || Object.values(tasks).find(t =>
                                                                     t.name.toLowerCase() === href.toLowerCase() ||
                                                                     (typeof props.children === 'string' && t.name.toLowerCase() === props.children.toLowerCase())
                                                                 );

@@ -36,7 +36,7 @@ const SpaceOverview: React.FC = () => {
         color: '#3b82f6',
         statuses: DEFAULT_STATUSES,
         isDefault: true,
-        taskCount: tasks.length
+        taskCount: Object.keys(tasks).length
     } : null);
 
     const spaceLists = isEverything ? lists : lists.filter(l => l.spaceId === currentSpaceId);
@@ -44,7 +44,8 @@ const SpaceOverview: React.FC = () => {
     const spaceDocs = isEverything ? docs : docs.filter(d => d.spaceId === currentSpaceId);
 
     // Calculate Workload by Status
-    const spaceTasks = isEverything ? tasks : tasks.filter(t => t.spaceId === currentSpaceId);
+    const allTasksArray = Object.values(tasks);
+    const spaceTasks = isEverything ? allTasksArray : allTasksArray.filter(t => t.spaceId === currentSpaceId);
     const statusCounts = spaceTasks.reduce((acc, task) => {
         const status = task.status || 'TO DO';
         acc[status] = (acc[status] || 0) + 1;
@@ -253,7 +254,7 @@ const SpaceOverview: React.FC = () => {
                             </thead>
                             <tbody>
                                 {spaceLists.map(list => {
-                                    const listTasks = tasks.filter(t => t.listId === list.id);
+                                    const listTasks = Object.values(tasks).filter(t => t.listId === list.id);
                                     const completed = listTasks.filter(t => isTaskCompleted(t)).length;
                                     const total = listTasks.length;
                                     const progress = total > 0 ? (completed / total) * 100 : 0;

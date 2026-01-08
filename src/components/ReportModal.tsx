@@ -104,7 +104,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
     };
 
     const generateReport = async () => {
-        let reportTasks: Task[] = tasks.filter(t =>
+        let reportTasks: Task[] = Object.values(tasks).filter(t =>
             selectedSpaces.includes(t.spaceId)
         );
 

@@ -16,7 +16,7 @@ const TaskPicker: React.FC<TaskPickerProps> = ({ onSelect, onClose, excludeTaskI
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
     const [selectedSpaceId] = useState<string>(spaces[0]?.id || '');
 
-    const filteredTasks = tasks.filter(t =>
+    const filteredTasks = Object.values(tasks).filter(t =>
         (excludeTaskId ? t.id !== excludeTaskId : true) &&
         t.name.toLowerCase().includes(search.toLowerCase())
     );
@@ -82,7 +82,7 @@ const TaskPicker: React.FC<TaskPickerProps> = ({ onSelect, onClose, excludeTaskI
                                                 <span>{list.name}</span>
                                             </div>
                                             <div className="list-tasks-browse">
-                                                {tasks
+                                                {Object.values(tasks)
                                                     .filter(t => t.listId === list.id && (excludeTaskId ? t.id !== excludeTaskId : true))
                                                     .map(task => (
                                                         <div key={task.id} className="task-browse-item" onClick={() => onSelect(task.id)}>
@@ -106,7 +106,7 @@ const TaskPicker: React.FC<TaskPickerProps> = ({ onSelect, onClose, excludeTaskI
                                 <span>{list.name}</span>
                             </div>
                             <div className="list-tasks-browse">
-                                {tasks
+                                {Object.values(tasks)
                                     .filter(t => t.listId === list.id && (excludeTaskId ? t.id !== excludeTaskId : true))
                                     .map(task => (
                                         <div key={task.id} className="task-browse-item" onClick={() => onSelect(task.id)}>

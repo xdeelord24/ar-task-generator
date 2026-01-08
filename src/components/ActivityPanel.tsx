@@ -10,6 +10,7 @@ interface ActivityPanelProps {
     isSubtask: boolean;
     isGeneratingAIComment: boolean;
     onImageClick: (src: string) => void;
+    onAttachmentClick: (attachment: any) => void;
     onAIRequest: (query: string) => Promise<void>;
     activityFeedRef: React.RefObject<HTMLDivElement>;
     currentUserName: string;
@@ -21,6 +22,7 @@ const ActivityPanel: React.FC<ActivityPanelProps> = ({
     isSubtask,
     isGeneratingAIComment,
     onImageClick,
+    onAttachmentClick,
     onAIRequest,
     activityFeedRef,
     currentUserName,
@@ -35,6 +37,7 @@ const ActivityPanel: React.FC<ActivityPanelProps> = ({
                         key={comment.id}
                         comment={comment}
                         onImageClick={onImageClick}
+                        onAttachmentClick={onAttachmentClick}
                     />
                 ))}
 

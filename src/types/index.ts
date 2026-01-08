@@ -23,12 +23,21 @@ export interface Subtask {
   notepad?: string;
 }
 
+export interface Attachment {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  size: number;
+}
+
 export interface Comment {
   id: string;
   userId: string;
   userName: string;
   text: string;
   createdAt: string;
+  attachments?: Attachment[];
 }
 
 export interface TimeEntry {

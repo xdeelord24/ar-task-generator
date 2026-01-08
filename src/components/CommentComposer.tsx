@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { Image as ImageIcon, Sparkles, Send, X, User as UserIcon } from 'lucide-react';
+import { Image as ImageIcon, Sparkles, Send, X, User as UserIcon, Paperclip, FileText } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { getAuthToken } from '../store/storage';
 import { API_BASE_URL } from '../config';
+import { generateUUID } from '../utils/uuid';
+import type { Attachment } from '../types';
 
 interface CommentComposerProps {
     taskId: string;
@@ -17,6 +19,8 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
     const { addComment } = useAppStore();
     const [commentText, setCommentText] = useState('');
     const [pastedImages, setPastedImages] = useState<string[]>([]);
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Mention state
     const [showMentions, setShowMentions] = useState(false);
@@ -34,7 +38,7 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
             alert('Comments on subtasks not supported locally yet.');
             return;
         }
-        if (!commentText.trim() && pastedImages.length === 0) return;
+        if (!commentText.trim() && pastedImages.length === 0 && attachments.length === 0) return;
 
         // Auto-convert plain URLs to markdown links if not already markdown
         let formattedText = commentText;
@@ -50,7 +54,8 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
         addComment(taskId, {
             userId: currentUser?.id || 'guest',
             userName: currentUser?.name || 'Guest',
-            text: formattedText
+            text: formattedText,
+            attachments: attachments
         });
 
         // Mention Notification Logic - Detect **@Full Name** format
@@ -108,6 +113,7 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
 
         setCommentText('');
         setPastedImages([]);
+        setAttachments([]);
         setShowMentions(false);
     };
 
@@ -169,6 +175,33 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
                 }
             }
         }
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            Array.from(e.target.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const base64 = event.target?.result as string;
+                    if (base64) {
+                        setAttachments(prev => [...prev, {
+                            id: generateUUID(),
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            url: base64
+                        }]);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        // Reset input
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const removeAttachment = (id: string) => {
+        setAttachments(prev => prev.filter(a => a.id !== id));
     };
 
     return (
@@ -240,6 +273,29 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
                         ))}
                     </div>
                 )}
+
+                {attachments.length > 0 && (
+                    <div className="attachments-preview" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '8px', borderBottom: '1px solid var(--border)' }}>
+                        {attachments.map((att) => (
+                            <div key={att.id} className="attachment-chip" style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                background: 'var(--bg-secondary)', padding: '4px 8px', borderRadius: '4px',
+                                fontSize: '12px', border: '1px solid var(--border)'
+                            }}>
+                                <FileText size={12} />
+                                <span style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {att.name}
+                                </span>
+                                <button
+                                    onClick={() => removeAttachment(att.id)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
+                                >
+                                    <X size={12} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
                 <textarea
                     ref={textareaRef}
                     placeholder="Write a comment... use @AI to ask AI, @Name to mention"
@@ -265,6 +321,20 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
                     }}
                 />
                 <div className="composer-actions">
+                    <input
+                        type="file"
+                        multiple
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                        onChange={handleFileSelect}
+                    />
+                    <button
+                        className="icon-btn-sm"
+                        title="Attach File"
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        <Paperclip size={14} />
+                    </button>
                     <button className="icon-btn-sm" title="Paste Image (Experimental)">
                         <ImageIcon size={14} />
                     </button>
@@ -279,7 +349,7 @@ const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, on
                     <button
                         className="icon-btn-sm"
                         onClick={handleAddComment}
-                        disabled={!commentText.trim() && pastedImages.length === 0}
+                        disabled={!commentText.trim() && pastedImages.length === 0 && attachments.length === 0}
                     >
                         <Send size={14} />
                     </button>

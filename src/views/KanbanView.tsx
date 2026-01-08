@@ -632,7 +632,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         })
     );
 
-    const filteredTasks = tasks.filter(task => {
+    const filteredTasks = Object.values(tasks).filter(task => {
         const matchesSpace = currentSpaceId === 'everything' || task.spaceId === currentSpaceId;
         const matchesList = !currentListId || task.listId === currentListId;
         return matchesSpace && matchesList;
@@ -676,14 +676,14 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         }
 
         // If dropped over another task
-        const overTask = tasks.find(t => t.id === overId);
-        const activeTaskObj = tasks.find(t => t.id === activeTaskId);
+        const overTask = tasks[overId];
+        const activeTaskObj = tasks[activeTaskId];
         if (overTask && activeTaskObj && overTask.status !== activeTaskObj.status) {
             updateTask(activeTaskId, { status: overTask.status });
         }
     };
 
-    const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
+    const activeTask = activeId ? tasks[activeId] : null;
 
     return (
         <div className="view-container kanban-view">

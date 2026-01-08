@@ -18,7 +18,7 @@ const RelationshipMenu: React.FC<RelationshipMenuProps> = ({ taskId, onClose, in
     const { tasks, addRelationship, updateTask, removeRelationship } = useAppStore();
     const [pickerType, setPickerType] = useState<'waiting' | 'blocking' | 'linked' | 'custom' | 'doc' | null>(null);
 
-    const activeTask = tasks.find(t => t.id === taskId);
+    const activeTask = tasks[taskId];
     const relationships = activeTask?.relationships || [];
 
     const handleSelectTask = (targetId: string) => {
@@ -138,7 +138,7 @@ const RelationshipMenu: React.FC<RelationshipMenuProps> = ({ taskId, onClose, in
                                 </div>
                                 <div className="sec-content">
                                     {relationships.filter(r => r.type === sec.type).map(rel => {
-                                        const t = tasks.find(x => x.id === rel.taskId);
+                                        const t = tasks[rel.taskId];
                                         return (
                                             <div key={rel.id} className="rel-item-pill">
                                                 <span className="rel-item-name">{t?.name || 'Unknown Task'}</span>

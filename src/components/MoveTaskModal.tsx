@@ -25,7 +25,7 @@ const MoveTaskModal: React.FC<MoveTaskModalProps> = ({ isOpen, onClose, taskId }
     const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
-    const task = useMemo(() => tasks.find(t => t.id === taskId), [tasks, taskId]);
+    const task = useMemo(() => tasks[taskId], [tasks, taskId]);
 
     if (!isOpen || !task) return null;
 

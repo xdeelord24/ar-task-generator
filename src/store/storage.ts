@@ -286,8 +286,25 @@ export const serverStorage: StateStorage = {
                                     }
                                 } else {
                                     // Handle Object/Record merging (e.g. tasks)
-                                    const localObj = localData || {};
-                                    const serverObj = serverData || {};
+                                    let localObj = localData || {};
+                                    let serverObj = serverData || {};
+
+                                    // ROBUSTNESS: If legacy data is Array, convert to Object
+                                    if (Array.isArray(localObj)) {
+                                        console.warn(`[Storage] Converting local ${listName} from Array to Object`);
+                                        localObj = localObj.reduce((acc: any, item: any) => {
+                                            if (item.id) acc[item.id] = item;
+                                            return acc;
+                                        }, {});
+                                    }
+                                    if (Array.isArray(serverObj)) {
+                                        console.warn(`[Storage] Converting server ${listName} from Array to Object`);
+                                        serverObj = serverObj.reduce((acc: any, item: any) => {
+                                            if (item.id) acc[item.id] = item;
+                                            return acc;
+                                        }, {});
+                                    }
+
                                     let addedCount = 0;
                                     let updatedCount = 0;
 

@@ -82,7 +82,7 @@ const DashboardView: React.FC = () => {
 
     const dashboardTasks = useMemo(() => {
         if (!currentDashboard) return [];
-        let filtered = tasks;
+        let filtered = Object.values(tasks);
 
         if (currentDashboard.spaceId && currentDashboard.spaceId !== 'everything') {
             filtered = filtered.filter(t => t.spaceId === currentDashboard.spaceId);

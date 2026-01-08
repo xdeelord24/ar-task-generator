@@ -62,7 +62,7 @@ const TimesheetView: React.FC = () => {
     // 1. Tasks belonging to current space
     // 2. AND (Have time entries this week OR Are the active timer task OR have been manually added)
     const visibleTasks = useMemo(() => {
-        return tasks.filter(task => {
+        return Object.values(tasks).filter(task => {
             // Space filter
             if (currentSpaceId !== 'everything' && task.spaceId !== currentSpaceId) return false;
 
@@ -96,7 +96,7 @@ const TimesheetView: React.FC = () => {
     };
 
     // Filter for the "Add Task" dropdown
-    const availableTasks = tasks.filter(task =>
+    const availableTasks = Object.values(tasks).filter(task =>
         (currentSpaceId === 'everything' || task.spaceId === currentSpaceId) &&
         !visibleTasks.find(vt => vt.id === task.id) &&
         task.name.toLowerCase().includes(searchQuery.toLowerCase())

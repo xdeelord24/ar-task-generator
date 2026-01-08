@@ -6,6 +6,13 @@ import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { copyFile, mkdir } from 'fs/promises';
+import { existsSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = 3001;
@@ -47,13 +54,41 @@ io.on('connection', (socket) => {
     });
 });
 
-const dbHandler = new DatabaseHandler('./database.sqlite');
+const backupDatabase = async () => {
+    const dbPath = path.resolve(__dirname, '../database.sqlite'); // Correct absolute path from server dir
+    console.log(`[Database] Looking for DB at: ${dbPath}`);
+
+    if (!existsSync(dbPath)) {
+        console.log('[Database] DB not found at absolute path, skipping backup.');
+        return;
+    }
+
+    try {
+        const backupDir = path.resolve(__dirname, '../backups');
+        if (!existsSync(backupDir)) {
+            await mkdir(backupDir);
+        }
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupPath = path.join(backupDir, `database-${timestamp}.sqlite`);
+
+        await copyFile(dbPath, backupPath);
+        console.log(`[Backup] Database backed up to ${backupPath}`);
+    } catch (error) {
+        console.error('[Backup] Failed to create database backup:', error);
+    }
+};
+
+// Use absolute path for Handler too
+const dbPath = path.resolve(__dirname, '../database.sqlite');
+const dbHandler = new DatabaseHandler(dbPath);
 
 // Initialize Database
 (async () => {
     try {
+        await backupDatabase();
         await dbHandler.initialize();
-        console.log('Connected to SQLite database using Standard Handler.');
+        console.log(`Connected to SQLite database at ${dbPath}`);
     } catch (error) {
         console.error('Error initializing database handler:', error);
     }

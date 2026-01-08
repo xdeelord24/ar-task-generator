@@ -102,7 +102,7 @@ const ViewHeader: React.FC = () => {
     const contextSpaceId = currentView === 'dashboards' && currentDashboard ? currentDashboard.spaceId : currentSpaceId;
     const contextListId = currentView === 'dashboards' && currentDashboard ? currentDashboard.listId : currentListId;
 
-    const filteredTasks = tasks.filter(task => {
+    const filteredTasks = Object.values(tasks).filter(task => {
         const matchesSpace = contextSpaceId === 'everything' || task.spaceId === contextSpaceId;
         const matchesList = !contextListId || task.listId === contextListId;
         return matchesSpace && matchesList;
