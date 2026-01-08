@@ -20,9 +20,12 @@ import SettingsModal from './components/SettingsModal';
 import { useAppStore } from './store/useAppStore';
 import { useAuthStore } from './store/useAuthStore';
 import { AuthModal } from './components/AuthModal';
+import ToastContainer from './components/ToastContainer';
 
 function App() {
   const { currentView, theme, accentColor } = useAppStore();
+  const { isAuthenticated, user: currentUser } = useAuthStore();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [initialStatus, setInitialStatus] = useState<string | undefined>(undefined);
@@ -55,21 +58,28 @@ function App() {
     root.style.setProperty('--primary-hover', accentColor + 'ee');
   }, [theme, accentColor]);
 
-  // Check for due dates and sync shared data periodically
+  // Check for due dates and sync shared data periodically - ONLY when authenticated
   useEffect(() => {
-    const { checkDueDates, syncSharedData, refreshRooms } = useAppStore.getState();
+    if (!isAuthenticated) return;
+
+    const { checkDueDates, syncSharedData, refreshRooms, setupSocket } = useAppStore.getState();
+
+    // Initial setup
+    if (currentUser) {
+      setupSocket(currentUser.id);
+    }
 
     // Initial runs
     checkDueDates();
     syncSharedData();
     refreshRooms();
 
-    // Watch spaces length for new shared spaces
+    // Watch spaces length for new shared spaces (only if they change)
     const unsubscribe = useAppStore.subscribe(
-      (state) => {
-        // We just trigger refresh on any state change that might affect spaces
-        // setupSocket logic is idempotent for rooms anyway
-        state.refreshRooms();
+      (state, prevState) => {
+        if (state.spaces.length !== prevState.spaces.length) {
+          state.refreshRooms();
+        }
       }
     );
 
@@ -88,16 +98,7 @@ function App() {
       clearInterval(dueInterval);
       clearInterval(syncInterval);
     };
-  }, []);
-
-  const { isAuthenticated, user: currentUser } = useAuthStore();
-  const { setupSocket } = useAppStore();
-
-  useEffect(() => {
-    if (isAuthenticated && currentUser) {
-      setupSocket(currentUser.id);
-    }
-  }, [isAuthenticated, currentUser, setupSocket]);
+  }, [isAuthenticated, currentUser]);
 
   useEffect(() => {
     // Check if we have a token in local storage on mount (simple persistence handled by store middleware)
@@ -178,6 +179,7 @@ function App() {
           initialTab={settingsState.tab}
         />
       )}
+      <ToastContainer />
     </Layout>
   );
 }

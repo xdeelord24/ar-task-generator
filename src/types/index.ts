@@ -280,4 +280,12 @@ export interface NotificationSettings {
   notifyOnAssignment: boolean;
 }
 
-// Ensure types are exported
+export type ToastType = 'success' | 'info' | 'error' | 'warning' | 'notification' | 'invite';
+
+export interface Toast {
+  id: string;
+  type: ToastType;
+  title: string;
+  message: string;
+  duration?: number;
+}

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { serverStorage, getAuthToken } from './storage';
-import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard, Clip, Notification, NotificationSettings, Agent } from '../types';
+import type { AppState, Task, Space, Folder, List, ViewType, Subtask, Tag, ColumnSetting, Comment, TimeEntry, Relationship, Doc, Status, SavedView, AIConfig, Message, Dashboard, Clip, Notification, NotificationSettings, Agent, NotificationType } from '../types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { io, Socket } from 'socket.io-client';
 import { generateUUID } from '../utils/uuid';
@@ -271,7 +271,7 @@ interface AppStore extends AppState {
     deleteClip: (id: string) => void;
     addClipComment: (clipId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => void;
     renameClip: (id: string, name: string) => void;
-    addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => void;
+    addNotification: (notification: Partial<Notification> & { type: NotificationType; title: string; message: string }) => void;
     markNotificationAsRead: (notificationId: string) => void;
     markAllNotificationsAsRead: () => void;
     clearNotification: (notificationId: string) => void;
@@ -289,6 +289,9 @@ interface AppStore extends AppState {
     isTaskCompleted: (task: Task) => boolean;
     getDoneStatus: (task: Task) => string;
     setInvitations: (invitations: any[]) => void;
+    toasts: import('../types').Toast[];
+    addToast: (toast: Omit<import('../types').Toast, 'id'>) => void;
+    removeToast: (id: string) => void;
     _hasHydrated: boolean;
     setHasHydrated: (state: boolean) => void;
 }
@@ -454,6 +457,7 @@ export const useAppStore = create<AppStore>()(
             userLevel: 1,
             userExp: 0,
             invitations: [],
+            toasts: [],
             setUserName: (name) => set({ userName: name }),
             userName: 'User',
 
@@ -1423,17 +1427,25 @@ export const useAppStore = create<AppStore>()(
             }),
 
             // Notification actions
-            addNotification: (notification) => set((state) => ({
-                notifications: [
-                    {
-                        ...notification,
-                        id: generateUUID(),
-                        createdAt: new Date().toISOString(),
-                        isRead: false
-                    },
-                    ...state.notifications
-                ]
-            })),
+            addNotification: (notification) => set((state) => {
+                const newNotif = {
+                    ...notification,
+                    id: notification.id || generateUUID(),
+                    createdAt: notification.createdAt || new Date().toISOString(),
+                    isRead: false
+                };
+
+                // Show in-app toast
+                get().addToast({
+                    type: 'notification',
+                    title: newNotif.title,
+                    message: newNotif.message
+                });
+
+                return {
+                    notifications: [newNotif, ...state.notifications]
+                };
+            }),
 
             markNotificationAsRead: (id) => set((state) => {
                 // Check if it's a notification
@@ -1472,6 +1484,23 @@ export const useAppStore = create<AppStore>()(
             })),
 
             clearAllNotifications: () => set({ notifications: [] }),
+
+            addToast: (toast) => set((state) => {
+                const id = generateUUID();
+                const newToast = { ...toast, id };
+
+                // Auto-remove toast after duration
+                const duration = toast.duration || 5000;
+                setTimeout(() => {
+                    get().removeToast(id);
+                }, duration);
+
+                return { toasts: [...state.toasts, newToast] };
+            }),
+
+            removeToast: (id) => set((state) => ({
+                toasts: state.toasts.filter((t) => t.id !== id)
+            })),
 
             updateNotificationSettings: (settings) => set((state) => ({
                 notificationSettings: { ...state.notificationSettings, ...settings }
@@ -1709,8 +1738,14 @@ export const useAppStore = create<AppStore>()(
             },
 
             setupSocket: (userId) => {
-                if (socket) return;
+                if (socket) {
+                    console.log('[Socket] Socket already exists, joining room for userId:', userId);
+                    socket.emit('join_room', userId);
+                    get().refreshRooms();
+                    return;
+                }
 
+                console.log('[Socket] Initializing connection to:', API_BASE_URL);
                 socket = io(`${API_BASE_URL}`, {
                     transports: ['websocket', 'polling'],
                     reconnectionAttempts: 5,
@@ -1720,7 +1755,9 @@ export const useAppStore = create<AppStore>()(
                 socket.on('connect', () => {
                     console.log('[Socket] Connected as', userId, 'Socket ID:', socket?.id);
                     socket?.emit('join_room', userId);
-                    get().refreshRooms();
+                    const state = get();
+                    state.refreshRooms();
+                    state.syncSharedData(); // Pull latest state on connect
                 });
 
                 // If already connected, join room now
@@ -1733,43 +1770,72 @@ export const useAppStore = create<AppStore>()(
                 socket.on('invitation', (data) => {
                     console.log('[Socket] Received invitation:', data);
 
+                    // Add in-app toast
+                    const state = get();
+                    state.addToast({
+                        type: 'invite',
+                        title: data.title || 'New Invitation',
+                        message: data.message || 'You have been invited to a space',
+                    });
+
                     if ('Notification' in window && Notification.permission === 'granted') {
-                        // Avoid duplicate toast if the 'notification' event also fired (often server fires both)
-                        // But let's be safe.
-                        new Notification(data.title, {
-                            body: data.message,
+                        new Notification(data.title || 'New Invitation', {
+                            body: data.message || 'You have been invited to a space',
                             icon: '/favicon.ico'
                         });
                     }
 
                     // Update invitations list directly
                     set(state => ({
-                        invitations: [data, ...(state.invitations || [])]
+                        invitations: [
+                            {
+                                ...data,
+                                id: data.id || generateUUID(),
+                                createdAt: data.createdAt || new Date().toISOString(),
+                                isRead: false
+                            },
+                            ...(state.invitations || [])
+                        ]
                     }));
+
+                    // Trigger a background sync to ensure full data consistency
+                    get().syncSharedData();
                 });
 
                 socket.on('notification', (data) => {
                     console.log('[Socket] Received notification:', data);
 
-                    // If it's an invite type, we might want to skip adding it to 'notifications' 
-                    // if we are handling it in 'invitations' to avoid double counting in badges if badge sums both.
-                    // However, 'type' here is 'invite'.
-                    // If badge = notifications.length + invitations.length, we shouldn't add to both.
-                    // The server emits BOTH invitation and notification for invites.
-                    // We should probably IGNORE 'invite' type notifications here if we handle them in 'invitation'.
-
                     if (data.type === 'invite') return;
 
+                    // Add in-app toast
+                    const state = get();
+                    state.addToast({
+                        type: 'notification',
+                        title: data.title || 'New Notification',
+                        message: data.message || 'You have a new update',
+                    });
+
                     if ('Notification' in window && Notification.permission === 'granted') {
-                        new Notification(data.title, {
+                        new Notification(data.title || 'New Notification', {
                             body: data.message,
                             icon: '/favicon.ico'
                         });
                     }
 
                     set(state => ({
-                        notifications: [data, ...state.notifications]
+                        notifications: [
+                            {
+                                ...data,
+                                id: data.id || generateUUID(),
+                                createdAt: data.createdAt || new Date().toISOString(),
+                                isRead: false
+                            },
+                            ...state.notifications
+                        ]
                     }));
+
+                    // Trigger a background sync to ensure full data consistency
+                    get().syncSharedData();
                 });
 
                 socket.on('shared_update', ({ type, data }) => {

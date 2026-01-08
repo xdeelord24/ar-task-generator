@@ -42,11 +42,11 @@ const InboxView: React.FC<InboxViewProps> = ({ onTaskClick }) => {
 
     useEffect(() => {
         if (token) {
+            syncSharedData();
+            // We still fetch invitations specifically because it's the authoritative source for this view
             fetchInvitations();
-            // Automatically mark all as read when opening the inbox
-            markAllNotificationsAsRead();
         }
-    }, [token, markAllNotificationsAsRead]);
+    }, [token, syncSharedData]);
 
     const fetchInvitations = async () => {
         try {
