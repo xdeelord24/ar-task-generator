@@ -31,29 +31,31 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
         return 'Good evening';
     };
 
+    const taskList = useMemo(() => Object.values(tasks), [tasks]);
+
     const todayTasks = useMemo(() =>
-        tasks.filter(t => t.dueDate && isToday(parseISO(t.dueDate)) && !isTaskCompleted(t)),
-        [tasks]);
+        taskList.filter(t => t.dueDate && isToday(parseISO(t.dueDate)) && !isTaskCompleted(t)),
+        [taskList]);
 
     const overdueTasks = useMemo(() =>
-        tasks.filter(t => t.dueDate && !isToday(parseISO(t.dueDate)) && parseISO(t.dueDate) < new Date() && !isTaskCompleted(t)),
-        [tasks]);
+        taskList.filter(t => t.dueDate && !isToday(parseISO(t.dueDate)) && parseISO(t.dueDate) < new Date() && !isTaskCompleted(t)),
+        [taskList]);
 
     const recents = useMemo(() =>
-        [...tasks].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 3),
-        [tasks]);
+        [...taskList].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 3),
+        [taskList]);
 
     const filteredWorkTasks = useMemo(() => {
         if (activeTab === 'To Do') {
-            return tasks.filter(t => !isTaskCompleted(t));
+            return taskList.filter(t => !isTaskCompleted(t));
         } else if (activeTab === 'Done') {
-            return tasks.filter(t => isTaskCompleted(t));
+            return taskList.filter(t => isTaskCompleted(t));
         } else {
             // Delegated - for now just high priority tasks as a placeholder if no assignee logic
             const currentName = user?.name || 'Jundee';
-            return tasks.filter(t => t.assignee && t.assignee !== currentName);
+            return taskList.filter(t => t.assignee && t.assignee !== currentName);
         }
-    }, [tasks, activeTab, user]);
+    }, [taskList, activeTab, user]);
 
     const workGroupTasks = useMemo(() => {
         return filteredWorkTasks.filter(t => t.dueDate && isToday(parseISO(t.dueDate)));
@@ -68,7 +70,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
         let today = 0;
         let week = 0;
 
-        tasks.forEach(task => {
+        taskList.forEach(task => {
             task.timeEntries?.forEach(entry => {
                 const entryDate = new Date(entry.date);
                 if (isSameDay(entryDate, now)) {
@@ -81,7 +83,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
         });
 
         return { todayTotal: today, weekTotal: week };
-    }, [tasks]);
+    }, [taskList]);
 
     const formatDuration = (minutes: number) => {
         const hours = Math.floor(minutes / 60);

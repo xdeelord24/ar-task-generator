@@ -211,7 +211,7 @@ export interface Clip {
 }
 
 export interface AppState {
-  tasks: Task[];
+  tasks: Record<string, Task>;
   spaces: Space[];
   folders: Folder[];
   lists: List[];

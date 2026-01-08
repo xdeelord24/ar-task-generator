@@ -157,7 +157,7 @@ Example JSON:
                 updatedAt: new Date().toISOString()
             }));
 
-            const currentTask = state.tasks.find(t => t.id === task.id) || task;
+            const currentTask = state.tasks[task.id] || task;
             taskUpdates.subtasks = [...(currentTask.subtasks || []), ...newSubtasks];
         }
 
@@ -174,10 +174,10 @@ Example JSON:
 
         // 5. Relations (Blocking)
         if (updates.blockingTaskName) {
-            const target = state.tasks.find(t => t.name.toLowerCase().includes(updates.blockingTaskName.toLowerCase()));
+            const target = Object.values(state.tasks).find(t => t.name.toLowerCase().includes(updates.blockingTaskName.toLowerCase()));
             if (target) {
                 const rel = { id: generateUUID(), type: 'blocking', taskId: target.id };
-                const currentTask = state.tasks.find(t => t.id === task.id) || task;
+                const currentTask = state.tasks[task.id] || task;
                 taskUpdates.relationships = [...(currentTask.relationships || []), rel];
             }
         }
@@ -209,7 +209,7 @@ Example JSON:
 
 
 interface AppStore extends AppState {
-    setTasks: (tasks: Task[]) => void;
+    setTasks: (tasks: Record<string, Task>) => void;
     addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'subtasks'>) => void;
     updateTask: (taskId: string, updates: Partial<Task>) => void;
     deleteTask: (taskId: string) => void;
@@ -328,8 +328,8 @@ const isTaskCompleted = (task: Task, state: AppState, statusToCheck?: string): b
 export const useAppStore = create<AppStore>()(
     persist(
         (set, get) => ({
-            tasks: [
-                {
+            tasks: {
+                '1': {
                     id: '1',
                     name: 'Implement Goal tracking',
                     description: 'Create a new feature to track user goals and progress.',
@@ -343,7 +343,7 @@ export const useAppStore = create<AppStore>()(
                     tags: ['bug'],
                     subtasks: []
                 },
-                {
+                '2': {
                     id: '2',
                     name: 'Design System Update',
                     description: 'Refresh the design system with new tokens and components.',
@@ -357,7 +357,7 @@ export const useAppStore = create<AppStore>()(
                     tags: ['feature'],
                     subtasks: []
                 }
-            ],
+            },
             spaces: [
                 { id: 'everything', name: 'Everything', icon: 'star', color: '#3b82f6', isDefault: true, taskCount: 0, statuses: DEFAULT_STATUSES },
                 { id: 'team-space', name: 'Team Space', icon: 'users', color: '#10b981', isDefault: true, taskCount: 0, statuses: DEFAULT_STATUSES }
@@ -464,7 +464,7 @@ export const useAppStore = create<AppStore>()(
                 };
 
                 // 1. Immediate Update (Optimistic)
-                set((state) => ({ tasks: [newTask, ...state.tasks] }));
+                set((state) => ({ tasks: { ...state.tasks, [newTask.id]: newTask } }));
 
                 // Propagate to Owner if Shared Space
                 const currentState = get();
@@ -513,7 +513,7 @@ export const useAppStore = create<AppStore>()(
 
                 // Gamification: Award XP for completing a task
                 const currentStore = get();
-                const taskBeforeUpdate = currentStore.tasks.find(t => t.id === taskId);
+                const taskBeforeUpdate = currentStore.tasks[taskId];
 
                 if (taskBeforeUpdate && updates.status) {
                     const wasCompleted = isTaskCompleted(taskBeforeUpdate, currentStore);
@@ -527,15 +527,19 @@ export const useAppStore = create<AppStore>()(
                 }
 
                 set((state) => {
-                    const newTasks = state.tasks.map((task) =>
-                        task.id === taskId ? { ...task, ...updates, updatedAt: new Date().toISOString() } : task
-                    );
-                    return { tasks: newTasks };
+                    const prevTask = state.tasks[taskId];
+                    if (!prevTask) return state;
+                    return {
+                        tasks: {
+                            ...state.tasks,
+                            [taskId]: { ...prevTask, ...updates, updatedAt: new Date().toISOString() }
+                        }
+                    };
                 });
 
                 // Agent Processing
                 const state = get();
-                const updatedTask = state.tasks.find(t => t.id === taskId);
+                const updatedTask = state.tasks[taskId];
 
                 if (updatedTask) {
                     // Real-time broadcast
@@ -580,7 +584,7 @@ export const useAppStore = create<AppStore>()(
             },
             deleteTask: (taskId) => {
                 const state = get();
-                const task = state.tasks.find(t => t.id === taskId);
+                const task = state.tasks[taskId];
 
                 if (task) {
                     // Real-time broadcast
@@ -589,12 +593,13 @@ export const useAppStore = create<AppStore>()(
                     }
                 }
 
-                set((state) => ({
-                    tasks: state.tasks.filter((task) => task.id !== taskId)
-                }));
+                set((state) => {
+                    const { [taskId]: deleted, ...remaining } = state.tasks;
+                    return { tasks: remaining };
+                });
             },
             duplicateTask: (taskId) => set((state) => {
-                const task = state.tasks.find(t => t.id === taskId);
+                const task = state.tasks[taskId];
                 if (!task) return state;
                 const newId = generateUUID();
                 const newTask = {
@@ -605,10 +610,10 @@ export const useAppStore = create<AppStore>()(
                     updatedAt: new Date().toISOString(),
                     subtasks: task.subtasks?.map(st => ({ ...st, id: generateUUID() }))
                 };
-                return { tasks: [...state.tasks, newTask] };
+                return { tasks: { ...state.tasks, [newId]: newTask } };
             }),
             duplicateSubtask: (taskId, subtaskId) => set((state) => {
-                const task = state.tasks.find(t => t.id === taskId);
+                const task = state.tasks[taskId];
                 if (!task || !task.subtasks) return state;
                 const subtask = task.subtasks.find(s => s.id === subtaskId);
                 if (!subtask) return state;
@@ -636,37 +641,53 @@ export const useAppStore = create<AppStore>()(
                 }
 
                 return {
-                    tasks: state.tasks.map(t =>
-                        t.id === taskId ? { ...t, subtasks: [...(t.subtasks || []), newSubtask], updatedAt: new Date().toISOString() } : t
-                    )
+                    tasks: {
+                        ...state.tasks,
+                        [taskId]: {
+                            ...task,
+                            subtasks: [...(task.subtasks || []), newSubtask],
+                            updatedAt: new Date().toISOString()
+                        }
+                    }
                 };
             }),
             archiveTask: (taskId) => set((state) => {
-                const task = state.tasks.find(t => t.id === taskId);
+                const task = state.tasks[taskId];
                 let doneStatus = 'COMPLETED';
                 if (task) {
                     const statuses = getTaskStatuses(task, state);
                     const ds = statuses.find(s => s.type === 'done');
                     if (ds) doneStatus = ds.name;
+
+                    return {
+                        tasks: {
+                            ...state.tasks,
+                            [taskId]: { ...task, status: doneStatus }
+                        }
+                    };
                 }
-                return {
-                    tasks: state.tasks.map(t => t.id === taskId ? { ...t, status: doneStatus } : t)
-                };
+                return state;
             }),
             addSubtask: (taskId, subtask) => {
-                set((state) => ({
-                    tasks: state.tasks.map((task) =>
-                        task.id === taskId ? {
-                            ...task,
-                            subtasks: [...(task.subtasks || []), { ...subtask, id: generateUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
-                            updatedAt: new Date().toISOString()
-                        } : task
-                    )
-                }));
+                set((state) => {
+                    const task = state.tasks[taskId];
+                    if (!task) return state;
+
+                    return {
+                        tasks: {
+                            ...state.tasks,
+                            [taskId]: {
+                                ...task,
+                                subtasks: [...(task.subtasks || []), { ...subtask, id: generateUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+                                updatedAt: new Date().toISOString()
+                            }
+                        }
+                    };
+                });
 
                 // Propagate
                 const state = get();
-                const updatedTask = state.tasks.find(t => t.id === taskId);
+                const updatedTask = state.tasks[taskId];
                 if (updatedTask) {
                     const space = state.spaces.find(s => s.id === updatedTask.spaceId);
                     if (space && (space as any).isShared && (space as any).ownerId) {
@@ -687,18 +708,24 @@ export const useAppStore = create<AppStore>()(
                 }
             },
             updateSubtask: (taskId, subtaskId, updates) => {
-                set((state) => ({
-                    tasks: state.tasks.map((task) =>
-                        task.id === taskId ? {
-                            ...task,
-                            subtasks: task.subtasks?.map(st => st.id === subtaskId ? { ...st, ...updates, updatedAt: new Date().toISOString() } : st),
-                            updatedAt: new Date().toISOString()
-                        } : task
-                    )
-                }));
+                set((state) => {
+                    const task = state.tasks[taskId];
+                    if (!task) return state;
+
+                    return {
+                        tasks: {
+                            ...state.tasks,
+                            [taskId]: {
+                                ...task,
+                                subtasks: task.subtasks?.map(st => st.id === subtaskId ? { ...st, ...updates, updatedAt: new Date().toISOString() } : st),
+                                updatedAt: new Date().toISOString()
+                            }
+                        }
+                    };
+                });
                 // Propagate
                 const state = get();
-                const updatedTask = state.tasks.find(t => t.id === taskId);
+                const updatedTask = state.tasks[taskId];
                 if (updatedTask) {
                     // Real-time broadcast
                     if (socket) {
@@ -719,18 +746,24 @@ export const useAppStore = create<AppStore>()(
                 }
             },
             deleteSubtask: (taskId, subtaskId) => {
-                set((state) => ({
-                    tasks: state.tasks.map((task) =>
-                        task.id === taskId ? {
-                            ...task,
-                            subtasks: task.subtasks?.filter(st => st.id !== subtaskId),
-                            updatedAt: new Date().toISOString()
-                        } : task
-                    )
-                }));
+                set((state) => {
+                    const task = state.tasks[taskId];
+                    if (!task) return state;
+
+                    return {
+                        tasks: {
+                            ...state.tasks,
+                            [taskId]: {
+                                ...task,
+                                subtasks: task.subtasks?.filter(st => st.id !== subtaskId),
+                                updatedAt: new Date().toISOString()
+                            }
+                        }
+                    };
+                });
                 // Propagate
                 const state = get();
-                const updatedTask = state.tasks.find(t => t.id === taskId);
+                const updatedTask = state.tasks[taskId];
                 if (updatedTask) {
                     const space = state.spaces.find(s => s.id === updatedTask.spaceId);
                     if (space && (space as any).isShared && (space as any).ownerId) {
@@ -835,25 +868,27 @@ export const useAppStore = create<AppStore>()(
                 // Duplicate Tasks in those lists? 
                 // For a full robust duplicate, we should. But for this MVP step, maybe just Folder + Lists.
                 // Users usually expect tasks. Let's try to map tasks too.
-                const newTasks: Task[] = [];
+                // Duplicate Tasks in those lists
+                const newTasksDict: Record<string, Task> = {};
                 newLists.forEach((newList, index) => {
                     const originalListId = folderLists[index].id;
-                    const originalTasks = state.tasks.filter(t => t.listId === originalListId);
+                    const originalTasks = Object.values(state.tasks).filter(t => t.listId === originalListId);
                     originalTasks.forEach(task => {
-                        newTasks.push({
+                        const newId = generateUUID();
+                        newTasksDict[newId] = {
                             ...task,
-                            id: generateUUID(),
+                            id: newId,
                             listId: newList.id,
                             createdAt: new Date().toISOString(),
                             updatedAt: new Date().toISOString()
-                        });
+                        };
                     });
                 });
 
                 return {
                     folders: [...state.folders, newFolder],
                     lists: [...state.lists, ...newLists],
-                    tasks: [...state.tasks, ...newTasks]
+                    tasks: { ...state.tasks, ...newTasksDict }
                 };
             }),
             setLists: (lists) => set({ lists }),
@@ -914,18 +949,19 @@ export const useAppStore = create<AppStore>()(
                 };
 
                 // Duplicate tasks
-                const originalTasks = state.tasks.filter(t => t.listId === listId);
-                const newTasks = originalTasks.map(t => ({
+                const originalTasks = Object.values(state.tasks).filter(t => t.listId === listId);
+                const newTasksArr = originalTasks.map(t => ({
                     ...t,
                     id: generateUUID(),
                     listId: newListId,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 }));
+                const newTasks = newTasksArr.reduce((acc, t) => { acc[t.id] = t; return acc; }, {} as Record<string, Task>);
 
                 return {
                     lists: [...state.lists, newList],
-                    tasks: [...state.tasks, ...newTasks]
+                    tasks: { ...state.tasks, ...newTasks }
                 };
             }),
             updateList: (listId, updates) => {
@@ -962,7 +998,7 @@ export const useAppStore = create<AppStore>()(
 
                 set((state) => ({
                     lists: state.lists.filter(l => l.id !== listId),
-                    tasks: state.tasks.filter(t => t.listId !== listId)
+                    tasks: Object.fromEntries(Object.entries(state.tasks).filter(([_, t]) => t.listId !== listId))
                 }));
             },
             updateSpace: (spaceId, updates) => set((state) => ({
@@ -970,7 +1006,7 @@ export const useAppStore = create<AppStore>()(
             })),
             deleteSpace: (spaceId) => set((state) => ({
                 spaces: state.spaces.filter(s => s.id !== spaceId),
-                tasks: state.tasks.filter(t => t.spaceId !== spaceId),
+                tasks: Object.fromEntries(Object.entries(state.tasks).filter(([_, t]) => t.spaceId !== spaceId)),
                 folders: state.folders.filter(f => f.spaceId !== spaceId),
                 lists: state.lists.filter(l => l.spaceId !== spaceId)
             })),
@@ -978,7 +1014,7 @@ export const useAppStore = create<AppStore>()(
                 // Remove locally
                 set((state) => ({
                     spaces: state.spaces.filter(s => s.id !== spaceId),
-                    tasks: state.tasks.filter(t => t.spaceId !== spaceId),
+                    tasks: Object.fromEntries(Object.entries(state.tasks).filter(([_, t]) => t.spaceId !== spaceId)),
                     folders: state.folders.filter(f => f.spaceId !== spaceId),
                     lists: state.lists.filter(l => l.spaceId !== spaceId),
                     currentSpaceId: state.currentSpaceId === spaceId ? 'everything' : state.currentSpaceId
@@ -1052,17 +1088,24 @@ export const useAppStore = create<AppStore>()(
                 columnSettings: { ...state.columnSettings, [targetId]: columns }
             })),
             addComment: (taskId, comment) => {
-                set((state) => ({
-                    tasks: state.tasks.map(task => task.id === taskId ? {
-                        ...task,
-                        comments: [...(task.comments || []), { ...comment, id: generateUUID(), createdAt: new Date().toISOString() }],
-                        updatedAt: new Date().toISOString()
-                    } : task)
-                }));
+                set((state) => {
+                    const task = state.tasks[taskId];
+                    if (!task) return state;
+                    return {
+                        tasks: {
+                            ...state.tasks,
+                            [taskId]: {
+                                ...task,
+                                comments: [...(task.comments || []), { ...comment, id: generateUUID(), createdAt: new Date().toISOString() }],
+                                updatedAt: new Date().toISOString()
+                            }
+                        }
+                    };
+                });
 
                 // Propagate
                 const state = get();
-                const updatedTask = state.tasks.find(t => t.id === taskId);
+                const updatedTask = state.tasks[taskId];
                 if (updatedTask) {
                     const space = state.spaces.find(s => s.id === updatedTask.spaceId);
                     if (space && (space as any).isShared && (space as any).ownerId) {
@@ -1085,16 +1128,23 @@ export const useAppStore = create<AppStore>()(
                 }
             },
             addTimeEntry: (taskId, entry) => {
-                set((state) => ({
-                    tasks: state.tasks.map(task => task.id === taskId ? {
-                        ...task,
-                        timeEntries: [...(task.timeEntries || []), { ...entry, id: generateUUID() }],
-                        updatedAt: new Date().toISOString()
-                    } : task)
-                }));
+                set((state) => {
+                    const task = state.tasks[taskId];
+                    if (!task) return state;
+                    return {
+                        tasks: {
+                            ...state.tasks,
+                            [taskId]: {
+                                ...task,
+                                timeEntries: [...(task.timeEntries || []), { ...entry, id: generateUUID() }],
+                                updatedAt: new Date().toISOString()
+                            }
+                        }
+                    };
+                });
                 // Propagate
                 const state = get();
-                const updatedTask = state.tasks.find(t => t.id === taskId);
+                const updatedTask = state.tasks[taskId];
                 if (updatedTask) {
                     const space = state.spaces.find(s => s.id === updatedTask.spaceId);
                     if (space && (space as any).isShared && (space as any).ownerId) {
@@ -1110,16 +1160,23 @@ export const useAppStore = create<AppStore>()(
                 }
             },
             addRelationship: (taskId, relationship) => {
-                set((state) => ({
-                    tasks: state.tasks.map(task => task.id === taskId ? {
-                        ...task,
-                        relationships: [...(task.relationships || []), { ...relationship, id: generateUUID() }],
-                        updatedAt: new Date().toISOString()
-                    } : task)
-                }));
+                set((state) => {
+                    const task = state.tasks[taskId];
+                    if (!task) return state;
+                    return {
+                        tasks: {
+                            ...state.tasks,
+                            [taskId]: {
+                                ...task,
+                                relationships: [...(task.relationships || []), { ...relationship, id: generateUUID() }],
+                                updatedAt: new Date().toISOString()
+                            }
+                        }
+                    };
+                });
                 // Propagate
                 const state = get();
-                const updatedTask = state.tasks.find(t => t.id === taskId);
+                const updatedTask = state.tasks[taskId];
                 if (updatedTask) {
                     const space = state.spaces.find(s => s.id === updatedTask.spaceId);
                     if (space && (space as any).isShared && (space as any).ownerId) {
@@ -1135,16 +1192,23 @@ export const useAppStore = create<AppStore>()(
                 }
             },
             removeRelationship: (taskId, relationshipId) => {
-                set((state) => ({
-                    tasks: state.tasks.map(task => task.id === taskId ? {
-                        ...task,
-                        relationships: (task.relationships || []).filter(r => r.id !== relationshipId),
-                        updatedAt: new Date().toISOString()
-                    } : task)
-                }));
+                set((state) => {
+                    const task = state.tasks[taskId];
+                    if (!task) return state;
+                    return {
+                        tasks: {
+                            ...state.tasks,
+                            [taskId]: {
+                                ...task,
+                                relationships: (task.relationships || []).filter(r => r.id !== relationshipId),
+                                updatedAt: new Date().toISOString()
+                            }
+                        }
+                    };
+                });
                 // Propagate
                 const state = get();
-                const updatedTask = state.tasks.find(t => t.id === taskId);
+                const updatedTask = state.tasks[taskId];
                 if (updatedTask) {
                     const space = state.spaces.find(s => s.id === updatedTask.spaceId);
                     if (space && (space as any).isShared && (space as any).ownerId) {
@@ -1376,7 +1440,7 @@ export const useAppStore = create<AppStore>()(
                 const dueSoonThreshold = new Date();
                 dueSoonThreshold.setDate(now.getDate() + state.notificationSettings.dueSoonDays);
 
-                state.tasks.forEach(task => {
+                Object.values(state.tasks).forEach(task => {
                     if (!task.dueDate) return;
 
                     const dueDate = new Date(task.dueDate);
@@ -1501,10 +1565,34 @@ export const useAppStore = create<AppStore>()(
                                 }
                             };
 
+                            // Merge Arrays
                             merge('spaces', sharedData.spaces);
                             merge('folders', sharedData.folders);
                             merge('lists', sharedData.lists);
-                            merge('tasks', sharedData.tasks);
+
+                            // Merge Tasks (Object)
+                            if (sharedData.tasks && sharedData.tasks.length > 0) {
+                                let tasksChanged = false;
+                                const localTasks = { ...state.tasks };
+                                sharedData.tasks.forEach((rItem: any) => {
+                                    const lItem = localTasks[rItem.id];
+                                    if (lItem) {
+                                        const rTime = rItem.updatedAt ? new Date(rItem.updatedAt).getTime() : 0;
+                                        const lTime = lItem.updatedAt ? new Date(lItem.updatedAt).getTime() : 0;
+                                        if (rTime > lTime || (!lItem.updatedAt && rItem.updatedAt)) {
+                                            localTasks[rItem.id] = { ...lItem, ...rItem };
+                                            tasksChanged = true;
+                                        }
+                                    } else {
+                                        localTasks[rItem.id] = rItem;
+                                        tasksChanged = true;
+                                    }
+                                });
+                                if (tasksChanged) {
+                                    newState['tasks'] = localTasks;
+                                    hasChanges = true;
+                                }
+                            }
 
                             return hasChanges ? newState : state;
                         });
@@ -1533,17 +1621,18 @@ export const useAppStore = create<AppStore>()(
                     console.log('[Socket] Received shared update:', type, data.id);
                     set((state) => {
                         if (type === 'task') {
-                            const exists = state.tasks.find(t => t.id === data.id);
+                            const exists = state.tasks[data.id];
                             if (exists) {
                                 return {
-                                    tasks: state.tasks.map(t => t.id === data.id ? { ...t, ...data } : t)
+                                    tasks: { ...state.tasks, [data.id]: { ...exists, ...data } }
                                 };
                             } else {
-                                return { tasks: [data, ...state.tasks] };
+                                return { tasks: { ...state.tasks, [data.id]: data } };
                             }
                         } else if (type === 'task_delete') {
+                            const { [data.id]: deleted, ...remaining } = state.tasks;
                             return {
-                                tasks: state.tasks.filter(t => t.id !== data.id)
+                                tasks: remaining
                             };
                         } else if (type === 'list') {
                             const exists = state.lists.find(l => l.id === data.id);
@@ -1647,10 +1736,10 @@ export const useAppStore = create<AppStore>()(
         {
             name: 'ar-generator-app-storage',
             storage: createJSONStorage(() => serverStorage),
-            version: 4,
+            version: 5,
             migrate: (persistedState: any, version) => {
                 try {
-                    console.log(`[Zustand] Migrating from version ${version} to 4`);
+                    console.log(`[Zustand] Migrating from version ${version} to 5`);
                     if (!persistedState) return persistedState;
 
                     if (version < 4) {
@@ -1673,6 +1762,17 @@ export const useAppStore = create<AppStore>()(
                             });
                         }
                     }
+
+                    if (version < 5) {
+                        if (persistedState.tasks && Array.isArray(persistedState.tasks)) {
+                            console.log('[Zustand] Migrating tasks array to object (v5)');
+                            persistedState.tasks = persistedState.tasks.reduce((acc: any, t: any) => {
+                                if (t && t.id) acc[t.id] = t;
+                                return acc;
+                            }, {});
+                        }
+                    }
+
                     return persistedState;
                 } catch (error) {
                     console.error('[Zustand] Migration failed, returning original state to prevent reset:', error);

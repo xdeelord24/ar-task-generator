@@ -118,12 +118,12 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     } = useAppStore();
 
     // Logic to find task or subtask
-    let task: Task | undefined = tasks.find(t => t.id === taskId);
+    let task: Task | undefined = tasks[taskId];
     let isSubtask = false;
     let parentTask: Task | undefined = undefined;
 
     if (!task) {
-        for (const t of tasks) {
+        for (const t of Object.values(tasks)) {
             if (t.subtasks) {
                 const sub = t.subtasks.find(s => s.id === taskId);
                 if (sub) {

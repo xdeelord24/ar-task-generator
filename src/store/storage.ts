@@ -234,52 +234,96 @@ export const serverStorage: StateStorage = {
                             const sState = serverJson.state;
 
                             const safeMerge = (listName: string) => {
-                                const localList = lState[listName] || [];
-                                const serverList = sState[listName] || [];
-                                const localIds = new Set(localList.map((i: any) => i.id));
-                                const localMap = new Map(localList.map((i: any) => [i.id, i]));
+                                const localData = lState[listName];
+                                const serverData = sState[listName];
 
-                                let addedCount = 0;
-                                let updatedCount = 0;
+                                // Assume type based on local structure, or fallback to server's if local is empty/null
+                                const isArray = Array.isArray(localData) || (!localData && Array.isArray(serverData));
 
-                                serverList.forEach((sItem: any) => {
-                                    if (!localIds.has(sItem.id)) {
-                                        localList.push(sItem);
-                                        addedCount++;
-                                    } else {
-                                        // Item exists. Check if Server is newer.
-                                        const localItem = localMap.get(sItem.id);
+                                if (isArray) {
+                                    const localList = localData || [];
+                                    const serverList = serverData || [];
+                                    const localIds = new Set(localList.map((i: any) => i.id));
+                                    const localMap = new Map(localList.map((i: any) => [i.id, i]));
 
-                                        if (localItem) {
-                                            // Helper to safely parse dates
+                                    let addedCount = 0;
+                                    let updatedCount = 0;
+
+                                    serverList.forEach((sItem: any) => {
+                                        if (!localIds.has(sItem.id)) {
+                                            localList.push(sItem);
+                                            addedCount++;
+                                        } else {
+                                            // Item exists. Check if Server is newer.
+                                            const localItem = localMap.get(sItem.id);
+
+                                            if (localItem) {
+                                                const getMTime = (item: any) => item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
+                                                const serverTime = getMTime(sItem);
+                                                const localTime = getMTime(localItem);
+
+                                                // Update if Server is strictly newer, OR if it's a shared item (syncs metadata)
+                                                if (serverTime > localTime) {
+                                                    Object.assign(localItem, sItem);
+                                                    updatedCount++;
+                                                } else if (sItem.isShared) {
+                                                    Object.assign(localItem, {
+                                                        isShared: true,
+                                                        ownerId: sItem.ownerId,
+                                                        ownerName: sItem.ownerName,
+                                                        permission: sItem.permission,
+                                                        name: sItem.name,
+                                                        color: sItem.color,
+                                                        icon: sItem.icon
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    });
+                                    if (addedCount > 0 || updatedCount > 0) {
+                                        console.log(`[Storage] Merged ${addedCount} new, ${updatedCount} updated ${listName} from server.`);
+                                        lState[listName] = localList;
+                                    }
+                                } else {
+                                    // Handle Object/Record merging (e.g. tasks)
+                                    const localObj = localData || {};
+                                    const serverObj = serverData || {};
+                                    let addedCount = 0;
+                                    let updatedCount = 0;
+
+                                    Object.values(serverObj).forEach((sItem: any) => {
+                                        const key = sItem.id;
+                                        if (!key) return;
+
+                                        const lItem = localObj[key];
+                                        if (!lItem) {
+                                            localObj[key] = sItem;
+                                            addedCount++;
+                                        } else {
                                             const getMTime = (item: any) => item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
-
                                             const serverTime = getMTime(sItem);
-                                            const localTime = getMTime(localItem);
+                                            const localTime = getMTime(lItem);
 
-                                            // Update if Server is strictly newer, OR if it's a shared item (syncs metadata)
+                                            // Handle server update sync
                                             if (serverTime > localTime) {
-                                                // Server wins - Overwrite local item properties with server properties
-                                                Object.assign(localItem, sItem);
+                                                Object.assign(lItem, sItem);
                                                 updatedCount++;
                                             } else if (sItem.isShared) {
-                                                // Even if not newer (or equal), ensure shared metadata is synced
-                                                Object.assign(localItem, {
+                                                // Minimal shared props sync if needed
+                                                Object.assign(lItem, {
                                                     isShared: true,
                                                     ownerId: sItem.ownerId,
                                                     ownerName: sItem.ownerName,
-                                                    permission: sItem.permission,
-                                                    name: sItem.name,
-                                                    color: sItem.color,
-                                                    icon: sItem.icon
+                                                    permission: sItem.permission
                                                 });
                                             }
                                         }
+                                    });
+
+                                    if (addedCount > 0 || updatedCount > 0) {
+                                        console.log(`[Storage] Merged ${addedCount} new, ${updatedCount} updated object items for ${listName}`);
+                                        lState[listName] = localObj;
                                     }
-                                });
-                                if (addedCount > 0 || updatedCount > 0) {
-                                    console.log(`[Storage] Merged ${addedCount} new, ${updatedCount} updated ${listName} from server.`);
-                                    lState[listName] = localList;
                                 }
                             };
 
