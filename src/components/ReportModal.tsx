@@ -108,6 +108,14 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
             selectedSpaces.includes(t.spaceId)
         );
 
+        if (formData.name) {
+            reportTasks = reportTasks.filter(t => {
+                const isAssignee = t.assignee === formData.name;
+                const isInAssignees = t.assignees?.includes(formData.name) ?? false;
+                return isAssignee || isInAssignees;
+            });
+        }
+
         if (formData.dateFrom && formData.dateTo) {
             const start = parseISO(formData.dateFrom);
             const end = parseISO(formData.dateTo);
