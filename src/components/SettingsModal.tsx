@@ -522,7 +522,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'pr
                                         <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Maribank</h4>
                                     </div>
                                     <div id="maribank-qr-settings" style={{ background: 'white', padding: '12px', borderRadius: '8px', display: 'inline-block', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}></div>
-                                    <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>JUNDEE MARK M.</p>
+                                    <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>User</p>
                                     <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-tertiary)' }}>Scan with your banking app</p>
                                 </div>
                                 <div className="qr-support-card" style={{ textAlign: 'center', padding: '24px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: '220px' }}>
@@ -531,7 +531,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, initialTab = 'pr
                                         <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Landbank</h4>
                                     </div>
                                     <div id="landbank-qr-settings" style={{ background: 'white', padding: '12px', borderRadius: '8px', display: 'inline-block', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}></div>
-                                    <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>JUNDEE MARK MOLINA</p>
+                                    <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>User</p>
                                     <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-tertiary)' }}>Scan with your banking app</p>
                                 </div>
                             </div>

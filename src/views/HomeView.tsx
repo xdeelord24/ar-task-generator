@@ -56,7 +56,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onAddTask, onTaskClick }) => {
             return taskList.filter(t => isTaskCompleted(t));
         } else {
             // Delegated - for now just high priority tasks as a placeholder if no assignee logic
-            const currentName = user?.name || 'Jundee';
+            const currentName = user?.name || 'User';
             return taskList.filter(t => t.assignee && t.assignee !== currentName);
         }
     }, [taskList, activeTab, user]);

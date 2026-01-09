@@ -43,7 +43,7 @@ const DocsView: React.FC = () => {
             name: 'Untitled Doc',
             content: '',
             userId: user?.id || 'user-1',
-            userName: user?.name || 'Jundee',
+            userName: user?.name || 'User',
             spaceId: currentSpaceId === 'everything' ? undefined : currentSpaceId,
             listId: currentListId || undefined
         });

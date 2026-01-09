@@ -601,7 +601,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = React.memo(({ taskId, on
             name: `${task.name} - Specification`,
             content: task.description,
             userId: 'user-1',
-            userName: 'Jundee',
+            userName: 'User',
             spaceId: task.spaceId
         });
 
@@ -1905,7 +1905,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = React.memo(({ taskId, on
                                     onAttachmentClick={(att) => setPreviewAttachment(att)}
                                     onAIRequest={handleAIResponse}
                                     activityFeedRef={activityFeedRef}
-                                    currentUserName={currentUser?.name || "Jundee"}
+                                    currentUserName={currentUser?.name || "User"}
                                     workspaceMembers={workspaceMembers}
                                 />
                             )}

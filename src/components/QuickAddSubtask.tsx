@@ -60,7 +60,7 @@ const QuickAddSubtask: React.FC<QuickAddSubtaskProps> = ({ onAdd, onCancel }) =>
     };
 
     const toggleAssignee = () => {
-        setAssignee(prev => prev ? undefined : 'Jundee'); // Simple toggle for now
+        setAssignee(prev => prev ? undefined : 'User'); // Simple toggle for now
     };
 
     return (

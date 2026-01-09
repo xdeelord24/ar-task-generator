@@ -123,7 +123,7 @@ const ClipsView: React.FC = () => {
         if (!selectedClipId || !commentText.trim()) return;
         addClipComment(selectedClipId, {
             userId: user?.id || 'user-1',
-            userName: user?.name || 'Jundee Mark Gerona Molina',
+            userName: user?.name || 'User',
             text: commentText
         });
         setCommentText('');

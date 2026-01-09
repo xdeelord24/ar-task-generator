@@ -1501,7 +1501,7 @@ const ListView: React.FC<ListViewProps> = React.memo(({ onAddTask, onTaskClick, 
             name: `${task.name} - Specification`,
             content: task.description,
             userId: user?.id || 'user-1',
-            userName: user?.name || 'Jundee',
+            userName: user?.name || 'User',
             spaceId: task.spaceId
         });
 

@@ -344,7 +344,7 @@ export const useAppStore = create<AppStore>()(
                     status: 'TO DO',
                     priority: 'high',
                     spaceId: 'team-space',
-                    assignee: 'Jundee',
+                    assignee: 'User',
                     dueDate: '2025-12-30',
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
@@ -380,7 +380,7 @@ export const useAppStore = create<AppStore>()(
                 { id: 'urgent', name: 'Urgent', color: '#f59e0b' }
             ],
             docs: [
-                { id: '1', name: 'Project Requirements', content: 'Initial requirements for the project...', userId: 'user-1', userName: 'Jundee', updatedAt: new Date().toISOString(), spaceId: 'team-space' },
+                { id: '1', name: 'Project Requirements', content: 'Initial requirements for the project...', userId: 'user-1', userName: 'User', updatedAt: new Date().toISOString(), spaceId: 'team-space' },
             ],
             currentSpaceId: 'team-space',
             currentListId: null,
@@ -427,7 +427,7 @@ export const useAppStore = create<AppStore>()(
                     updatedAt: new Date().toISOString(),
                     createdAt: new Date().toISOString(),
                     ownerId: 'user-1',
-                    ownerName: 'Jundee'
+                    ownerName: 'User'
                 }
             ],
             currentDashboardId: null,
@@ -438,7 +438,7 @@ export const useAppStore = create<AppStore>()(
                     duration: '00:06',
                     createdAt: new Date().toISOString(),
                     ownerId: 'user-1',
-                    ownerName: 'Jundee Mark Gerona Molina',
+                    ownerName: 'User',
                     type: 'video',
                     transcript: 'Welcome to Clips. Capture your device screen with just a few clicks. Record and effortlessly share your videos with anyone.'
                 }
@@ -1365,7 +1365,7 @@ export const useAppStore = create<AppStore>()(
                             updatedAt: new Date().toISOString(),
                             createdAt: new Date().toISOString(),
                             ownerId: 'user-1',
-                            ownerName: 'Jundee'
+                            ownerName: 'User'
                         } as Dashboard
                     ]
                 }));
@@ -1386,7 +1386,7 @@ export const useAppStore = create<AppStore>()(
                         id: generateUUID(),
                         createdAt: new Date().toISOString(),
                         ownerId: 'user-1',
-                        ownerName: 'Jundee Mark Gerona Molina'
+                        ownerName: 'User'
                     },
                     ...state.clips
                 ]
@@ -1588,7 +1588,7 @@ export const useAppStore = create<AppStore>()(
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
                         creatorId: 'user-1',
-                        creatorName: 'Jundee'
+                        creatorName: 'User'
                     }
                 ]
             })),

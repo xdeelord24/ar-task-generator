@@ -48,7 +48,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
 
     const [formData, setFormData] = useState({
         template: 'general',
-        name: 'Jundee',
+        name: 'User',
         position: 'Software Engineer',
         office: 'Tech Office',
         year: today.getFullYear(),
