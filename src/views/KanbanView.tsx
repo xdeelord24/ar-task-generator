@@ -612,7 +612,7 @@ const KanbanView: React.FC<KanbanViewProps> = React.memo(({ onAddTask, onTaskCli
             name: `${task.name} - Specification`,
             content: task.description,
             userId: user?.id || 'user-1',
-            userName: user?.name || 'Jundee',
+            userName: user?.name || 'User',
             spaceId: task.spaceId
         });
 

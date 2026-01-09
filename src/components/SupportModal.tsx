@@ -72,7 +72,7 @@ const SupportModal: React.FC<SupportModalProps> = ({ onClose }) => {
                         </div>
                         <h2>Buy Me a Coffee</h2>
                         <p className="support-subtitle">
-                            This is an open-source project made with <Heart size={16} className="heart-icon" fill="currentColor" /> by User
+                            This is an open-source project made with <Heart size={16} className="heart-icon" fill="currentColor" /> by Jundee Mark Molina
                         </p>
                         <p className="support-description">
                             If you find this project helpful, consider supporting its development. Your donations help keep this project alive and free for everyone!
@@ -88,7 +88,7 @@ const SupportModal: React.FC<SupportModalProps> = ({ onClose }) => {
                                 <h3>Maribank</h3>
                             </div>
                             <div className="qr-code-wrapper" ref={maribankCanvasRef}></div>
-                            <p className="account-name">User</p>
+                            <p className="account-name">JUNDEE MARK M.</p>
                             <p className="scan-instruction">Scan with your banking app</p>
                         </div>
 
@@ -104,7 +104,7 @@ const SupportModal: React.FC<SupportModalProps> = ({ onClose }) => {
                                 <h3>Landbank</h3>
                             </div>
                             <div className="qr-code-wrapper" ref={landbankCanvasRef}></div>
-                            <p className="account-name">User</p>
+                            <p className="account-name">JUNDEE MARK MOLINA</p>
                             <p className="scan-instruction">Scan with your banking app</p>
                         </div>
                     </div>
