@@ -96,7 +96,7 @@ interface SortableCardProps {
     onMove: (taskId: string) => void;
 }
 
-const SortableCard: React.FC<SortableCardProps> = ({
+const SortableCard: React.FC<SortableCardProps> = React.memo(({
     task,
     onTaskClick,
     tags,
@@ -418,7 +418,7 @@ const SortableCard: React.FC<SortableCardProps> = ({
             )}
         </div>
     );
-};
+});
 
 interface KanbanColumnProps {
     status: Task['status'];
@@ -549,30 +549,28 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     );
 };
 
-const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
-    const {
-        tasks,
-        currentSpaceId,
-        currentListId,
-        updateTask,
-        deleteTask,
-        duplicateTask,
-        archiveTask,
-        addDoc,
-        addStatus,
-        addSubtask,
-        tags,
-        addTag,
-        updateTag,
-        deleteTag,
-        spaces,
-        lists,
-        deleteSubtask,
-        duplicateSubtask,
-        updateSubtask,
-        updateList,
-        updateSpace
-    } = useAppStore();
+const KanbanView: React.FC<KanbanViewProps> = React.memo(({ onAddTask, onTaskClick }) => {
+    const tasks = useAppStore(state => state.tasks);
+    const currentSpaceId = useAppStore(state => state.currentSpaceId);
+    const currentListId = useAppStore(state => state.currentListId);
+    const updateTask = useAppStore(state => state.updateTask);
+    const deleteTask = useAppStore(state => state.deleteTask);
+    const duplicateTask = useAppStore(state => state.duplicateTask);
+    const archiveTask = useAppStore(state => state.archiveTask);
+    const addDoc = useAppStore(state => state.addDoc);
+    const addStatus = useAppStore(state => state.addStatus);
+    const addSubtask = useAppStore(state => state.addSubtask);
+    const tags = useAppStore(state => state.tags);
+    const addTag = useAppStore(state => state.addTag);
+    const updateTag = useAppStore(state => state.updateTag);
+    const deleteTag = useAppStore(state => state.deleteTag);
+    const spaces = useAppStore(state => state.spaces);
+    const lists = useAppStore(state => state.lists);
+    const deleteSubtask = useAppStore(state => state.deleteSubtask);
+    const duplicateSubtask = useAppStore(state => state.duplicateSubtask);
+    const updateSubtask = useAppStore(state => state.updateSubtask);
+    const updateList = useAppStore(state => state.updateList);
+    const updateSpace = useAppStore(state => state.updateSpace);
     const { user } = useAuthStore();
     const [activePopover, setActivePopover] = React.useState<ActivePopover | null>(null);
     const [activeId, setActiveId] = React.useState<string | null>(null);
@@ -637,14 +635,28 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
         })
     );
 
-    const filteredTasks = Object.values(tasks).filter(task => {
-        const matchesSpace = currentSpaceId === 'everything' || task.spaceId === currentSpaceId;
-        const matchesList = !currentListId || task.listId === currentListId;
-        return matchesSpace && matchesList;
-    });
+    const filteredTasks = React.useMemo(() => {
+        return Object.values(tasks).filter(task => {
+            const matchesSpace = currentSpaceId === 'everything' || task.spaceId === currentSpaceId;
+            const matchesList = !currentListId || task.listId === currentListId;
+            return matchesSpace && matchesList;
+        });
+    }, [tasks, currentSpaceId, currentListId]);
 
+    const boardStatuses: Status[] = React.useMemo(() => {
+        return activeList?.statuses || activeSpace?.statuses || DEFAULT_STATUSES;
+    }, [activeList?.statuses, activeSpace?.statuses]);
 
-    const boardStatuses: Status[] = activeList?.statuses || activeSpace?.statuses || DEFAULT_STATUSES;
+    const tasksByStatus = React.useMemo(() => {
+        const grouped: Record<string, Task[]> = {};
+        boardStatuses.forEach(col => {
+            grouped[col.name] = filteredTasks.filter(t =>
+                t.status.toLowerCase() === col.name.toLowerCase() ||
+                t.status === col.id
+            );
+        });
+        return grouped;
+    }, [filteredTasks, boardStatuses]);
 
     const handleAddColumn = () => {
         if (!newColumnName.trim()) return;
@@ -730,10 +742,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
                             key={col.id}
                             status={col.name}
                             color={col.color}
-                            tasks={filteredTasks.filter(t =>
-                                t.status.toLowerCase() === col.name.toLowerCase() ||
-                                t.status === col.id
-                            )}
+                            tasks={tasksByStatus[col.name] || []}
                             onAddTask={onAddTask}
                             onTaskClick={onTaskClick}
                             tags={tags}
@@ -883,6 +892,6 @@ const KanbanView: React.FC<KanbanViewProps> = ({ onAddTask, onTaskClick }) => {
             />
         </div>
     );
-};
+});
 
 export default KanbanView;

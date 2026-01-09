@@ -482,63 +482,78 @@ export const serverStorage: StateStorage = {
             return null;
         }
     },
-    setItem: async (name: string, value: string): Promise<void> => {
-        const ts = Date.now().toString();
+    setItem: (() => {
+        let timeout: NodeJS.Timeout | null = null;
+        const pendingChanges: Record<string, string> = {};
 
-        // 1. Synchronous Backup to LocalStorage (Critical for rapid refresh/close)
-        // We do this BEFORE awaiting IDB to ensure data is at least somewhere safe immediately.
-        if (typeof localStorage !== 'undefined') {
-            try {
-                localStorage.setItem(`${name}_ts`, ts);
-                localStorage.setItem(name, value);
-            } catch (e: any) {
-                // Ignore Quota errors silently to avoid console spam, effectively gracefully degrading
-                if (e.name !== 'QuotaExceededError') {
-                    console.warn('[Storage] LocalStorage backup failed:', e);
+        return async (name: string, value: string): Promise<void> => {
+            const ts = Date.now().toString();
+
+            // 1. Synchronous Backup to LocalStorage (Immediate safety)
+            if (typeof localStorage !== 'undefined') {
+                try {
+                    localStorage.setItem(`${name}_ts`, ts);
+                    localStorage.setItem(name, value);
+                } catch (e: any) {
+                    if (e.name !== 'QuotaExceededError') {
+                        console.warn('[Storage] LocalStorage backup failed:', e);
+                    }
                 }
             }
-        }
 
-        // 2. Save to Local DB (Primary target - Async)
-        try {
-            await browserDb.set(`${name}_ts`, ts);
-            await browserDb.set(name, value);
-        } catch (e) {
-            console.error('[Storage] IDB Save failed:', e);
-        }
+            // 2. Debounce heavier async operations (IDB & Server)
+            pendingChanges[name] = value;
 
-        // 3. Sync to Server (Background)
-        try {
-            const token = getAuthToken();
-            if (!token) return;
+            if (timeout) clearTimeout(timeout);
 
-            // Filter out local-only settings (like aiConfig) before sending to server
-            let serverPayload = value;
-            try {
-                const parsed = JSON.parse(value);
-                if (parsed.state && parsed.state.aiConfig) {
-                    const cleanState = { ...parsed.state };
-                    delete cleanState.aiConfig;
-                    serverPayload = JSON.stringify({ ...parsed, state: cleanState });
+            timeout = setTimeout(async () => {
+                const currentName = name;
+                const currentValue = pendingChanges[currentName];
+                if (!currentValue) return;
+
+                const currentTs = Date.now().toString();
+
+                // Save to Local DB (IndexedDB)
+                try {
+                    await browserDb.set(`${currentName}_ts`, currentTs);
+                    await browserDb.set(currentName, currentValue);
+                } catch (e) {
+                    console.error('[Storage] IDB Save failed:', e);
                 }
-            } catch (e) {
-                console.warn('[Storage] Payload filtering failed:', e);
-            }
 
-            // Fire and forget, logging errors if any
-            fetch(`${SERVER_URL}/${name}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: serverPayload,
-            }).catch(e => console.error('[Storage] Background sync error:', e));
+                // Sync to Server
+                try {
+                    const token = getAuthToken();
+                    if (!token) return;
 
-        } catch (error) {
-            console.error('[Storage] Failed to initiate server sync:', error);
-        }
-    },
+                    let serverPayload = currentValue;
+                    try {
+                        const parsed = JSON.parse(currentValue);
+                        if (parsed.state && parsed.state.aiConfig) {
+                            const cleanState = { ...parsed.state };
+                            delete cleanState.aiConfig;
+                            serverPayload = JSON.stringify({ ...parsed, state: cleanState });
+                        }
+                    } catch (e) {
+                        console.warn('[Storage] Payload filtering failed:', e);
+                    }
+
+                    await fetch(`${SERVER_URL}/${currentName}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: serverPayload,
+                    });
+                } catch (error) {
+                    console.error('[Storage] Server sync error:', error);
+                }
+
+                delete pendingChanges[currentName];
+            }, 1000); // 1 second debounce for heavy writes
+        };
+    })(),
     removeItem: async (name: string): Promise<void> => {
         await browserDb.remove(name);
         await browserDb.remove(`${name}_ts`);

@@ -16,7 +16,7 @@ interface CommentComposerProps {
 }
 
 const CommentComposer: React.FC<CommentComposerProps> = ({ taskId, isSubtask, onAIRequest, workspaceMembers = [], taskName }) => {
-    const { addComment } = useAppStore();
+    const addComment = useAppStore(state => state.addComment);
     const [commentText, setCommentText] = useState('');
     const [pastedImages, setPastedImages] = useState<string[]>([]);
     const [attachments, setAttachments] = useState<Attachment[]>([]);

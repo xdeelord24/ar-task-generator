@@ -97,43 +97,40 @@ const IconMap: Record<string, any> = {
     'folder': Folder
 };
 
-const Sidebar: React.FC = () => {
-    const {
-        currentView,
-        setCurrentView,
-        spaces,
-        folders,
-        lists,
-        currentSpaceId,
-        setCurrentSpaceId,
-        setCurrentListId,
-        currentListId,
-        deleteSpace,
-        updateSpace,
-        deleteFolder,
-        updateFolder,
-        deleteList,
-        updateList,
-        sidebarCollapsed,
-        toggleSidebar,
-        dashboards,
-        currentDashboardId,
-        setCurrentDashboardId,
-        updateDashboard,
-        deleteDashboard,
-        leaveSpace,
-        duplicateFolder,
-        duplicateList,
-        addDoc,
-        userLevel,
-        userExp,
-        userName,
-
-        setUserName,
-        notifications,
-        invitations,
-        markAllNotificationsAsRead
-    } = useAppStore();
+const Sidebar: React.FC = React.memo(() => {
+    const currentView = useAppStore(state => state.currentView);
+    const setCurrentView = useAppStore(state => state.setCurrentView);
+    const spaces = useAppStore(state => state.spaces);
+    const folders = useAppStore(state => state.folders);
+    const lists = useAppStore(state => state.lists);
+    const currentSpaceId = useAppStore(state => state.currentSpaceId);
+    const setCurrentSpaceId = useAppStore(state => state.setCurrentSpaceId);
+    const setCurrentListId = useAppStore(state => state.setCurrentListId);
+    const currentListId = useAppStore(state => state.currentListId);
+    const deleteSpace = useAppStore(state => state.deleteSpace);
+    const updateSpace = useAppStore(state => state.updateSpace);
+    const deleteFolder = useAppStore(state => state.deleteFolder);
+    const updateFolder = useAppStore(state => state.updateFolder);
+    const deleteList = useAppStore(state => state.deleteList);
+    const updateList = useAppStore(state => state.updateList);
+    const sidebarCollapsed = useAppStore(state => state.sidebarCollapsed);
+    const toggleSidebar = useAppStore(state => state.toggleSidebar);
+    const dashboards = useAppStore(state => state.dashboards);
+    const currentDashboardId = useAppStore(state => state.currentDashboardId);
+    const setCurrentDashboardId = useAppStore(state => state.setCurrentDashboardId);
+    const updateDashboard = useAppStore(state => state.updateDashboard);
+    const deleteDashboard = useAppStore(state => state.deleteDashboard);
+    const leaveSpace = useAppStore(state => state.leaveSpace);
+    const duplicateFolder = useAppStore(state => state.duplicateFolder);
+    const duplicateList = useAppStore(state => state.duplicateList);
+    const addDoc = useAppStore(state => state.addDoc);
+    const userLevel = useAppStore(state => state.userLevel);
+    const userExp = useAppStore(state => state.userExp);
+    const userName = useAppStore(state => state.userName);
+    const setUserName = useAppStore(state => state.setUserName);
+    const notifications = useAppStore(state => state.notifications);
+    const invitations = useAppStore(state => state.invitations);
+    const markAllNotificationsAsRead = useAppStore(state => state.markAllNotificationsAsRead);
 
     const [isCreateSpaceOpen, setIsCreateSpaceOpen] = React.useState(false);
     const [editingSpace, setEditingSpace] = React.useState<any>(null);
@@ -941,6 +938,6 @@ const Sidebar: React.FC = () => {
             )}
         </aside>
     );
-};
+});
 
 export default Sidebar;

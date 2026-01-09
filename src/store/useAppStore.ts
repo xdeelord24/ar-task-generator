@@ -1960,6 +1960,22 @@ export const useAppStore = create<AppStore>()(
             name: 'ar-generator-app-storage',
             storage: createJSONStorage(() => serverStorage),
             version: 5,
+            partialize: (state) => {
+                const {
+                    tasks, spaces, folders, lists, tags, docs, agents,
+                    savedViews, columnSettings, theme, accentColor,
+                    activeTimer, aiConfig, aiMessages, aiSessions,
+                    dashboards, clips, notifications, notificationSettings,
+                    userLevel, userExp, userName
+                } = state;
+                return {
+                    tasks, spaces, folders, lists, tags, docs, agents,
+                    savedViews, columnSettings, theme, accentColor,
+                    activeTimer, aiConfig, aiMessages, aiSessions,
+                    dashboards, clips, notifications, notificationSettings,
+                    userLevel, userExp, userName
+                };
+            },
             migrate: (persistedState: any, version) => {
                 try {
                     console.log(`[Zustand] Migrating from version ${version} to 5`);

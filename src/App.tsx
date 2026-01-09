@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Layout from './components/Layout';
 import HomeView from './views/HomeView';
 import ListView from './views/ListView';
@@ -23,7 +23,9 @@ import { AuthModal } from './components/AuthModal';
 import ToastContainer from './components/ToastContainer';
 
 function App() {
-  const { currentView, theme, accentColor } = useAppStore();
+  const currentView = useAppStore(state => state.currentView);
+  const theme = useAppStore(state => state.theme);
+  const accentColor = useAppStore(state => state.accentColor);
   const { isAuthenticated, user: currentUser } = useAuthStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -106,12 +108,25 @@ function App() {
   }, []);
 
 
-  const renderView = () => {
+  const handleAddTask = useCallback((status?: string, start?: Date, end?: Date) => {
+    if (status) setInitialStatus(status);
+    if (start) setInitialStartDate(start);
+    if (end) setInitialDate(end);
+    setIsModalOpen(true);
+  }, []);
+
+  const handleOpenReport = useCallback(() => setIsReportOpen(true), []);
+  const handleOpenAI = useCallback(() => setIsAIOpen(true), []);
+  const handleOpenSettings = useCallback((tab?: string) => openSettings(tab), []);
+  const handleCloseTaskDetail = useCallback(() => setSelectedTaskId(null), []);
+  const handleTaskClick = useCallback((id: string) => setSelectedTaskId(id), []);
+
+  const activeView = useMemo(() => {
     switch (currentView) {
       case 'home':
-        return <HomeView onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
+        return <HomeView onAddTask={() => handleAddTask()} onTaskClick={handleTaskClick} />;
       case 'inbox':
-        return <InboxView onTaskClick={(id) => setSelectedTaskId(id)} />;
+        return <InboxView onTaskClick={handleTaskClick} />;
       case 'timesheet':
         return <TimesheetView />;
       case 'dashboards':
@@ -126,35 +141,35 @@ function App() {
         return <AgentsView />;
       case 'kanban':
         return <KanbanView
-          onAddTask={(status) => {
-            setInitialStatus(status);
-            setIsModalOpen(true);
-          }}
-          onTaskClick={(id) => setSelectedTaskId(id)}
+          onAddTask={handleAddTask}
+          onTaskClick={handleTaskClick}
         />;
       case 'calendar':
         return <CalendarView
-          onAddTask={(start, end) => {
-            if (end) {
-              setInitialStartDate(start);
-              setInitialDate(end);
-            } else {
-              setInitialStartDate(undefined);
-              setInitialDate(start);
-            }
-            setIsModalOpen(true);
-          }}
-          onTaskClick={(id) => setSelectedTaskId(id)}
+          onAddTask={(start, end) => handleAddTask(undefined, start, end)}
+          onTaskClick={handleTaskClick}
         />;
       case 'gantt':
-        return <GanttView onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
+        return <GanttView
+          onAddTask={() => handleAddTask()}
+          onTaskClick={handleTaskClick}
+        />;
       case 'table':
-        return <ListView key="table" onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} isTableMode={true} />;
+        return <ListView
+          onAddTask={() => handleAddTask()}
+          onTaskClick={handleTaskClick}
+          isTableMode={true}
+        />;
       case 'list':
       default:
-        return <ListView key="list" onAddTask={() => setIsModalOpen(true)} onTaskClick={(id) => setSelectedTaskId(id)} />;
+        return (
+          <ListView
+            onAddTask={() => handleAddTask()}
+            onTaskClick={handleTaskClick}
+          />
+        );
     }
-  };
+  }, [currentView, handleAddTask, handleTaskClick]);
 
   if (!isAuthenticated) {
     return <AuthModal isOpen={true} />;
@@ -162,15 +177,15 @@ function App() {
 
   return (
     <Layout
-      onAddTask={() => setIsModalOpen(true)}
-      onOpenReport={() => setIsReportOpen(true)}
-      onOpenAI={() => setIsAIOpen(true)}
-      onOpenSettings={openSettings}
-      onTaskClick={setSelectedTaskId}
+      onAddTask={() => handleAddTask()}
+      onOpenReport={handleOpenReport}
+      onOpenAI={handleOpenAI}
+      onOpenSettings={handleOpenSettings}
+      onTaskClick={handleTaskClick}
     >
-      {renderView()}
+      {activeView}
       {isModalOpen && <TaskModal initialStatus={initialStatus} initialDate={initialDate} initialStartDate={initialStartDate} onClose={() => { setIsModalOpen(false); setInitialStatus(undefined); setInitialDate(undefined); setInitialStartDate(undefined); }} />}
-      {selectedTaskId && <TaskDetailModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} onTaskClick={(id) => setSelectedTaskId(id)} />}
+      {selectedTaskId && <TaskDetailModal taskId={selectedTaskId} onClose={handleCloseTaskDetail} onTaskClick={handleTaskClick} />}
       {isReportOpen && <ReportModal onClose={() => setIsReportOpen(false)} />}
       {isAIOpen && <AIModal onClose={() => setIsAIOpen(false)} onTaskClick={(id) => setSelectedTaskId(id)} />}
       {settingsState.open && (

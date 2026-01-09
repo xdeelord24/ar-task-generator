@@ -12,7 +12,7 @@ interface LayoutProps {
     onTaskClick?: (taskId: string) => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, onAddTask, onOpenReport, onOpenAI, onOpenSettings, onTaskClick }) => {
+const Layout: React.FC<LayoutProps> = React.memo(({ children, onAddTask, onOpenReport, onOpenAI, onOpenSettings, onTaskClick }) => {
     return (
         <div className="app-container">
             <Header
@@ -30,6 +30,6 @@ const Layout: React.FC<LayoutProps> = ({ children, onAddTask, onOpenReport, onOp
             </div>
         </div>
     );
-};
+});
 
 export default Layout;

@@ -67,20 +67,18 @@ const IconMap: Record<string, any> = {
     'kanban': Kanban
 };
 
-const ViewHeader: React.FC = () => {
-    const {
-        currentSpaceId,
-        currentListId,
-        currentView,
-        setCurrentView,
-        savedViews,
-        spaces,
-        lists,
-        tasks,
-        currentDashboardId,
-        setCurrentDashboardId,
-        dashboards
-    } = useAppStore();
+const ViewHeader: React.FC = React.memo(() => {
+    const currentSpaceId = useAppStore(state => state.currentSpaceId);
+    const currentListId = useAppStore(state => state.currentListId);
+    const currentView = useAppStore(state => state.currentView);
+    const setCurrentView = useAppStore(state => state.setCurrentView);
+    const savedViews = useAppStore(state => state.savedViews);
+    const spaces = useAppStore(state => state.spaces);
+    const lists = useAppStore(state => state.lists);
+    const tasks = useAppStore(state => state.tasks);
+    const currentDashboardId = useAppStore(state => state.currentDashboardId);
+    const setCurrentDashboardId = useAppStore(state => state.setCurrentDashboardId);
+    const dashboards = useAppStore(state => state.dashboards);
 
     const [showViewSelector, setShowViewSelector] = React.useState(false);
     const [contextMenu, setContextMenu] = React.useState<{ view: any; position: { x: number; y: number } } | null>(null);
@@ -102,11 +100,13 @@ const ViewHeader: React.FC = () => {
     const contextSpaceId = currentView === 'dashboards' && currentDashboard ? currentDashboard.spaceId : currentSpaceId;
     const contextListId = currentView === 'dashboards' && currentDashboard ? currentDashboard.listId : currentListId;
 
-    const filteredTasks = Object.values(tasks).filter(task => {
-        const matchesSpace = contextSpaceId === 'everything' || task.spaceId === contextSpaceId;
-        const matchesList = !contextListId || task.listId === contextListId;
-        return matchesSpace && matchesList;
-    });
+    const filteredTasksCount = React.useMemo(() => {
+        return Object.values(tasks).filter(task => {
+            const matchesSpace = contextSpaceId === 'everything' || task.spaceId === contextSpaceId;
+            const matchesList = !contextListId || task.listId === contextListId;
+            return matchesSpace && matchesList;
+        }).length;
+    }, [tasks, contextSpaceId, contextListId]);
 
     const renderIcon = (iconName: string, size = 16, color?: string) => {
         const IconComponent = IconMap[iconName] || StarIcon;
@@ -152,7 +152,7 @@ const ViewHeader: React.FC = () => {
                                 </div>
                             </>
                         )}
-                        <span className="task-count">{filteredTasks.length}</span>
+                        <span className="task-count">{filteredTasksCount}</span>
                     </>
                 )}
             </div>
@@ -206,6 +206,6 @@ const ViewHeader: React.FC = () => {
             )}
         </div>
     );
-};
+});
 
 export default ViewHeader;

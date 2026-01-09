@@ -16,7 +16,9 @@ import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 
 const ActiveTimerDisplay: React.FC = () => {
-    const { activeTimer, stopTimer, tasks } = useAppStore();
+    const activeTimer = useAppStore(state => state.activeTimer);
+    const stopTimer = useAppStore(state => state.stopTimer);
+    const tasks = useAppStore(state => state.tasks);
     const [elapsed, setElapsed] = useState('00:00:00');
 
     useEffect(() => {
@@ -55,7 +57,7 @@ const ActiveTimerDisplay: React.FC = () => {
     );
 };
 
-const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI, onOpenSettings, onTaskClick }) => {
+const Header: React.FC<HeaderProps> = React.memo(({ onAddTask, onOpenReport, onOpenAI, onOpenSettings, onTaskClick }) => {
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState<'left' | 'right'>('right');
     const { user } = useAuthStore();
@@ -146,6 +148,6 @@ const Header: React.FC<HeaderProps> = ({ onAddTask, onOpenReport, onOpenAI, onOp
             )}
         </header>
     );
-};
+});
 
 export default Header;

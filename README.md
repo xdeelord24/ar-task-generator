@@ -5,37 +5,56 @@ A modern, high-performance task management and report generation application bui
 ## 🚀 Key Features
 
 *   **🤖 AI-Powered Workflow**: 
-    *   Integrated Google Gemini AI for smart task assistance.
-    *   Rich Markdown support for AI responses, including tables and formatted text.
+    *   **Autopilot Agents**: Create automated agents that trigger on task events (creation, updates) to modify tasks, send notifications, or run AI instructions.
+    *   **Dual AI Support**: Choose between **Google Gemini (Cloud)** or **Ollama (Local)** for privacy-focused AI.
+    *   **Rich Assistance**: Smart JSON-based task modification and Markdown-formatted responses.
 *   **📋 Multi-View Task Management**:
     *   **List View**: Spreadsheet-like efficiency for bulk task management.
     *   **Kanban Board**: Drag-and-drop workflow visualization with customizable status columns.
     *   **Calendar**: Track deadlines and schedule tasks visually.
     *   **Gantt Chart**: Visual project timeline and dependency management.
     *   **Timesheet**: Professional time tracking and log management with daily totals.
+    *   **Dashboard**: Customizable widgets for high-level project stats and charts.
+*   **🎥 Clips & Media**:
+    *   **Video Hub**: Manage screen recordings and video messages.
+    *   **Interactive Player**: Comment on specific timestamps and view transcripts.
+*   **🎮 Gamification & Productivity**:
+    *   **XP System**: Earn experience points for completing tasks and level up your profile.
+    *   **Stopwatch/Timer**: Integrated time tracking with active timers.
+    *   **Focus Mode**: Minimize distractions with collapsible sidebars and clean UI.
+*   **⚡ Real-Time Collaboration**:
+    *   **Live Updates**: Socket.IO integration ensures changes reflect instantly across all connected clients.
+    *   **Team Workspaces**: Shared spaces and folders for team coordination.
+    *   **Comments & Chat**: Context-aware discussions on tasks and clips.
 *   **📄 Professional Report Generation**:
     *   Generate official reports (AR/Work Logs) directly from your tasks.
     *   Export high-quality `.docx` documents with automated formatting.
     *   Template-based generation for consistent document standards.
-*   **⏱️ Advanced Productivity Tools**:
-    *   **Stopwatch/Timer**: Integrated time tracking with active timers in the application header.
-    *   **Clickable Subtasks**: Deep task nesting with detailed views for every sub-level.
-    *   **Dynamic Statuses**: Rename, color-code, and reorder status groups to fit your workflow.
 *   **✨ Premium UI/UX**:
     *   **Collapsible Sidebar**: Maximize your workspace with a responsive, icon-retaining sidebar.
-    *   **Theme System**: Fully integrated Dark/Light mode with custom accent colors.
+    *   **Theme System**: Fully integrated Dark/Light/System modes with custom accent colors.
+    *   **Smart Notifications**: Browser and in-app alerts for due dates and assignments.
     *   **Modern Aesthetics**: Glassmorphism, smooth animations, and a refined "Premium" date picker.
 
 ## 🛠️ Technology Stack
 
+**Frontend:**
 *   **Core**: React 19, Vite, TypeScript
-*   **AI Integration**: @google/generative-ai
 *   **State Management**: Zustand
-*   **Styling**: Vanilla CSS with Design Tokens & CSS Variables
-*   **Document Generation**: docx, file-saver
-*   **Icons**: Lucide React
-*   **Drag & Drop**: @dnd-kit (Core, Sortable, Modifiers)
-*   **Markdown**: react-markdown, remark-gfm
+*   **Real-Time**: Socket.IO Client
+*   **Styling**: Vanilla CSS (Variables & Tokens)
+*   **UI Components**: Lucide React (Icons), @dnd-kit (Drag & Drop)
+*   **Utilities**: date-fns, react-markdown, remark-gfm
+
+**Backend:**
+*   **Server**: Node.js, Express
+*   **Database**: SQLite
+*   **Authentication**: JWT, bcryptjs
+*   **Real-Time Server**: Socket.IO
+
+**AI & Utilities:**
+*   **Integration**: @google/generative-ai (Gemini), Ollama API
+*   **Reports**: docx, file-saver
 
 ## 🏃‍♂️ Getting Started
 

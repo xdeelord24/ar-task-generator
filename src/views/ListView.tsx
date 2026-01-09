@@ -322,7 +322,7 @@ interface SubtaskRowItemProps {
     isTableMode?: boolean;
 }
 
-const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
+const SubtaskRowItem: React.FC<SubtaskRowItemProps> = React.memo(({
     task,
     columns,
     onTaskClick,
@@ -344,8 +344,10 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
     tags,
     isTableMode
 }) => {
-    const { tasks, isTaskCompleted, getDoneStatus } = useAppStore();
-    const parentTask = tasks.find(t => t.id === parentId);
+    const tasks = useAppStore(state => state.tasks);
+    const isTaskCompleted = useAppStore(state => state.isTaskCompleted);
+    const getDoneStatus = useAppStore(state => state.getDoneStatus);
+    const parentTask = tasks[parentId];
 
     // Construct context for subtask completion check
     const isCompleted = isTaskCompleted({
@@ -730,7 +732,7 @@ const SubtaskRowItem: React.FC<SubtaskRowItemProps> = ({
             </div>
         </div>
     );
-};
+});
 
 interface SortableRowPropsWithUpdateSubtask extends SortableRowProps {
     onUpdateSubtask: (parentId: string, subtaskId: string, updates: any) => void;
@@ -742,7 +744,7 @@ interface SortableRowPropsWithUpdateSubtask extends SortableRowProps {
     openMenuTaskId: string | null;
 }
 
-const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
+const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = React.memo(({
     task,
     columns,
     onTaskClick,
@@ -785,7 +787,7 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
         isDragging
     } = useSortable({ id: task.id });
 
-    const { isTaskCompleted } = useAppStore();
+    const isTaskCompleted = useAppStore(state => state.isTaskCompleted);
 
     const [isExpanded, setIsExpanded] = React.useState(false);
     const [isRenaming, setIsRenaming] = React.useState(false);
@@ -1391,34 +1393,32 @@ const SortableRow: React.FC<SortableRowPropsWithUpdateSubtask> = ({
             )}
         </div>
     );
-};
-const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode }) => {
-    const {
-        tasks,
-        currentSpaceId,
-        currentListId,
-        addDoc,
-        columnSettings,
-        setColumnSettings,
-        tags,
-        addTag,
-        updateTag,
-        deleteTag,
-        startTimer,
-        updateSubtask,
-        deleteSubtask,
-        addStatus,
-        spaces,
-        lists,
-        updateTask,
-        deleteTask,
-        duplicateTask,
-        duplicateSubtask,
-        archiveTask,
-        updateSpace,
-        updateList,
-        addSubtask
-    } = useAppStore();
+});
+const ListView: React.FC<ListViewProps> = React.memo(({ onAddTask, onTaskClick, isTableMode }) => {
+    const tasks = useAppStore(state => state.tasks);
+    const currentSpaceId = useAppStore(state => state.currentSpaceId);
+    const currentListId = useAppStore(state => state.currentListId);
+    const addDoc = useAppStore(state => state.addDoc);
+    const columnSettings = useAppStore(state => state.columnSettings);
+    const setColumnSettings = useAppStore(state => state.setColumnSettings);
+    const tags = useAppStore(state => state.tags);
+    const addTag = useAppStore(state => state.addTag);
+    const updateTag = useAppStore(state => state.updateTag);
+    const deleteTag = useAppStore(state => state.deleteTag);
+    const startTimer = useAppStore(state => state.startTimer);
+    const updateSubtask = useAppStore(state => state.updateSubtask);
+    const deleteSubtask = useAppStore(state => state.deleteSubtask);
+    const addStatus = useAppStore(state => state.addStatus);
+    const spaces = useAppStore(state => state.spaces);
+    const lists = useAppStore(state => state.lists);
+    const updateTask = useAppStore(state => state.updateTask);
+    const deleteTask = useAppStore(state => state.deleteTask);
+    const duplicateTask = useAppStore(state => state.duplicateTask);
+    const duplicateSubtask = useAppStore(state => state.duplicateSubtask);
+    const archiveTask = useAppStore(state => state.archiveTask);
+    const updateSpace = useAppStore(state => state.updateSpace);
+    const updateList = useAppStore(state => state.updateList);
+    const addSubtask = useAppStore(state => state.addSubtask);
     const { user } = useAuthStore();
     const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
     const [openMenuTaskId, setOpenMenuTaskId] = React.useState<string | null>(null);
@@ -2138,7 +2138,7 @@ const ListView: React.FC<ListViewProps> = ({ onAddTask, onTaskClick, isTableMode
             )}
         </div>
     );
-};
+});
 
 const DroppableStatusHeader: React.FC<{
     status: string,

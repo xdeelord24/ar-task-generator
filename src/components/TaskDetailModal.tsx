@@ -37,7 +37,7 @@ import { useAppStore } from '../store/useAppStore';
 import { API_BASE_URL } from '../config';
 import { useAuthStore } from '../store/useAuthStore';
 import { format, parseISO } from 'date-fns';
-import type { Task, Subtask } from '../types';
+import type { Task, Subtask, Attachment } from '../types';
 import PremiumDatePicker from './PremiumDatePicker';
 import TimePicker from './TimePicker';
 
@@ -87,73 +87,177 @@ const SubtaskInput: React.FC<{ onAdd: (name: string) => void }> = ({ onAdd }) =>
     );
 };
 
-const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTaskClick }) => {
-    const {
-        tasks,
-        spaces,
-        lists,
-        updateTask,
-        deleteTask,
-        addSubtask,
-        updateSubtask,
-        tags,
-        docs,
-        addDoc,
-        setCurrentView,
-        addComment,
-        addTimeEntry,
+// Member cache to prevent redundant requests
+const membersCache: Record<string, { data: any[], timestamp: number }> = {};
+const FETCH_CACHE_TTL = 300000; // 5 minutes
 
-        duplicateTask,
-        duplicateSubtask,
-        archiveTask,
-        addTag,
-        updateTag,
-        deleteTag,
-        deleteSubtask,
-        aiConfig,
-        activeTimer,
-        startTimer,
-        stopTimer,
-        isTaskCompleted,
-        getDoneStatus
-    } = useAppStore();
+const TrackTimeSection: React.FC<{
+    taskId: string;
+    totalTrackedMinutes: number;
+}> = React.memo(({ taskId, totalTrackedMinutes }) => {
+    const activeTimer = useAppStore(state => state.activeTimer);
+    const startTimer = useAppStore(state => state.startTimer);
+    const stopTimer = useAppStore(state => state.stopTimer);
+    const addTimeEntry = useAppStore(state => state.addTimeEntry);
 
-    // Logic to find task or subtask
-    let task: Task | undefined = tasks[taskId];
-    let isSubtask = false;
-    let parentTask: Task | undefined = undefined;
+    const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
+    const [timePickerTrigger, setTimePickerTrigger] = useState<HTMLElement | null>(null);
 
-    if (!task) {
-        for (const t of Object.values(tasks)) {
-            if (t.subtasks) {
-                const sub = t.subtasks.find(s => s.id === taskId);
-                if (sub) {
-                    // Create a pseudo-Task object from the subtask
-                    task = {
-                        ...sub,
-                        description: '',
-                        spaceId: t.spaceId,
-                        listId: t.listId,
-                        tags: [],
-                        subtasks: [],
-                        comments: [],
-                        timeEntries: [],
-                        relationships: [],
-                        linkedDocId: undefined,
-                        startDate: undefined
-                    } as unknown as Task;
-                    isSubtask = true;
-                    parentTask = t;
-                    break;
+    const isTimerRunning = activeTimer?.taskId === taskId;
+    const [elapsedTime, setElapsedTime] = useState(0);
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (isTimerRunning && activeTimer) {
+            const start = new Date(activeTimer.startTime).getTime();
+            setElapsedTime(Math.floor((new Date().getTime() - start) / 1000));
+
+            interval = setInterval(() => {
+                const now = new Date().getTime();
+                setElapsedTime(Math.floor((now - start) / 1000));
+            }, 1000);
+        } else {
+            setElapsedTime(0);
+        }
+        return () => clearInterval(interval);
+    }, [isTimerRunning, activeTimer?.startTime]);
+
+    const formatDuration = (seconds: number) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    const handleAddTime = (_time: string) => {
+        addTimeEntry(taskId, {
+            duration: 30,
+            date: new Date().toISOString(),
+            userId: 'user-1',
+        });
+        setIsTimePickerOpen(false);
+    };
+
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Clock3 size={14} style={{ color: isTimerRunning ? '#10b981' : 'inherit' }} />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {isTimerRunning ? (
+                    <>
+                        <span style={{ color: '#10b981', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                            {formatDuration(elapsedTime)}
+                        </span>
+                        <button
+                            className="icon-btn-ghost"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                stopTimer();
+                            }}
+                            style={{ color: '#ef4444' }}
+                            title="Stop Timer"
+                        >
+                            <Square size={14} fill="currentColor" />
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <button className="text-btn-picker" onClick={(e) => {
+                            setTimePickerTrigger(e.currentTarget);
+                            setIsTimePickerOpen(true);
+                        }}>
+                            {totalTrackedMinutes > 0
+                                ? `${totalTrackedMinutes}m tracked`
+                                : 'Add time'}
+                        </button>
+                        <button
+                            className="icon-btn-ghost"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                startTimer(taskId);
+                            }}
+                            title="Start Timer"
+                        >
+                            <Play size={14} />
+                        </button>
+                    </>
+                )}
+                {isTimePickerOpen && (
+                    <TimePicker
+                        onSelect={handleAddTime}
+                        onClose={() => setIsTimePickerOpen(false)}
+                        triggerElement={timePickerTrigger}
+                    />
+                )}
+            </div>
+        </div>
+    );
+});
+
+const TaskDetailModal: React.FC<TaskDetailModalProps> = React.memo(({ taskId, onClose, onTaskClick }) => {
+    const tasks = useAppStore(state => state.tasks);
+    const spaces = useAppStore(state => state.spaces);
+    const lists = useAppStore(state => state.lists);
+    const updateTask = useAppStore(state => state.updateTask);
+    const deleteTask = useAppStore(state => state.deleteTask);
+    const addSubtask = useAppStore(state => state.addSubtask);
+    const updateSubtask = useAppStore(state => state.updateSubtask);
+    const tags = useAppStore(state => state.tags);
+    const docs = useAppStore(state => state.docs);
+    const addDoc = useAppStore(state => state.addDoc);
+    const setCurrentView = useAppStore(state => state.setCurrentView);
+    const addComment = useAppStore(state => state.addComment);
+    const duplicateTask = useAppStore(state => state.duplicateTask);
+    const duplicateSubtask = useAppStore(state => state.duplicateSubtask);
+    const archiveTask = useAppStore(state => state.archiveTask);
+    const addTag = useAppStore(state => state.addTag);
+    const updateTag = useAppStore(state => state.updateTag);
+    const deleteTag = useAppStore(state => state.deleteTag);
+    const deleteSubtask = useAppStore(state => state.deleteSubtask);
+    const aiConfig = useAppStore(state => state.aiConfig);
+    const startTimer = useAppStore(state => state.startTimer);
+    const isTaskCompleted = useAppStore(state => state.isTaskCompleted);
+    const getDoneStatus = useAppStore(state => state.getDoneStatus);
+
+    // Memoized task and context lookup
+    const { task, isSubtask, parentTask } = React.useMemo(() => {
+        let foundTask = tasks[taskId];
+        let subtaskFlag = false;
+        let pTask: Task | undefined = undefined;
+
+        if (!foundTask) {
+            const taskList = Object.values(tasks);
+            for (let i = 0; i < taskList.length; i++) {
+                const t = taskList[i];
+                if (t.subtasks) {
+                    const sub = t.subtasks.find(s => s.id === taskId);
+                    if (sub) {
+                        const s = sub as any;
+                        foundTask = {
+                            ...sub,
+                            description: s.description || '',
+                            spaceId: t.spaceId,
+                            listId: t.listId,
+                            tags: sub.tags || [],
+                            subtasks: [],
+                            comments: s.comments || [],
+                            timeEntries: s.timeEntries || [],
+                            relationships: s.relationships || [],
+                            linkedDocId: s.linkedDocId,
+                            startDate: s.startDate
+                        } as unknown as Task;
+                        subtaskFlag = true;
+                        pTask = t;
+                        break;
+                    }
                 }
             }
         }
-    }
+        return { task: foundTask, isSubtask: subtaskFlag, parentTask: pTask };
+    }, [tasks, taskId]);
 
     const [activeTab, setActiveTab] = useState<'details' | 'subtasks' | 'notepad'>('details');
     const [sidebarTab, setSidebarTab] = useState<SidebarTab>('activity');
     const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
-    // newSubtaskName state moved to SubtaskInput component
     const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
     const [optionsMenuTrigger, setOptionsMenuTrigger] = useState<HTMLElement | null>(null);
     const [isTagPickerOpen, setIsTagPickerOpen] = useState(false);
@@ -161,20 +265,13 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [isRelationshipPickerOpen, setIsRelationshipPickerOpen] = useState(false);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [datePickerTrigger, setDatePickerTrigger] = useState<HTMLElement | null>(null);
-    const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
     const [subtaskMenuOpenId, setSubtaskMenuOpenId] = useState<string | null>(null);
     const [subtaskMenuTrigger, setSubtaskMenuTrigger] = useState<HTMLElement | null>(null);
     const [subtaskMenuPos, setSubtaskMenuPos] = useState<{ x: number, y: number } | null>(null);
-    const [timePickerTrigger, setTimePickerTrigger] = useState<HTMLElement | null>(null);
-
-
-    // ... inside TaskDetailModal component ...
-
     const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
     const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false);
-
     const [suggestedSubtasks, setSuggestedSubtasks] = useState<string[]>([]);
     const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set());
     const [isEnhancingTitle, setIsEnhancingTitle] = useState(false);
@@ -183,48 +280,92 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
     const [isAssigneePickerOpen, setIsAssigneePickerOpen] = useState(false);
     const [workspaceMembers, setWorkspaceMembers] = useState<any[]>([]);
     const [assigneeSearch, setAssigneeSearch] = useState('');
-    const { token, user: currentUser } = useAuthStore();
+
+    // Auth selectors
+    const token = useAuthStore(state => state.token);
+    const currentUser = useAuthStore(state => state.user);
+
+    // Performance optimization: Local states for inputs
+    const [localName, setLocalName] = useState(task?.name || '');
+    const [localNotepad, setLocalNotepad] = useState(task?.notepad || '');
+
+    useEffect(() => {
+        if (task) {
+            setLocalName(task.name);
+        }
+    }, [task?.id, task?.name]);
+
+    useEffect(() => {
+        if (task) {
+            setLocalNotepad(task.notepad || '');
+        }
+    }, [task?.id, task?.notepad]);
 
     // Subtask functionality states
     const [renamingSubtaskId, setRenamingSubtaskId] = useState<string | null>(null);
     const [subtaskTagPickerOpenId, setSubtaskTagPickerOpenId] = useState<string | null>(null);
     const [subtaskTagPickerTrigger, setSubtaskTagPickerTrigger] = useState<HTMLElement | null>(null);
+
     const activityFeedRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     const titleSuggestionRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         if (activityFeedRef.current) {
             activityFeedRef.current.scrollTop = activityFeedRef.current.scrollHeight;
         }
     }, [task?.comments, sidebarTab]);
 
+    const subtaskStats = React.useMemo(() => {
+        if (!task || !task.subtasks) return { completed: 0, total: 0, assignedToMe: 0 };
+        const completedCount = task.subtasks.filter(s => isTaskCompleted({ ...s, listId: task.listId, spaceId: task.spaceId } as Task)).length;
+        const totalCount = task.subtasks.length;
+        const assignedToMeCount = task.subtasks.filter(s =>
+            (s.assignees?.includes(currentUser?.name || '') || s.assignee === (currentUser?.name || 'user-1'))
+        ).length;
+        return { completed: completedCount, total: totalCount, assignedToMe: assignedToMeCount };
+    }, [task?.subtasks, task?.listId, task?.spaceId, isTaskCompleted, currentUser?.name]);
+
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isGeneratingAIComment, setIsGeneratingAIComment] = useState(false);
+
+    const currentSpace = React.useMemo(() => spaces.find(s => s.id === task?.spaceId), [spaces, task?.spaceId]);
+    const currentList = React.useMemo(() => lists.find(l => l.id === task?.listId), [lists, task?.listId]);
 
 
     useEffect(() => {
-        const fetchMembers = async () => {
-            // Reset members immediately to avoid stale data from previous task/space
-            setWorkspaceMembers([]);
+        let isMounted = true;
 
+        const fetchMembers = async () => {
             if (!task?.spaceId || !token) return;
+
+            const cacheKey = `members_${task.spaceId}_${task.listId || 'no-list'}`;
+            const cached = membersCache[cacheKey];
+
+            if (cached && (Date.now() - cached.timestamp < FETCH_CACHE_TTL)) {
+                setWorkspaceMembers(cached.data);
+                return;
+            }
 
             let allMembers: any[] = [];
 
             try {
-                // Fetch space members
                 const spaceRes = await fetch(`${API_BASE_URL}/api/resource/members?resourceType=space&resourceId=${task.spaceId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+                if (!isMounted) return;
+
                 if (spaceRes.ok) {
                     allMembers = await spaceRes.json();
                 }
 
-                // If task is in a list, also fetch list members
                 if (task.listId) {
                     const listRes = await fetch(`${API_BASE_URL}/api/resource/members?resourceType=list&resourceId=${task.listId}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
+                    if (!isMounted) return;
+
                     if (listRes.ok) {
                         const listMembers = await listRes.json();
-                        // Merge and de-duplicate
                         listMembers.forEach((lm: any) => {
                             if (!allMembers.find((am: any) => am.id === lm.id)) {
                                 allMembers.push(lm);
@@ -233,7 +374,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                     }
                 }
 
-                // Safety net: Check if we have the space locally and can identify the owner
                 const space = useAppStore.getState().spaces.find(s => s.id === task.spaceId);
                 if (space && space.ownerId && space.ownerName) {
                     if (!allMembers.find((am: any) => am.id === space.ownerId || am.user_id === space.ownerId)) {
@@ -247,15 +387,19 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                     }
                 }
 
-                setWorkspaceMembers(allMembers);
+                if (isMounted) {
+                    setWorkspaceMembers(allMembers);
+                    membersCache[cacheKey] = { data: allMembers, timestamp: Date.now() };
+                }
             } catch (e) {
                 console.error('Failed to fetch members', e);
             }
         };
+
         fetchMembers();
 
         return () => {
-            setWorkspaceMembers([]);
+            isMounted = false;
         };
     }, [task?.spaceId, task?.listId, token]);
 
@@ -277,7 +421,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             window.removeEventListener('mousedown', handleClickOutside);
         };
     }, [suggestedTitles]);
-    if (!task) return null;
+
+
 
     const handleSuggestSubtasks = async () => {
         if (!task) return;
@@ -285,8 +430,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         setSuggestedSubtasks([]); // Reset previous suggestions
 
         const prompt = `Suggest 3-5 subtasks for the task "${task.name}".
-        Description: ${task.description || 'No description'}.
-        Return ONLY a JSON array of strings, e.g. ["Subtask 1", "Subtask 2"]. No markdown, no code blocks, just raw JSON.`;
+                                Description: ${task.description || 'No description'}.
+                                Return ONLY a JSON array of strings, e.g. ["Subtask 1", "Subtask 2"]. No markdown, no code blocks, just raw JSON.`;
 
         try {
             let responseText = '';
@@ -335,10 +480,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         setSuggestedTitles([]);
 
         const prompt = `Enhance the task title: "${task.name}".
-        Description: ${task.description || 'No description'}.
-        Suggest exactly 3 improved, professional, and concise task titles.
-        Return ONLY the 3 titles, one per line, without numbering or extra text.
-        IMPORTANT: Do NOT use markdown (no asterisks), do NOT use quotes, and do NOT use commas.`;
+                                Description: ${task.description || 'No description'}.
+                                Suggest exactly 3 improved, professional, and concise task titles.
+                                Return ONLY the 3 titles, one per line, without numbering or extra text.
+                                IMPORTANT: Do NOT use markdown (no asterisks), do NOT use quotes, and do NOT use commas.`;
 
         try {
             let responseText = '';
@@ -497,7 +642,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         setIsOptionsMenuOpen(false);
     };
 
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
 
     const handleDeleteClick = () => {
         setShowDeleteConfirm(true);
@@ -523,7 +668,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         });
     };
 
-    const [isGeneratingAIComment, setIsGeneratingAIComment] = useState(false);
+
 
     const handleAIResponse = async (query: string) => {
         setIsGeneratingAIComment(true);
@@ -532,8 +677,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         try {
             let responseText = '';
             let prompt = `You are a helpful project management assistant. A user asked: "${query}".
-            Context: Task "${task.name}", Description: "${task.description}".
-            Provide a direct answer without using a name prefix like 'AI Assistant:'.`;
+                                    Context: Task "${task.name}", Description: "${task.description}".
+                                    Provide a direct answer without using a name prefix like 'AI Assistant:'.`;
 
             if (aiConfig.provider === 'ollama') {
                 const response = await fetch(`${aiConfig.ollamaHost}/api/generate`, {
@@ -580,17 +725,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
 
 
 
-    const handleAddTime = (time: string) => {
-        // Log the time entry with the selected slot name
-        addTimeEntry(taskId, {
-            duration: 30, // Default slot duration
-            date: new Date().toISOString(),
-            userId: 'user-1',
-            // note: `Slotted for ${time}` // Optionally add metadata if your type supports it
-        });
-        console.log(`Time logged for slot: ${time}`);
-        setIsTimePickerOpen(false);
-    };
 
     const toggleTag = (tagId: string) => {
         const currentTags = task.tags || [];
@@ -600,34 +734,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
         handleUpdate({ tags: newTags });
     };
 
-    const currentSpace = spaces.find(s => s.id === task.spaceId);
-    const currentList = lists.find(l => l.id === task.listId);
+    if (!task) return null;
 
-    const isTimerRunning = activeTimer?.taskId === taskId;
-    const [elapsedTime, setElapsedTime] = useState(0);
 
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (isTimerRunning && activeTimer) {
-            const start = new Date(activeTimer.startTime).getTime();
-            setElapsedTime(Math.floor((new Date().getTime() - start) / 1000));
-
-            interval = setInterval(() => {
-                const now = new Date().getTime();
-                setElapsedTime(Math.floor((now - start) / 1000));
-            }, 1000);
-        } else {
-            setElapsedTime(0);
-        }
-        return () => clearInterval(interval);
-    }, [isTimerRunning, activeTimer?.startTime]);
-
-    const formatDuration = (seconds: number) => {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -771,8 +880,18 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                         <div className="title-container">
                             <input
                                 className="detail-title-input"
-                                value={task.name}
-                                onChange={(e) => handleUpdate({ name: e.target.value })}
+                                value={localName}
+                                onChange={(e) => setLocalName(e.target.value)}
+                                onBlur={() => {
+                                    if (localName !== task?.name) {
+                                        handleUpdate({ name: localName });
+                                    }
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.currentTarget.blur();
+                                    }
+                                }}
                                 placeholder="Task name"
                             />
                             {!isSubtask && (
@@ -883,55 +1002,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                 <div className="meta-item">
                                     <span className="meta-label">Track Time</span>
                                     <div className="meta-inline-val">
-                                        <Clock3 size={14} />
-                                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {isTimerRunning ? (
-                                                <>
-                                                    <span style={{ color: '#10b981', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                                                        {formatDuration(elapsedTime)}
-                                                    </span>
-                                                    <button
-                                                        className="icon-btn-ghost"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            stopTimer();
-                                                        }}
-                                                        style={{ color: '#ef4444' }}
-                                                        title="Stop Timer"
-                                                    >
-                                                        <Square size={14} fill="currentColor" />
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <button className="text-btn-picker" onClick={(e) => {
-                                                        setTimePickerTrigger(e.currentTarget);
-                                                        setIsTimePickerOpen(true);
-                                                    }}>
-                                                        {task.timeEntries && task.timeEntries.length > 0
-                                                            ? `${task.timeEntries.reduce((acc, curr) => acc + curr.duration, 0)}m tracked`
-                                                            : 'Add time'}
-                                                    </button>
-                                                    <button
-                                                        className="icon-btn-ghost"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            startTimer(taskId);
-                                                        }}
-                                                        title="Start Timer"
-                                                    >
-                                                        <Play size={14} />
-                                                    </button>
-                                                </>
-                                            )}
-                                            {isTimePickerOpen && (
-                                                <TimePicker
-                                                    onSelect={handleAddTime}
-                                                    onClose={() => setIsTimePickerOpen(false)}
-                                                    triggerElement={timePickerTrigger}
-                                                />
-                                            )}
-                                        </div>
+                                        <TrackTimeSection
+                                            taskId={taskId}
+                                            totalTrackedMinutes={task.timeEntries ? task.timeEntries.reduce((acc, curr) => acc + curr.duration, 0) : 0}
+                                        />
                                     </div>
                                 </div>
                                 <div className="meta-item">
@@ -1336,15 +1410,17 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                         </div>
                                         <textarea
                                             placeholder="Type your notes here... (Supports - or * for bullets, [] for checkboxes)"
-                                            value={task.notepad || ''}
+                                            value={localNotepad}
                                             onChange={(e) => {
-                                                const val = e.target.value;
-                                                // Simple auto-replace logic for typing (debounce could be better but this is simple)
-                                                // We handle keydown for most patterns, but on paste/text change we check basics
-                                                if (isSubtask && parentTask) {
-                                                    updateSubtask(parentTask.id, task!.id, { notepad: val });
-                                                } else {
-                                                    updateTask(task!.id, { notepad: val });
+                                                setLocalNotepad(e.target.value);
+                                            }}
+                                            onBlur={() => {
+                                                if (localNotepad !== (task?.notepad || '')) {
+                                                    if (isSubtask && parentTask) {
+                                                        updateSubtask(parentTask.id, task!.id, { notepad: localNotepad });
+                                                    } else {
+                                                        updateTask(task!.id, { notepad: localNotepad });
+                                                    }
                                                 }
                                             }}
                                             onKeyDown={(e) => {
@@ -1502,12 +1578,12 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Subtasks</h3>
                                             <div style={{ width: '60px', height: '4px', background: '#e2e8f0', borderRadius: '2px' }}>
-                                                <div style={{ width: `${(task.subtasks?.filter(s => isTaskCompleted({ ...s, listId: task!.listId, spaceId: task!.spaceId } as Task)).length || 0) / (task.subtasks?.length || 1) * 100}%`, height: '100%', background: '#3b82f6', borderRadius: '2px' }}></div>
+                                                <div style={{ width: `${(subtaskStats.completed / (subtaskStats.total || 1)) * 100}%`, height: '100%', background: '#3b82f6', borderRadius: '2px' }}></div>
                                             </div>
                                             <span style={{ fontSize: '12px', color: '#64748b' }}>
-                                                {task.subtasks?.filter(s => isTaskCompleted({ ...s, listId: task!.listId, spaceId: task!.spaceId } as Task)).length || 0}/{task.subtasks?.length || 0}
+                                                {subtaskStats.completed}/{subtaskStats.total}
                                                 <span style={{ marginLeft: '8px', padding: '2px 6px', background: '#e0f2fe', color: '#0284c7', borderRadius: '4px', fontSize: '11px', fontWeight: 500 }}>
-                                                    {task.subtasks?.filter(s => s.assignee === 'user-1').length} Assigned to me
+                                                    {subtaskStats.assignedToMe} Assigned to me
                                                 </span>
                                             </span>
                                         </div>
@@ -1856,7 +1932,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
                                             </div>
                                             <div className="rel-sec-list">
                                                 {task.relationships?.filter(r => r.type === (sidebarTab === 'links' ? 'linked' : sidebarTab === 'blocking' ? 'blocking' : 'waiting')).map(rel => {
-                                                    const rTask = tasks.find(t => t.id === rel.taskId);
+                                                    const rTask = tasks[rel.taskId];
                                                     if (!rTask) return null;
                                                     return (
                                                         <div key={rel.id} className="rel-sidebar-item" onClick={() => onTaskClick?.(rTask.id)}>
@@ -1937,6 +2013,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, onClose, onTa
             )}
         </div>
     );
-};
+});
 
 export default TaskDetailModal;
