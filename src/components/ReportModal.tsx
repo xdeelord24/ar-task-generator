@@ -2,7 +2,8 @@
 import { X, FileText, Download } from 'lucide-react';
 import { Packer } from 'docx';
 import { saveAs } from 'file-saver';
-import { useAppStore } from '../store/useAppStore';
+import { useAppStore, DEFAULT_STATUSES } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO, setDate } from 'date-fns';
 import type { Task } from '../types';
 import { generateReportDocument } from '../utils/reportTemplates';
@@ -14,7 +15,8 @@ interface ReportModalProps {
 }
 
 const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
-    const { tasks, currentSpaceId, spaces, isTaskCompleted } = useAppStore();
+    const { tasks, currentSpaceId, spaces, lists, isTaskCompleted, userName } = useAppStore();
+    const { user } = useAuthStore();
 
     const today = new Date();
     const currentDay = today.getDate();
@@ -48,7 +50,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
 
     const [formData, setFormData] = useState({
         template: 'general',
-        name: 'User',
+        name: user?.name || userName || 'User',
         position: 'Software Engineer',
         office: 'Tech Office',
         year: today.getFullYear(),
@@ -103,6 +105,27 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
         }
     };
 
+    const getTaskStatuses = (task: Task) => {
+        if (task.listId) {
+            const list = lists.find((l) => l.id === task.listId);
+            if (list && list.statuses && list.statuses.length > 0) return list.statuses;
+        }
+        const space = spaces.find((s) => s.id === task.spaceId);
+        if (space && space.statuses && space.statuses.length > 0) return space.statuses;
+        return DEFAULT_STATUSES;
+    };
+
+    const getTaskStatusType = (task: Task) => {
+        const statuses = getTaskStatuses(task);
+        const statusObj = statuses.find((s) => s.name === task.status);
+        if (statusObj) return statusObj.type;
+        // Fallback for hardcoded statuses if any
+        if (task.status === 'COMPLETED') return 'done';
+        if (task.status === 'IN PROGRESS') return 'inprogress';
+        if (task.status === 'TO DO') return 'todo';
+        return 'todo';
+    };
+
     const generateReport = async () => {
         let reportTasks: Task[] = Object.values(tasks).filter(t =>
             selectedSpaces.includes(t.spaceId)
@@ -110,8 +133,17 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
 
         if (formData.name) {
             reportTasks = reportTasks.filter(t => {
-                const isAssignee = t.assignee === formData.name;
-                const isInAssignees = t.assignees?.includes(formData.name) ?? false;
+                const nameFilter = formData.name.toLowerCase().trim();
+                const assigneeName = t.assignee?.toLowerCase().trim() || '';
+
+                // Allow partial matches in either direction
+                const isAssignee = assigneeName.includes(nameFilter) || nameFilter.includes(assigneeName);
+
+                const isInAssignees = t.assignees?.some(a => {
+                    const diffName = a.toLowerCase().trim();
+                    return diffName.includes(nameFilter) || nameFilter.includes(diffName);
+                }) ?? false;
+
                 return isAssignee || isInAssignees;
             });
         }
@@ -119,17 +151,34 @@ const ReportModal: React.FC<ReportModalProps> = ({ onClose }) => {
         if (formData.dateFrom && formData.dateTo) {
             const start = parseISO(formData.dateFrom);
             const end = parseISO(formData.dateTo);
+
+            // Adjust end date to end of day to include updates on that day
+            const endOfDay = new Date(end);
+            endOfDay.setHours(23, 59, 59, 999);
+
             reportTasks = reportTasks.filter(t => {
-                if (!t.dueDate) return false;
-                const d = parseISO(t.dueDate);
-                return isWithinInterval(d, { start, end });
+                // Check if task has a due date in range
+                const hasDueInRange = t.dueDate ? isWithinInterval(parseISO(t.dueDate), { start, end: endOfDay }) : false;
+
+                // Check if task was updated/completed in range (for accomplishments)
+                const hasUpdateInRange = t.updatedAt ? isWithinInterval(parseISO(t.updatedAt), { start, end: endOfDay }) : false;
+
+                // Include if either matches. If user strictly wants only tasks DUE, they can ignore the "updated" part, 
+                // but for an "Accomplishment Report", work done (updated) is usually key.
+                return hasDueInRange || hasUpdateInRange;
             });
         }
 
         reportTasks = reportTasks.filter(t => {
+            const statusType = getTaskStatusType(t);
+
+            if (formData.includeCompleted && (statusType === 'done' || statusType === 'closed')) return true;
+            if (formData.includeInProgress && statusType === 'inprogress') return true;
+            if (formData.includeTodo && statusType === 'todo') return true;
+
+            // Legacy/Fallback checks (optional but safe)
             if (isTaskCompleted(t) && formData.includeCompleted) return true;
-            if (t.status === 'IN PROGRESS' && formData.includeInProgress) return true;
-            if (t.status === 'TO DO' && formData.includeTodo) return true;
+
             return false;
         });
 

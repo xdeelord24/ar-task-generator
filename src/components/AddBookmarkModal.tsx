@@ -39,7 +39,7 @@ const AddBookmarkModal: React.FC<AddBookmarkModalProps> = ({ onClose }) => {
             location: dashboard.spaceId ? `in ${spaces.find(s => s.id === dashboard.spaceId)?.name || 'Space'}` : 'in',
             timestamp: getRelativeTime(dashboard.updatedAt)
         })),
-        ...tasks.slice(0, 2).map(task => ({
+        ...Object.values(tasks).slice(0, 2).map(task => ({
             id: task.id,
             name: task.name,
             type: 'task' as const,

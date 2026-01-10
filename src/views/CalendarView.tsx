@@ -266,7 +266,7 @@ const DroppableTimeColumn: React.FC<{
                 deltaMins = Math.round((deltaY / colHeight) * (24 * 60));
             }
 
-            const task = tasks[taskId];
+            const task = tasks.find(t => t.id === taskId);
             if (task) {
                 const start = task.startDate ? new Date(task.startDate) : new Date(task.dueDate || '');
                 const currentDuration = task.startDate && task.dueDate

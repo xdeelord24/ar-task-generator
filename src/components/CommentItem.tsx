@@ -69,7 +69,7 @@ const CommentItem: React.FC<CommentItemProps> = React.memo(({ comment, onImageCl
                 {comment.attachments && comment.attachments.length > 0 && (
                     <div className="activity-attachments" style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                         {comment.attachments.map((att: any) => {
-                            const isImage = att.type.startsWith('image/');
+
                             return (
                                 <div
                                     key={att.id}
